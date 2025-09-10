@@ -13,6 +13,18 @@
       "PackagePath": "staticwebassets\\favicon.ico"
     },
     {
+      "Id": "C:\\Users\\semai\\Desktop\\makeup\\wwwroot\\images\\products\\Nyxpalet.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\Nyxpalet.jpg"
+    },
+    {
+      "Id": "C:\\Users\\semai\\Desktop\\makeup\\wwwroot\\images\\products\\kiko46.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\kiko46.jpg"
+    },
+    {
+      "Id": "C:\\Users\\semai\\Desktop\\makeup\\wwwroot\\images\\products\\mac.png",
+      "PackagePath": "staticwebassets\\images\\products\\mac.png"
+    },
+    {
       "Id": "C:\\Users\\semai\\Desktop\\makeup\\wwwroot\\js\\site.js",
       "PackagePath": "staticwebassets\\js\\site.js"
     },

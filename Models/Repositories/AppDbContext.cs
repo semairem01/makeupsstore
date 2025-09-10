@@ -86,5 +86,15 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 .HasForeignKey(ci => ci.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+        modelBuilder.Entity<AppUser>(entity =>
+        {
+            entity.Property(u => u.IsAdmin).HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<AppRole>(entity =>
+        {
+            entity.Property(r => r.Description).HasMaxLength(200);
+            entity.Property(r => r.IsActive).HasDefaultValue(true);
+        });
     }
 }
