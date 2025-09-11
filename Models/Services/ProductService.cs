@@ -54,7 +54,34 @@ public class ProductService : IProductService
             product.Category.Name
         );
     }
+    public async Task<IEnumerable<ProductDto>> GetByCategoryAsync(int categoryId)
+    {
+        var category = await _categoryRepository.GetByIdAsync(categoryId);
+        if (category == null)
+        {
+            return new List<ProductDto>(); // Boş liste döndür, hata fırlatma
+        }
 
+        var products = await _productRepository.GetAllAsync();
+
+        var filtered = products
+            .Where(p => p.CategoryId == categoryId && p.IsActive) // ✅ IsActive kontrolü ekledik
+            .Select(p => new ProductDto(
+                p.Id,
+                p.Name,
+                p.Brand,
+                p.Description,
+                p.Price,
+                p.IsActive,
+                p.ImageUrl,
+                p.Color,
+                p.Size,
+                p.Category?.Name ?? category.Name // ✅ Null check ekledik
+            ))
+            .ToList();
+
+        return filtered;
+    }
     // Yeni ürün ekle
     public async Task<ServiceResult<ProductDto>> CreateAsync(ProductCreateDto dto)
     {
