@@ -105,12 +105,13 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-
+builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
 // Services
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<ICartItemService, CartItemService>();
 
 builder.Services.AddHttpContextAccessor();
 

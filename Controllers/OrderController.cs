@@ -49,4 +49,12 @@ public class OrderController : ControllerBase
         if (!result.Success) return NotFound(result.Message);
         return NoContent();
     }
+    
+    [HttpPost("checkout")]
+    public async Task<ActionResult<OrderDto>> Checkout()
+    {
+        var result = await _orderService.CheckoutAsync();
+        if (!result.Success) return BadRequest(result.Message);
+        return Ok(result);
+    }
 }

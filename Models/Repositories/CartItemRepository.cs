@@ -2,7 +2,7 @@
 
 namespace makeup.Models.Repositories;
 
-public class CartItemRepository
+public class CartItemRepository : ICartItemRepository
 {
     private readonly AppDbContext _context;
 
