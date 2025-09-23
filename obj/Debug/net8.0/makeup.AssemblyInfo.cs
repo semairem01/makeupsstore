@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("makeup")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+00f59b77abb199c61ea2ccb863e1a9e39d6c3bac")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1fabdba63ce9d92482e4038f9f9cbb354c48d891")]
 [assembly: System.Reflection.AssemblyProductAttribute("makeup")]
 [assembly: System.Reflection.AssemblyTitleAttribute("makeup")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -8,4 +8,6 @@ public interface ICartItemRepository
     Task UpdateAsync(CartItem cartItem);
     Task RemoveAsync(int id);
     Task ClearCartAsync(Guid userId); // tüm sepeti boşalt
+    
+    Task<CartItem?> GetByUserAndProductAsync(Guid userId, int productId);
 }

@@ -31,7 +31,7 @@ public class OrderItemRepository : IOrderItemRepository
     public async Task<IEnumerable<OrderItem>> GetByProductIdAsync(int productId)
     {
         return await _context.OrderItems
-            .Where(oi => oi.Product.Id == productId)
+            .Where(oi => oi.ProductId == productId)
             .Include(oi => oi.Product)
             .ToListAsync();
     }

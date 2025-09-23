@@ -2,19 +2,22 @@
 using makeup.Models.Repositories;
 using makeup.Models.Repositories.Entities;
 using makeup.Models.Services.Dtos;
+using Microsoft.EntityFrameworkCore;
 
 namespace makeup.Models.Services;
 
 public class OrderService : IOrderService
 {
+    private readonly AppDbContext _context;
     private readonly IOrderRepository _orderRepository;
     private readonly IProductRepository _productRepository;
     private readonly ICartItemRepository _cartItemRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
     public OrderService(IOrderRepository orderRepository, IProductRepository productRepository,
         ICartItemRepository cartItemRepository,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor, AppDbContext context)
     {
+        _context = context;
         _orderRepository = orderRepository;
         _productRepository = productRepository;
         _cartItemRepository = cartItemRepository;
@@ -74,7 +77,7 @@ public class OrderService : IOrderService
 
         await _orderRepository.AddAsync(order);
         var loaded = await _orderRepository.GetByIdAsync(order.Id);
-        return ServiceResult<OrderDto>.Ok(MapToDto(order), "Order created successfully!");
+        return ServiceResult<OrderDto>.Ok(MapToDto(loaded!), "Order successfully created.");
     }
 
     public async Task<ServiceResult<bool>> DeleteAsync(int id, Guid userId)
@@ -93,52 +96,79 @@ public class OrderService : IOrderService
             if (CurrentUserId == Guid.Empty)
                 return ServiceResult<OrderDto>.Fail("Kullanıcı bulunamadı");
 
-            // 2) sepet
-            var cartItems = (await _cartItemRepository.GetByUserIdAsync(CurrentUserId)).ToList();
-            if (!cartItems.Any())
-                return ServiceResult<OrderDto>.Fail("Sepetiniz boş");
-
-            // 3) stok kontrol + sipariş kalemleri
-            var orderItems = new List<OrderItem>();
-            foreach (var ci in cartItems)
+            
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            try
             {
-                // güvenlik: ürünü tekrar DB’den oku (stok/aktif kontrol)
-                var product = await _productRepository.GetByIdAsync(ci.ProductId);
-                if (product == null || !product.IsActive)
-                    return ServiceResult<OrderDto>.Fail($"Ürün geçersiz: {ci.ProductId}");
+                // 1) Sepeti çek
+                var cartItems = (await _cartItemRepository.GetByUserIdAsync(CurrentUserId)).ToList();
+                if (!cartItems.Any())
+                    return ServiceResult<OrderDto>.Fail("Sepetiniz boş");
 
-                if (product.StockQuantity < ci.Quantity)
-                    return ServiceResult<OrderDto>.Fail($"{product.Name} için yeterli stok yok.");
-
-                product.StockQuantity -= ci.Quantity;
-                await _productRepository.UpdateAsync(product);
-
-                orderItems.Add(new OrderItem
+                // 2) Stok kontrol + stok düş
+                var orderItems = new List<OrderItem>();
+                foreach (var ci in cartItems)
                 {
-                    ProductId = ci.ProductId,
-                    Quantity = ci.Quantity,
-                    UnitPrice = product.Price
-                });
+                    var product = await _productRepository.GetByIdAsync(ci.ProductId);
+                    if (product == null || !product.IsActive)
+                        return ServiceResult<OrderDto>.Fail($"Ürün geçersiz: {ci.ProductId}");
+
+                    if (product.StockQuantity < ci.Quantity)
+                        return ServiceResult<OrderDto>.Fail($"{product.Name} için yeterli stok yok.");
+
+                    product.StockQuantity -= ci.Quantity;
+                    await _productRepository.UpdateAsync(product);
+
+                    orderItems.Add(new OrderItem
+                    {
+                        ProductId = ci.ProductId,
+                        Quantity = ci.Quantity,
+                        UnitPrice = product.Price
+                    });
+                }
+
+                // 3) Sipariş oluştur
+                var order = new Order
+                {
+                    UserId = CurrentUserId,
+                    OrderDate = DateTime.UtcNow,
+                    Status = OrderStatus.SiparisAlindi,
+                    OrderItems = orderItems
+                };
+
+                await _orderRepository.AddAsync(order);
+
+                // 4) Sepeti temizle
+                await _cartItemRepository.ClearCartAsync(CurrentUserId);
+
+                // 5) DTO için include’larla tekrar yükle
+                var loaded = await _orderRepository.GetByIdAsync(order.Id);
+
+                // 6) Transaction commit
+                await tx.CommitAsync();
+
+                return ServiceResult<OrderDto>.Ok(MapToDto(loaded!), "Sipariş başarıyla oluşturuldu");
             }
-
-            // 4) sipariş oluştur
-            var order = new Order
+            catch (Exception ex)
             {
-                UserId = CurrentUserId,
-                OrderDate = DateTime.UtcNow,
-                Status = OrderStatus.SiparisAlindi,
-                OrderItems = orderItems
-            };
-
-            await _orderRepository.AddAsync(order);
-
-            // 5) sepeti temizle
-            await _cartItemRepository.ClearCartAsync(CurrentUserId);
-
-            // 6) DTO için Include’larla tekrar yükle
-            var loaded = await _orderRepository.GetByIdAsync(order.Id);
-            return ServiceResult<OrderDto>.Ok(MapToDto(loaded!), "Sipariş başarıyla oluşturuldu");
+                // Herhangi bir hata → tüm değişiklikleri geri al
+                await tx.RollbackAsync();
+                return ServiceResult<OrderDto>.Fail(ex.Message);
+            }
         }
+    
+    public async Task<ServiceResult<bool>> CancelOrderAsync(int orderId, Guid userId)
+    {
+        try
+        {
+            await _orderRepository.CancelOrderAsync(orderId, userId);
+            return ServiceResult<bool>.Ok(true, "Sipariş iptal edildi.");
+        }
+        catch (Exception ex)
+        {
+            return ServiceResult<bool>.Fail(ex.Message);
+        }
+    }
     private OrderDto MapToDto(Order order)
     {
         return new OrderDto(

@@ -34,6 +34,14 @@ public class OrderController : ControllerBase
         return Ok(order);
     }
 
+    [HttpPost("checkout")]
+    public async Task<ActionResult<OrderDto>> Checkout()
+    {
+        var result = await _orderService.CheckoutAsync();
+        if (!result.Success) return BadRequest(result.Message);
+        return Ok(result);
+    }
+    
     [HttpPost]
     public async Task<ActionResult<OrderDto>> Create(OrderCreateDto dto)
     {
@@ -50,11 +58,16 @@ public class OrderController : ControllerBase
         return NoContent();
     }
     
-    [HttpPost("checkout")]
-    public async Task<ActionResult<OrderDto>> Checkout()
+    // Opsiyonel: Kullanıcı sadece “SiparisAlindi/Hazirlaniyor”sa iptal edebilsin.
+    [HttpPost("{id:int}/cancel")]
+    public async Task<IActionResult> Cancel(int id)
     {
-        var result = await _orderService.CheckoutAsync();
-        if (!result.Success) return BadRequest(result.Message);
-        return Ok(result);
+        var result = await _orderService.CancelOrderAsync(id, CurrentUserId);
+        if (!result.Success)
+            return BadRequest(result.Message);
+
+        return Ok(new { success = true, message = result.Message });
     }
+    
+   
 }

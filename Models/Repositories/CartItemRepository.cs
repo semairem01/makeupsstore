@@ -26,6 +26,13 @@ public class CartItemRepository : ICartItemRepository
             .ToListAsync();
     }
 
+    public async Task<CartItem?> GetByUserAndProductAsync(Guid userId, int productId)
+    {
+        return await _context.CartItems
+            .Include(ci => ci.Product)
+            .FirstOrDefaultAsync(ci => ci.UserId == userId && ci.ProductId == productId);
+    }
+    
     public async Task AddAsync(CartItem cartItem)
     {
         // Sepette aynı ürün zaten varsa, quantity artır
@@ -36,13 +43,17 @@ public class CartItemRepository : ICartItemRepository
         {
             existingItem.Quantity += cartItem.Quantity;
             _context.CartItems.Update(existingItem);
+            await _context.SaveChangesAsync();
+
+            // 🔧 EK: Servis tarafında GetByIdAsync(cartItem.Id) çalışsın diye id’yi geçir
+            cartItem.Id = existingItem.Id;   // *** kritik satır ***
         }
         else
         {
             await _context.CartItems.AddAsync(cartItem);
+            await _context.SaveChangesAsync();
+            // not: burada EF zaten cartItem.Id’yi doldurur
         }
-        
-        await _context.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(CartItem cartItem)

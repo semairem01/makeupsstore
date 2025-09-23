@@ -53,7 +53,7 @@ public class CartItemService : ICartItemService
 
         await _cartItemRepository.AddAsync(cartItem);
 
-        var addedItem = await _cartItemRepository.GetByIdAsync(cartItem.Id);
+        var addedItem = await _cartItemRepository.GetByUserAndProductAsync(CurrentUserId, dto.ProductId);
 
         if (addedItem == null)
             return ServiceResult<CartItemDto>.Fail("Failed to add item to cart.");

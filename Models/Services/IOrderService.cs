@@ -9,4 +9,6 @@ public interface IOrderService
     Task<ServiceResult<OrderDto>> CreateAsync(OrderCreateDto dto, Guid userId); // Yeni sipariş oluştur
     Task<ServiceResult<bool>> DeleteAsync(int id, Guid userId); // Siparişi iptal et
     Task<ServiceResult<OrderDto>> CheckoutAsync();
+    
+    Task<ServiceResult<bool>> CancelOrderAsync(int orderId, Guid userId);
 }
