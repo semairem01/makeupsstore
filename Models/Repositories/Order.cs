@@ -14,4 +14,6 @@ public class Order
     public OrderStatus Status {get; set;} // "Sipariş alımdı" , "Hazırlanıyor" , "Kargoda" , "Teslim Edildi"
     public ICollection<OrderItem> OrderItems { get; set; }
     
+    public string? TrackingNumber { get; set; }
+    
 }
