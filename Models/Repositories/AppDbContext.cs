@@ -16,6 +16,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
     public DbSet<OrderItem> OrderItems { get; set; } = null!;
     public DbSet<CartItem> CartItems { get; set; } = null!;
     public DbSet<FavoriteProduct> FavoriteProducts { get; set; } = null!;
+    public DbSet<ProductReview> ProductReviews { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -103,6 +104,14 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
         {
             entity.Property(r => r.Description).HasMaxLength(200);
             entity.Property(r => r.IsActive).HasDefaultValue(true);
+        });
+        
+        modelBuilder.Entity<ProductReview>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Rating).IsRequired();
+            e.HasOne(r => r.Product).WithMany().HasForeignKey(r => r.ProductId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.AppUser).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

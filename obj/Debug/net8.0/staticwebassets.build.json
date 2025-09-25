@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "a24VTlx1x2zCU5un9uZecq2uXrUJv8u9tlFw7kgqv4M=",
+  "Hash": "9GYS/PVb4GKU6U6BCCeLPeo9GyKSrbn4IDc22iyVFXI=",
   "Source": "makeup",
   "BasePath": "_content/makeup",
   "Mode": "Default",
@@ -91,6 +91,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\favicon.ico"
+    },
+    {
+      "Identity": "C:\\Users\\semai\\Desktop\\makeup\\wwwroot\\images\\avatars\\9d9e9876286943b6bcfea7d941398c9c.jpg",
+      "SourceId": "makeup",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\semai\\Desktop\\makeup\\wwwroot\\",
+      "BasePath": "_content/makeup",
+      "RelativePath": "images/avatars/9d9e9876286943b6bcfea7d941398c9c.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\images\\avatars\\9d9e9876286943b6bcfea7d941398c9c.jpg"
     },
     {
       "Identity": "C:\\Users\\semai\\Desktop\\makeup\\wwwroot\\images\\products\\kiko46.jpg",
