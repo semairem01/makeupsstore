@@ -1,0 +1,165 @@
+﻿/* src/components/OrdersPage.css */
+:root{
+    --pink:#ff69b4;
+    --pink-100:#ffe3f1;
+    --pink-200:#ffc7e3;
+    --gray-100:#f7f7f8;
+    --gray-200:#ececec;
+    --gray-400:#b8b8b8;
+    --ink:#2b2b2b;
+    --success:#32d296;
+    --warning:#ffb020;
+    --ship:#6c8cff;
+    --danger:#ff5c7a;
+}
+
+.orders-wrap{
+    max-width: 980px;
+    margin: 24px auto;
+    padding: 0 16px;
+}
+
+.page-title{
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 16px;
+}
+
+.empty-box{
+    background: var(--gray-100);
+    border: 1px dashed var(--gray-200);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    color: #666;
+}
+
+/* Table-like header */
+.orders-table{
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,.06);
+}
+
+.orders-head, .orders-row{
+    display: grid;
+    grid-template-columns: 60px 160px 200px 160px 1fr 160px;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 16px;
+}
+
+.orders-head{
+    background: linear-gradient(90deg, var(--pink-100), #fff);
+    font-weight: 600;
+    color: #444;
+}
+
+.order-block + .order-block .orders-row{ border-top: 1px solid var(--gray-200); }
+
+.orders-row{
+    background: #fff;
+}
+
+/* Pills */
+.pill{
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.pill-pending{ background: var(--pink-100); color: #bf2c76; }
+.pill-prep{ background: #fff7e0; color: #b87a00; }
+.pill-ship{ background: #eef2ff; color: #3d52d5; }
+.pill-done{ background: #e8fff3; color: #159a63; }
+.pill-cancel{ background: #ffe8ed; color: #c5224b; }
+
+/* Actions */
+.actions{ display: flex; gap: 8px; justify-content: flex-end; }
+.btn{
+    border: none;
+    background: var(--pink);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn:hover{ opacity: .9; }
+.btn-outline{
+    background: #fff;
+    border: 1px solid var(--pink);
+    color: var(--pink);
+}
+.btn-link{
+    background: transparent;
+    color: var(--danger);
+    padding: 0;
+}
+
+/* Detail block */
+.order-detail{
+    background: linear-gradient(180deg, #fff, var(--pink-100));
+    padding: 16px;
+    border-top: 1px solid var(--gray-200);
+}
+
+/* Progress */
+.progress{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+    position: relative;
+}
+.step{ position: relative; text-align: center; }
+.step .dot{
+    width: 32px; height: 32px; line-height: 32px; border-radius: 50%;
+    margin: 0 auto 6px;
+    border: 2px solid var(--pink);
+    color: var(--pink);
+    font-weight: 700;
+    background: #fff;
+}
+.step.done .dot{
+    background: var(--pink);
+    color: #fff;
+}
+.step .label{ font-size: 12px; color: #555; }
+
+.bar{
+    position: absolute; top: 16px; right: -50%; width: 100%; height: 4px;
+    background: var(--gray-200); z-index: 0; border-radius: 999px;
+}
+.bar.active{ background: var(--pink-200); }
+
+/* Items */
+.items{ display: flex; flex-direction: column; gap: 12px; }
+.item{
+    display: grid;
+    grid-template-columns: 64px 1fr 120px;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    padding: 10px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.item img{
+    width: 64px; height: 64px; object-fit: cover; border-radius: 8px;
+}
+.meta .name{ font-weight: 600; color: var(--ink); }
+.meta .sub{ font-size: 12px; color: #666; margin-top: 2px; }
+.line-total{ text-align: right; font-weight: 700; color: var(--ink); }
+
+/* Footer total */
+.order-total{
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--gray-200);
+    font-weight: 700;
+}
+.order-total .sum{ color: var(--pink); }

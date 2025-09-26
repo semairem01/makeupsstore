@@ -1,0 +1,28 @@
+﻿:root{ --pink:#ff69b4; --bg:#fff; --soft:#ffe3f1; --muted:#f7f7f8; }
+.profile-wrap{ max-width:980px; margin:24px auto; padding:0 16px; }
+.tabs{ display:flex; gap:8px; margin-bottom:16px; }
+.tabs button{ padding:8px 14px; border-radius:10px; border:1px solid var(--soft); background:#fff; cursor:pointer; }
+.tabs .active{ background:var(--soft); color:#b2206d; font-weight:700; }
+.card{ background:#fff; border-radius:14px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,.06); display:flex; gap:16px; }
+.card.muted{ background:var(--muted); color:#666; }
+.avatar-col{ width:160px; display:flex; flex-direction:column; gap:8px; align-items:center; }
+.avatar{ width:96px; height:96px; border-radius:50%; object-fit:cover; border:3px solid var(--soft); }
+.form-col{ flex:1; }
+.row{ display:grid; grid-template-columns:140px 1fr; align-items:center; gap:12px; margin-bottom:10px; }
+.row input{ padding:10px; border:1px solid #eee; border-radius:10px; }
+.actions{ display:flex; justify-content:flex-end; }
+.btn{ background:var(--pink); color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; }
+.btn-outline{ background:#fff; color:var(--pink); border:1px solid var(--pink); padding:8px 12px; border-radius:10px; }
+.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+.fav-card{ background:#fff; border-radius:12px; padding:12px; box-shadow:0 2px 10px rgba(0,0,0,.05); display:grid; grid-template-columns:96px 1fr auto; gap:10px; align-items:center; }
+.fav-card img{ width:96px; height:96px; object-fit:cover; border-radius:10px; }
+.fav-card .name{ font-weight:700; }
+.fav-card .brand{ color:#777; font-size:12px; margin:2px 0; }
+.fav-card .price{ color:var(--pink); font-weight:700; }
+.btn-outline.danger {
+    border-color: #f3c0cf;
+    color: #b2206d;
+}
+.btn-outline.danger:hover {
+    background: #ffe3f1;
+}

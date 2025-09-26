@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding" addBOMForNewFiles="with BOM under Windows, with no BOM otherwise">
+    <file url="file://$PROJECT_DIR$/src/auth/AuthLayout.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/auth/Login.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/auth/Register.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/components/CartPage.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/components/CategoryMenu.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/components/OrdersPage.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/components/ProfilePage.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/components/Reviews.js" charset="UTF-8" />
+  </component>
+</project>

@@ -1,0 +1,89 @@
+﻿.navbar {
+    display: flex;
+    justify-content: space-between; /* Sol ve sağa ayır */
+    align-items: center;
+    padding: 0.8rem 2rem;
+    background: linear-gradient(to right, #f78ca0, #f9748f, #fd868c, #fe9a8b);
+    color: white;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #fff;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;          /* daha büyük görünüm */
+    font-weight: 600;         /* kalınlık */
+    color: #fff;              /* beyaz */
+    text-transform: capitalize; /* baş harfler büyük */
+    letter-spacing: 1px;      /* harf aralığı */
+}
+
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.navbar-right a {
+    text-decoration: none;
+    color: white;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+}
+
+.navbar-right a:hover {
+    opacity: 0.8;
+}
+
+/* 🛒 Sepet ikonu */
+.cart-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.cart-icon {
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.cart-badge {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    background: red;
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 50%;
+}
+
+.avatar-link { margin-left: 12px; display: inline-flex; align-items: center; justify-content: center; }
+
+.nav-avatar {
+    width: 36px; height: 36px; border-radius: 999px;
+    object-fit: cover; background: #fff; border: 2px solid #ffe3f1;
+    box-shadow: 0 4px 14px rgba(255,105,180,0.25);
+    transition: transform .15s ease, box-shadow .2s ease;
+}
+
+.nav-avatar:hover { transform: translateY(-1px) scale(1.03); }
+
+.nav-avatar.placeholder {
+    display: grid; place-items: center;
+    font-weight: 700; color: #b2206d; background: #ffe3f1; border-color: #ffd0e9;
+}

@@ -1,0 +1,99 @@
+﻿/* sayfa arka planı */
+.cart-wrap {
+    min-height: 100%;
+    background: linear-gradient(180deg, #ffe6f1 0%, #fff 100%);
+    padding: 16px;
+}
+
+/* üst bar */
+.cart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 880px;
+    margin: 0 auto 12px;
+}
+.cart-title {
+    font-weight: 700;
+    font-size: 22px;
+    color: #333;
+}
+.icon-btn {
+    border: 1px solid #f5b2cc;
+    background: #fff;
+    color: #d9578a;
+    border-radius: 12px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+/* kart listesi */
+.cart-card {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(255, 105, 180, 0.15);
+    padding: 12px;
+    max-width: 880px;
+    margin: 10px auto;
+}
+.brand-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #8a8a8a;
+    padding: 0 4px 4px;
+}
+.product-img {
+    width: 64px; height: 64px; border-radius: 12px; object-fit: cover;
+    background: #fff0f6; border: 1px solid #ffe1ec;
+}
+.info h4 {
+    margin: 0 0 6px; font-size: 15px; color: #333;
+}
+.info p {
+    margin: 0; font-size: 12px; color: #8a8a8a;
+}
+.price {
+    font-weight: 700; color: #333; margin-top: 6px;
+}
+
+/* adet +/− */
+.qty-box {
+    display: flex; align-items: center; gap: 8px;
+}
+.qty-btn {
+    width: 28px; height: 28px; border-radius: 10px;
+    border: 1px solid #ffd0e1; background: #fff;
+    color: #d9578a; cursor: pointer; font-weight: 700;
+}
+.qty-val { width: 28px; text-align: center; font-weight: 700; color: #d9578a; }
+
+/* alt sabit bar */
+.checkout-bar {
+    position: sticky; bottom: 0;
+    background: #fff; border-top-left-radius: 20px; border-top-right-radius: 20px;
+    box-shadow: 0 -8px 32px rgba(255, 105, 180, 0.2);
+    padding: 16px;
+    margin-top: 16px;
+}
+.checkout-inner {
+    max-width: 880px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between;
+}
+.total {
+    font-weight: 700; font-size: 18px; color: #333;
+}
+.checkout-btn {
+    background: #ff69b4; color: #fff; border: none; border-radius: 16px;
+    padding: 12px 18px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+}
+.badge {
+    background: #fff; color: #ff69b4; border-radius: 999px; padding: 4px 8px; font-size: 12px; font-weight: 700;
+}
+.clear-btn {
+    background: transparent; border: none; color: #d9578a; cursor: pointer; font-weight: 600;
+}

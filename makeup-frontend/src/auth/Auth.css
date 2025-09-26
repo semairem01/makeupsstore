@@ -1,0 +1,98 @@
+﻿.auth-container {
+    display: flex;
+    min-height: 100vh;
+    background: #fff;
+}
+
+.auth-left {
+    flex: 1;
+    background: linear-gradient(to bottom, #ffe4ec, #ffffff);
+    padding: 3rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.auth-left h1 {
+    font-size: 2rem;
+    letter-spacing: 2px;
+    margin: 0 0 0.5rem;
+}
+
+.auth-left h2 {
+    font-size: 3rem;
+    margin: 0.25rem 0 1rem;
+}
+
+.auth-left p {
+    color: #555;
+    max-width: 420px;
+}
+
+.auth-image {
+    max-width: 80%;
+    margin-top: 2rem;
+}
+
+.auth-right {
+    flex: 1;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 380px;
+}
+
+.auth-title {
+    font-size: 1.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.auth-subtitle {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-input {
+    padding: 12px;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.auth-button {
+    padding: 12px;
+    border: 0;
+    border-radius: 8px;
+    background: #f29a86; /* pembe/şeftali tonu */
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.auth-button:hover {
+    filter: brightness(0.95);
+}
+
+.auth-error { color: #cc0000; margin-top: 8px; }
+.auth-success { color: #0a8f00; margin-top: 8px; }
+
+.auth-switch {
+    margin-top: 1rem;
+    color: #666;
+    font-size: 0.95rem;
+}
+.auth-switch a { color: #e2877b; text-decoration: none; }
+.auth-switch a:hover { text-decoration: underline; }

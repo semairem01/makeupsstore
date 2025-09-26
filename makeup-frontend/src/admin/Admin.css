@@ -1,0 +1,12 @@
+﻿.admin-wrap{ display:grid; grid-template-columns: 220px 1fr; min-height:70vh; gap:16px; padding:16px; }
+.admin-aside{ background:#fff; border-radius:12px; padding:12px; box-shadow:0 6px 20px rgba(0,0,0,.06); }
+.admin-aside nav{ display:flex; flex-direction:column; gap:8px; }
+.admin-aside a{ padding:8px 10px; border-radius:10px; text-decoration:none; color:#333; }
+.admin-aside a.active{ background:#ffe3f1; color:#b2206d; font-weight:700; }
+.admin-main{ background:#fff; border-radius:12px; padding:16px; box-shadow:0 6px 20px rgba(0,0,0,.06); }
+.kpis{ display:grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+.kpi{ background:#fff; border:1px solid #f3c7dd; border-radius:12px; padding:12px; }
+.toolbar{ display:flex; gap:8px; margin-bottom:12px; }
+.admin-table{ width:100%; border-collapse:collapse; }
+.admin-table th, .admin-table td{ border-bottom:1px solid #f1f1f1; padding:8px; text-align:left; }
+.btn-link{ background:none; border:none; color:#b2206d; cursor:pointer; }
