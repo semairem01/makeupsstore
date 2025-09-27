@@ -13,3 +13,14 @@ public record ReviewListDto(
     IDictionary<int,int> Distribution, // {5:12,4:4,...}
     IEnumerable<ReviewItemDto> Items
 );
+
+public record ReviewRecentDto(
+    int Id,
+    int ProductId,
+    string ProductName,
+    string? ProductImageUrl,
+    int Rating,
+    string? Comment,
+    DateTime CreatedAt,
+    string UserDisplayName
+);

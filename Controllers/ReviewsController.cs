@@ -111,6 +111,56 @@ public class ReviewsController : ControllerBase
         return Ok(dto);
     }
     
+    [HttpGet("recent")]
+    public async Task<ActionResult<IEnumerable<ReviewRecentDto>>> Recent([FromQuery] int take = 6)
+    {
+        if (take is < 1 or > 24) take = 6;
+
+        var raw = await _ctx.ProductReviews
+            .Include(r => r.AppUser)
+            .Include(r => r.Product)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(take)
+            .Select(r => new
+            {
+                r.Id,
+                r.ProductId,
+                ProductName = r.Product.Name,
+                ProductImageUrl = r.Product.ImageUrl,
+                r.Rating,
+                r.Comment,
+                r.CreatedAt,
+                FirstName = r.AppUser.FirstName,
+                LastName  = r.AppUser.LastName,
+                UserName  = r.AppUser.UserName
+            })
+            .ToListAsync();
+
+        static string BuildDisplay(string? first, string? last, string? userName)
+        {
+            if (!string.IsNullOrWhiteSpace(first))
+            {
+                var initial = char.ToUpperInvariant(first.Trim()[0]);
+                var ln = (last ?? string.Empty).Trim().ToUpperInvariant();
+                return $"{initial}. {ln}".Trim();
+            }
+            return string.IsNullOrWhiteSpace(userName) ? "Kullanıcı" : userName!;
+        }
+
+        var items = raw.Select(r => new ReviewRecentDto(
+            r.Id,
+            r.ProductId,
+            r.ProductName,
+            r.ProductImageUrl,
+            r.Rating,
+            r.Comment,
+            r.CreatedAt,
+            BuildDisplay(r.FirstName, r.LastName, r.UserName)
+        ));
+
+        return Ok(items);
+    }
+    
     // POST api/reviews
     [HttpPost]
     [Authorize]

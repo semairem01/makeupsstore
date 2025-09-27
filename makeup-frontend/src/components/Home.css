@@ -44,12 +44,24 @@
 .tab.active{ background:#ffe3f1; border-color:#ffbad9; color:#b2206d; }
 
 /* GRID + CARD */
-.grid{ display:grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap:16px; }
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 20px; 
+}
 .p-card{
     background:#fff; border-radius:16px; overflow:hidden; display:flex; flex-direction:column;
     box-shadow:0 10px 26px rgba(0,0,0,.06);
 }
-.p-card .thumb{ display:block; background:#fff; }
+.p-card .thumb{
+    display: block;
+    aspect-ratio: 4 / 5; 
+    overflow: hidden; }
+.p-card .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 .p-card img{ width:100%; height:220px; object-fit:cover; display:block; }
 .p-card .meta{ padding:10px 12px; }
 .p-card .brand{ font-size:12px; color:#8a6a79; }
@@ -72,3 +84,14 @@
 /* USP */
 .usp{ display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:10px 0 26px; }
 .usp-item{ background:#fff; border-radius:12px; padding:12px; border:1px solid #f5d0e1; }
+
+@media (max-width: 992px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr); /* tablet için 2 sütun */
+    }
+}
+@media (max-width: 600px) {
+    .grid {
+        grid-template-columns: 1fr; /* telefon için tek sütun */
+    }
+}
