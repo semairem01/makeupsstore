@@ -42,6 +42,12 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
             {
                 entity.HasKey(c => c.Id);
                 entity.Property(c => c.Name).HasMaxLength(100).IsRequired();
+                
+                entity.HasOne(c => c.ParentCategory)
+                    .WithMany(p => p.SubCategories)
+                    .HasForeignKey(c => c.ParentCategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                
             });
 
         modelBuilder.Entity<Order>(entity =>

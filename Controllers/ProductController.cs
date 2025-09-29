@@ -36,9 +36,17 @@ public class ProductController : ControllerBase
         return Ok(products);
     }
 
+    [HttpGet("by-category-tree/{categoryId}")]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetByCategoryTree(int categoryId)
+    {
+        var products = await _productService.GetByCategoryTreeAsync(categoryId);
+        // Boşsa bile 200 dön ki FE kolayca göstersin
+        return Ok(products ?? Enumerable.Empty<ProductDto>());
+    }
     // Tek ürün
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductDto>> GetById(int id)
+    
     {
         var product = await _productService.GetByIdAsync(id);
         if (product == null) return NotFound();

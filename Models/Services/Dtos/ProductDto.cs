@@ -28,6 +28,21 @@ public record ProductUpdateDto(
     int CategoryId
 );
 
+public record AdminProductListDto(
+    int Id,
+    string Name,
+    string Brand,
+    string Description,
+    decimal Price,
+    int StockQuantity,
+    bool IsActive,
+    string ImageUrl,
+    string? Color,
+    string? Size,
+    int CategoryId,
+    string CategoryName
+);
+
 // Kullanıcıya ürün listesi/görünümü için DTO (stok bilgisini göstermiyoruz!)
 public record ProductDto(
     int Id,
@@ -39,5 +54,6 @@ public record ProductDto(
     string ImageUrl,
     string? Color,
     string? Size,
+    int CategoryId,
     string CategoryName
 );

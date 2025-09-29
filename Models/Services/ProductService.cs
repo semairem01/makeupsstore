@@ -31,6 +31,7 @@ public class ProductService : IProductService
             p.ImageUrl,
             p.Color,
             p.Size,
+            p.CategoryId,
             p.Category.Name
         )).ToList();
     }
@@ -51,6 +52,7 @@ public class ProductService : IProductService
             product.ImageUrl,
             product.Color,
             product.Size,
+            product.CategoryId,
             product.Category.Name
         );
     }
@@ -76,12 +78,61 @@ public class ProductService : IProductService
                 p.ImageUrl,
                 p.Color,
                 p.Size,
+                p.CategoryId,
                 p.Category?.Name ?? category.Name // ✅ Null check ekledik
             ))
             .ToList();
 
         return filtered;
     }
+    public async Task<IEnumerable<ProductDto>> GetByCategoryTreeAsync(int categoryId)
+    {
+        // 1) Tüm kategorileri al (Id, Name, ParentCategoryId lazım)
+        //   – CategoryRepository’n var; yoksa doğrudan DbContext de olur.
+        var allCats = await _categoryRepository.GetAllAsync(); 
+        // _categoryRepository.GetAllAsync() geriye Category listesi döndürmeli (Id, Name, ParentCategoryId dolu)
+
+        // 2) Seçili categoryId’nin tüm altlarını (descendants) çıkar
+        var wanted = new HashSet<int> { categoryId };
+        var queue = new Queue<int>();
+        queue.Enqueue(categoryId);
+
+        var lookup = allCats.GroupBy(c => c.ParentCategoryId ?? 0)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToList());
+
+        while (queue.Count > 0)
+        {
+            var cur = queue.Dequeue();
+            if (lookup.TryGetValue(cur, out var children))
+            {
+                foreach (var cid in children)
+                    if (wanted.Add(cid)) queue.Enqueue(cid);
+            }
+        }
+
+        // 3) Ürünleri getir ve CategoryId bu set’in içindeyse seç
+        var all = await _productRepository.GetAllAsync(); // Include(Category) var sende
+        var filtered = all
+            .Where(p => wanted.Contains(p.CategoryId) && p.IsActive)
+            .Select(p => new ProductDto(
+                p.Id,
+                p.Name,
+                p.Brand,
+                p.Description,
+                p.Price,
+                p.IsActive,
+                p.ImageUrl,
+                p.Color,
+                p.Size,
+                p.CategoryId,
+                p.Category?.Name ?? ""
+            ))
+            .ToList();
+
+        return filtered;
+    }
+
+    
     // Yeni ürün ekle
     public async Task<ServiceResult<ProductDto>> CreateAsync(ProductCreateDto dto)
     {
@@ -115,7 +166,9 @@ public class ProductService : IProductService
             product.ImageUrl,
             product.Color,
             product.Size,
+            product.CategoryId,
             category.Name
+            
         );
 
         return ServiceResult<ProductDto>.Ok(productDto, "Product created successfully!");
@@ -155,6 +208,7 @@ public class ProductService : IProductService
             product.ImageUrl,
             product.Color,
             product.Size,
+            product.CategoryId,
             category.Name
         );
 

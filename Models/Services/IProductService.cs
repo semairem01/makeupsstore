@@ -10,4 +10,7 @@ public interface IProductService
     Task<ServiceResult<ProductDto>> UpdateAsync(ProductUpdateDto dto);
     Task<ServiceResult<bool>> DeleteAsync(int id);
     Task<IEnumerable<ProductDto>> GetByCategoryAsync(int categoryId);
+    
+    Task<IEnumerable<ProductDto>> GetByCategoryTreeAsync(int categoryId);
+
 }

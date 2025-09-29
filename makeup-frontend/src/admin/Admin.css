@@ -10,3 +10,70 @@
 .admin-table{ width:100%; border-collapse:collapse; }
 .admin-table th, .admin-table td{ border-bottom:1px solid #f1f1f1; padding:8px; text-align:left; }
 .btn-link{ background:none; border:none; color:#b2206d; cursor:pointer; }
+/* Formu kart gibi göstermek için */
+.card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 16px;
+    margin: 12px 0;
+    box-shadow: 0 6px 20px rgba(0,0,0,.06);
+}
+
+/* Formu iki/üç sütunlu ızgara yapısı */
+.grid2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.grid2 label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+}
+
+.grid2 input,
+.grid2 select,
+textarea {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+/* Düğme stilleri (varsa çakışmaz) */
+button {
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #ff69b4;
+    color: #fff;
+    font-size: 14px;
+}
+
+button:hover { background: #ff4fa0; }
+
+/* İkincil buton */
+.btn-outline {
+    background: #fff;
+    color: #333;
+    border: 1px solid #ccc;
+}
+
+/* Tablo içindeki düzenle/sil butonlarına aralık */
+.admin-table td button { margin-right: 8px; }
+
+/* Varsa link butonlar (sil/düzenle) */
+.btn-link {
+    background: none;
+    border: none;
+    color: #b2206d;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.btn-link.danger { color: #cc0000; }
