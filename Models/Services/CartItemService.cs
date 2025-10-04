@@ -11,18 +11,20 @@ public class CartItemService : ICartItemService
     private readonly IProductRepository _productRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public CartItemService(ICartItemRepository cartItemRepository, IProductRepository productRepository,
+    public CartItemService(
+        ICartItemRepository cartItemRepository,
+        IProductRepository productRepository,
         IHttpContextAccessor httpContextAccessor)
     {
         _cartItemRepository = cartItemRepository;
         _productRepository = productRepository;
         _httpContextAccessor = httpContextAccessor;
     }
-    
-    //Oturumdaki kullanıcı ID'si
+
     private Guid CurrentUserId =>
-    Guid.Parse(_httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
-    
+        Guid.Parse(_httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                   ?? Guid.Empty.ToString());
+
     // Sepeti getir
     public async Task<IEnumerable<CartItemDto>> GetAllAsync()
     {
@@ -40,42 +42,94 @@ public class CartItemService : ICartItemService
             ci.Product.Price * ci.Quantity
         )).ToList();
     }
-    
-    //sepete ekle
+
+    // Sepete ekle (iş kuralları burada)
     public async Task<ServiceResult<CartItemDto>> AddAsync(CartItemCreateDto dto)
     {
-        var cartItem = new CartItem
+        if (dto.Quantity < 1)
+            return ServiceResult<CartItemDto>.Fail("Quantity must be at least 1.");
+
+        var product = await _productRepository.GetByIdAsync(dto.ProductId);
+        if (product == null || !product.IsActive)
+            return ServiceResult<CartItemDto>.Fail("Product is not available.");
+
+        // Mevcut satır var mı? (aynı kullanıcı + aynı ürün)
+        var existing = await _cartItemRepository.GetByUserAndProductAsync(CurrentUserId, dto.ProductId);
+        var newQty = (existing?.Quantity ?? 0) + dto.Quantity;
+
+        if (product.StockQuantity < newQty)
+            return ServiceResult<CartItemDto>.Fail("Not enough stock.");
+
+        if (existing != null)
         {
-            ProductId = dto.ProductId,
-            Quantity = dto.Quantity,
-            UserId = CurrentUserId
-        };
+            // miktarı artır
+            existing.Quantity = newQty;
+            await _cartItemRepository.UpdateAsync(existing);
 
-        await _cartItemRepository.AddAsync(cartItem);
+            var dtoOut = new CartItemDto(
+                existing.Id,
+                existing.ProductId,
+                existing.Product.Name,
+                existing.Product.Brand,
+                existing.Product.ImageUrl,
+                existing.Product.Price,
+                existing.Quantity,
+                existing.Product.Price * existing.Quantity
+            );
 
-        var addedItem = await _cartItemRepository.GetByUserAndProductAsync(CurrentUserId, dto.ProductId);
+            return ServiceResult<CartItemDto>.Ok(dtoOut, "Cart updated.");
+        }
+        else
+        {
+            // yeni satır ekle
+            var cartItem = new CartItem
+            {
+                ProductId = dto.ProductId,
+                Quantity = dto.Quantity,
+                UserId = CurrentUserId
+            };
+            await _cartItemRepository.AddAsync(cartItem);
 
-        if (addedItem == null)
-            return ServiceResult<CartItemDto>.Fail("Failed to add item to cart.");
+            // repo AddAsync genellikle entity’yi geri doldurur; emin olmak için tekrar oku
+            var added = await _cartItemRepository.GetByUserAndProductAsync(CurrentUserId, dto.ProductId);
+            if (added == null)
+                return ServiceResult<CartItemDto>.Fail("Failed to add item to cart.");
 
-        var cartItemDto = new CartItemDto(
-            addedItem.Id,
-            addedItem.ProductId,
-            addedItem.Product.Name,
-            addedItem.Product.Brand,
-            addedItem.Product.ImageUrl,
-            addedItem.Product.Price,
-            addedItem.Quantity,
-            addedItem.Product.Price * addedItem.Quantity
-        );
+            var dtoOut = new CartItemDto(
+                added.Id,
+                added.ProductId,
+                added.Product.Name,
+                added.Product.Brand,
+                added.Product.ImageUrl,
+                added.Product.Price,
+                added.Quantity,
+                added.Product.Price * added.Quantity
+            );
 
-        return ServiceResult<CartItemDto>.Ok(cartItemDto, "Item added to cart successfully.");
+            return ServiceResult<CartItemDto>.Ok(dtoOut, "Item added to cart.");
+        }
     }
-    
+
+    // Miktar güncelle
     public async Task<ServiceResult<CartItemDto>> UpdateQuantityAsync(int cartItemId, int quantity)
     {
+        if (quantity < 1)
+            return ServiceResult<CartItemDto>.Fail("Quantity must be at least 1.");
+
         var cartItem = await _cartItemRepository.GetByIdAsync(cartItemId);
-        if (cartItem == null) return ServiceResult<CartItemDto>.Fail("Cart item not found.");
+        if (cartItem == null)
+            return ServiceResult<CartItemDto>.Fail("Cart item not found.");
+
+        // Kendi sepeti mi? (temel güvenlik)
+        if (cartItem.UserId != CurrentUserId)
+            return ServiceResult<CartItemDto>.Fail("You cannot modify this cart item.");
+
+        var product = await _productRepository.GetByIdAsync(cartItem.ProductId);
+        if (product == null || !product.IsActive)
+            return ServiceResult<CartItemDto>.Fail("Product is not available.");
+
+        if (product.StockQuantity < quantity)
+            return ServiceResult<CartItemDto>.Fail("Not enough stock.");
 
         cartItem.Quantity = quantity;
         await _cartItemRepository.UpdateAsync(cartItem);
@@ -93,16 +147,19 @@ public class CartItemService : ICartItemService
 
         return ServiceResult<CartItemDto>.Ok(dto, "Quantity updated successfully.");
     }
-    
+
     public async Task<ServiceResult<bool>> RemoveAsync(int cartItemId)
     {
+        var ci = await _cartItemRepository.GetByIdAsync(cartItemId);
+        if (ci == null) return ServiceResult<bool>.Fail("Cart item not found.");
+        if (ci.UserId != CurrentUserId) return ServiceResult<bool>.Fail("You cannot modify this cart item.");
+
         await _cartItemRepository.RemoveAsync(cartItemId);
         return ServiceResult<bool>.Ok(true, "Item removed from cart successfully.");
     }
 
     public async Task<ServiceResult<bool>> ClearAsync()
     {
-        var userId = CurrentUserId;
         await _cartItemRepository.ClearCartAsync(CurrentUserId);
         return ServiceResult<bool>.Ok(true, "Cart cleared successfully.");
     }

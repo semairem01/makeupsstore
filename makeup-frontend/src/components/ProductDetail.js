@@ -89,12 +89,24 @@ export default function ProductDetail({ onAdded }) {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             onAdded?.(qty);
-            alert("Sepete eklendi!");
+            alert("Added to cart!");
         } catch (e) {
             alert(e?.response?.data || "Sepete eklenemedi.");
         }
     };
 
+    const requestNotify = async () => {
+        if (!token) return alert("Please log in");
+        try {
+            await axios.post(API_ENDPOINTS.NOTIFY_PRODUCT(Number(id)), {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert("You have been added to the list. We will notify you when stock arrives!");
+        } catch (e) {
+            alert(e?.response?.data || "Registration could not be obtained.");
+        }
+    };
+    
     const priceTL = useMemo(
         () => (product?.price ?? 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" }),
         [product]
@@ -106,6 +118,8 @@ export default function ProductDetail({ onAdded }) {
     const stock = hasStockInfo ? Number(stockRaw) : null;
     const lowStock   = hasStockInfo && stock > 0 && stock <= 5;
     const outOfStock = hasStockInfo && stock === 0;
+
+    const isOut = (product && product.isActive === false) || outOfStock;
 
     if (loading) return <div className="pd-wrap"><div className="pd-skel">Yükleniyor…</div></div>;
     if (error)   return <div className="pd-wrap"><div className="pd-error">{error}</div></div>;
@@ -171,14 +185,24 @@ export default function ProductDetail({ onAdded }) {
 
                     <div className="pd-qtyrow">
                         <QtyStepper value={qty} onChange={setQty} />
-                        <button
-                            className="pd-addcart"
-                            onClick={addToCart}
-                            disabled={outOfStock /* yalnızca gerçekten 0 ise kilitle */}
-                            title={outOfStock ? "Stokta yok" : "Sepete ekle"}
-                        >
-                            Sepete Ekle
-                        </button>
+                        {isOut ? (
+                            <button
+                                className="pd-addcart pd-addcart--outline"
+                                onClick={requestNotify}
+                                title="Gelince haber ver"
+                            >
+                                Notify me when it arrives
+                            </button>
+                        ) : (
+                            <button
+                                className="pd-addcart"
+                                onClick={addToCart}
+                                disabled={false}
+                                title="Sepete ekle"
+                            >
+                                Add to Cart
+                            </button>
+                        )}
                     </div>
 
                     <div className="pd-desc">
@@ -189,7 +213,7 @@ export default function ProductDetail({ onAdded }) {
             </div>
 
             <div className="pd-tabs">
-                <button className="pd-tab active">Yorumlar & Değerlendirmeler</button>
+                <button className="pd-tab active">Reviews & Ratings</button>
             </div>
             <div className="pd-tabpanel">
                 <Reviews productId={product.id} />

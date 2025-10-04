@@ -139,4 +139,14 @@ public class ProductsController : ControllerBase
         var relative = $"/{relDir}/{fname}".Replace("\\", "/");
         return Ok(new { path = relative });
     }
+    
+    [HttpPost("{id:int}/notify-waiters")]
+    public async Task<IActionResult> NotifyWaiters(int id, [FromServices] INotifyRequestRepository notifyRepo)
+    {
+        var pending = await notifyRepo.GetPendingRequestsAsync(id);
+        // TODO: burada pending kullanıcılarına e-posta / push gönder
+        // gönderildikten sonra pending istekleri repo.RemoveAsync(...) ile temizleyebilirsin
+
+        return Ok(new { notified = pending.Count() });
+    }
 }

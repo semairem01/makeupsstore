@@ -57,6 +57,12 @@ public class OrderService : IOrderService
 
             // Stok düşürme
             product.StockQuantity -= item.Quantity;
+            
+            if (product.StockQuantity <= 0)
+            {
+                product.StockQuantity = 0;
+                product.IsActive = false;
+            }
             await _productRepository.UpdateAsync(product);
 
             orderItems.Add(new OrderItem
@@ -117,6 +123,11 @@ public class OrderService : IOrderService
                         return ServiceResult<OrderDto>.Fail($"{product.Name} için yeterli stok yok.");
 
                     product.StockQuantity -= ci.Quantity;
+                    if (product.StockQuantity <= 0)
+                    {
+                        product.StockQuantity = 0;
+                        product.IsActive = false;
+                    }
                     await _productRepository.UpdateAsync(product);
 
                     orderItems.Add(new OrderItem

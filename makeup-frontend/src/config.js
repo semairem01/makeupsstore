@@ -21,7 +21,7 @@ export const API_ENDPOINTS = {
     ADMIN_REVIEWS: `${API_BASE_URL}/api/admin/review`,
     ADMIN_PRODUCTS: `${API_BASE_URL}/api/admin/products`,
     ADMIN_ORDERS: `${API_BASE_URL}/api/admin/orders`,
-    
+    NOTIFY_PRODUCT: (id) => `${API_BASE_URL}/api/notify/product/${id}`,
 };
 
 // App configuration

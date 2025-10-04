@@ -8,17 +8,25 @@ public class ProductService : IProductService
     private readonly IProductRepository _productRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly INotifyRequestRepository _notifyRepo;        // ← NEW
+    private readonly ILogger<ProductService> _logger;             // ← (opsiyonel) log
 
-    public ProductService(IProductRepository productRepository, ICategoryRepository categoryRepository,
-        IHttpContextAccessor httpContextAccessor)
+    public ProductService(
+        IProductRepository productRepository,
+        ICategoryRepository categoryRepository,
+        IHttpContextAccessor httpContextAccessor,
+        INotifyRequestRepository notifyRepo,                      // ← NEW
+        ILogger<ProductService> logger)                           // ← (opsiyonel)
     {
         _productRepository = productRepository;
         _categoryRepository = categoryRepository;
         _httpContextAccessor = httpContextAccessor;
+        _notifyRepo = notifyRepo;                                  // ← NEW
+        _logger = logger;
     }
 
-    //tüm ürünleri listele
-   public async Task<IEnumerable<ProductDto>> GetAllAsync()
+    // tüm ürünleri listele
+    public async Task<IEnumerable<ProductDto>> GetAllAsync()
     {
         var products = await _productRepository.GetAllAsync();
         return products.Select(p => new ProductDto(
@@ -36,7 +44,7 @@ public class ProductService : IProductService
         )).ToList();
     }
 
-    // Tek bir ürün getir
+    // tek ürün
     public async Task<ProductDto?> GetByIdAsync(int id)
     {
         var product = await _productRepository.GetByIdAsync(id);
@@ -56,84 +64,58 @@ public class ProductService : IProductService
             product.Category.Name
         );
     }
+
     public async Task<IEnumerable<ProductDto>> GetByCategoryAsync(int categoryId)
     {
         var category = await _categoryRepository.GetByIdAsync(categoryId);
-        if (category == null)
-        {
-            return new List<ProductDto>(); // Boş liste döndür, hata fırlatma
-        }
+        if (category == null) return new List<ProductDto>();
 
         var products = await _productRepository.GetAllAsync();
 
         var filtered = products
-            .Where(p => p.CategoryId == categoryId && p.IsActive) // ✅ IsActive kontrolü ekledik
+            .Where(p => p.CategoryId == categoryId)   // isActive filtrelemeyi FE/endpoint seviyesinde yapıyorsun
             .Select(p => new ProductDto(
-                p.Id,
-                p.Name,
-                p.Brand,
-                p.Description,
-                p.Price,
-                p.IsActive,
-                p.ImageUrl,
-                p.Color,
-                p.Size,
-                p.CategoryId,
-                p.Category?.Name ?? category.Name // ✅ Null check ekledik
+                p.Id, p.Name, p.Brand, p.Description, p.Price, p.IsActive,
+                p.ImageUrl, p.Color, p.Size, p.CategoryId,
+                p.Category?.Name ?? category.Name
             ))
             .ToList();
 
         return filtered;
     }
+
     public async Task<IEnumerable<ProductDto>> GetByCategoryTreeAsync(int categoryId)
     {
-        // 1) Tüm kategorileri al (Id, Name, ParentCategoryId lazım)
-        //   – CategoryRepository’n var; yoksa doğrudan DbContext de olur.
-        var allCats = await _categoryRepository.GetAllAsync(); 
-        // _categoryRepository.GetAllAsync() geriye Category listesi döndürmeli (Id, Name, ParentCategoryId dolu)
+        var allCats = await _categoryRepository.GetAllAsync();
 
-        // 2) Seçili categoryId’nin tüm altlarını (descendants) çıkar
         var wanted = new HashSet<int> { categoryId };
-        var queue = new Queue<int>();
-        queue.Enqueue(categoryId);
+        var q = new Queue<int>();
+        q.Enqueue(categoryId);
 
         var lookup = allCats.GroupBy(c => c.ParentCategoryId ?? 0)
             .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToList());
 
-        while (queue.Count > 0)
+        while (q.Count > 0)
         {
-            var cur = queue.Dequeue();
+            var cur = q.Dequeue();
             if (lookup.TryGetValue(cur, out var children))
-            {
                 foreach (var cid in children)
-                    if (wanted.Add(cid)) queue.Enqueue(cid);
-            }
+                    if (wanted.Add(cid)) q.Enqueue(cid);
         }
 
-        // 3) Ürünleri getir ve CategoryId bu set’in içindeyse seç
-        var all = await _productRepository.GetAllAsync(); // Include(Category) var sende
+        var all = await _productRepository.GetAllAsync();
         var filtered = all
             .Where(p => wanted.Contains(p.CategoryId) && p.IsActive)
             .Select(p => new ProductDto(
-                p.Id,
-                p.Name,
-                p.Brand,
-                p.Description,
-                p.Price,
-                p.IsActive,
-                p.ImageUrl,
-                p.Color,
-                p.Size,
-                p.CategoryId,
-                p.Category?.Name ?? ""
+                p.Id, p.Name, p.Brand, p.Description, p.Price, p.IsActive,
+                p.ImageUrl, p.Color, p.Size, p.CategoryId, p.Category?.Name ?? ""
             ))
             .ToList();
 
         return filtered;
     }
 
-    
-    // Yeni ürün ekle
+    // create
     public async Task<ServiceResult<ProductDto>> CreateAsync(ProductCreateDto dto)
     {
         var category = await _categoryRepository.GetByIdAsync(dto.CategoryId);
@@ -147,7 +129,7 @@ public class ProductService : IProductService
             Description = dto.Description,
             Price = dto.Price,
             StockQuantity = dto.StockQuantity,
-            IsActive = dto.IsActive,
+            IsActive = dto.StockQuantity > 0 && dto.IsActive,
             ImageUrl = dto.ImageUrl,
             Color = dto.Color,
             Size = dto.Size,
@@ -157,24 +139,15 @@ public class ProductService : IProductService
         await _productRepository.AddAsync(product);
 
         var productDto = new ProductDto(
-            product.Id,
-            product.Name,
-            product.Brand,
-            product.Description,
-            product.Price,
-            product.IsActive,
-            product.ImageUrl,
-            product.Color,
-            product.Size,
-            product.CategoryId,
-            category.Name
-            
+            product.Id, product.Name, product.Brand, product.Description, product.Price,
+            product.IsActive, product.ImageUrl, product.Color, product.Size,
+            product.CategoryId, category.Name
         );
 
         return ServiceResult<ProductDto>.Ok(productDto, "Product created successfully!");
     }
 
-    // Ürün güncelle
+    // update (+ restock bildirimi)
     public async Task<ServiceResult<ProductDto>> UpdateAsync(ProductUpdateDto dto)
     {
         var product = await _productRepository.GetByIdAsync(dto.Id);
@@ -185,12 +158,15 @@ public class ProductService : IProductService
         if (category == null)
             return ServiceResult<ProductDto>.Fail("Category is not valid!");
 
+        // RESTOCK KONTROLÜ: önceki durum 0 mıydı?
+        var wasOut = product.StockQuantity <= 0;
+
         product.Name = dto.Name;
         product.Brand = dto.Brand;
         product.Description = dto.Description;
         product.Price = dto.Price;
         product.StockQuantity = dto.StockQuantity;
-        product.IsActive = dto.IsActive;
+        product.IsActive = product.StockQuantity > 0 && dto.IsActive; // 0 ise zorla false
         product.ImageUrl = dto.ImageUrl;
         product.Color = dto.Color;
         product.Size = dto.Size;
@@ -198,24 +174,41 @@ public class ProductService : IProductService
 
         await _productRepository.UpdateAsync(product);
 
+        // 0 → >0 olduysa bekleyenlere haber ver
+        if (wasOut && product.StockQuantity > 0)
+        {
+            try
+            {
+                var waiters = await _notifyRepo.GetPendingRequestsAsync(product.Id);
+                var list = waiters.ToList();
+
+                // TODO: burada e-posta/sms/push gönder
+                // Örn. IEmailSender.SendAsync(waiter.AppUser.Email, "...");
+
+                // Şimdilik sadece loglayalım ve kayıtları silelim:
+                foreach (var w in list)
+                {
+                    _logger.LogInformation("Restock notify: Product {ProductId} -> User {UserId}", product.Id, w.UserId);
+                    await _notifyRepo.RemoveAsync(w.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Bildirim hatası stok güncellemesini bozmamalı
+                _logger.LogError(ex, "Waitlist notify failed for product {ProductId}", product.Id);
+            }
+        }
+
         var productDto = new ProductDto(
-            product.Id,
-            product.Name,
-            product.Brand,
-            product.Description,
-            product.Price,
-            product.IsActive,
-            product.ImageUrl,
-            product.Color,
-            product.Size,
-            product.CategoryId,
-            category.Name
+            product.Id, product.Name, product.Brand, product.Description, product.Price,
+            product.IsActive, product.ImageUrl, product.Color, product.Size,
+            product.CategoryId, category.Name
         );
 
         return ServiceResult<ProductDto>.Ok(productDto, "Product updated successfully!");
     }
 
-    // Ürünü sil
+    // delete
     public async Task<ServiceResult<bool>> DeleteAsync(int id)
     {
         var product = await _productRepository.GetByIdAsync(id);
@@ -223,7 +216,6 @@ public class ProductService : IProductService
             return ServiceResult<bool>.Fail("Product is not found!");
 
         await _productRepository.DeleteAsync(product);
-
         return ServiceResult<bool>.Ok(true, "Product deleted successfully!");
     }
 }

@@ -17,6 +17,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
     public DbSet<CartItem> CartItems { get; set; } = null!;
     public DbSet<FavoriteProduct> FavoriteProducts { get; set; } = null!;
     public DbSet<ProductReview> ProductReviews { get; set; } = null!;
+    public DbSet<NotifyRequest> NotifyRequests => Set<NotifyRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -118,6 +119,20 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
             e.Property(r => r.Rating).IsRequired();
             e.HasOne(r => r.Product).WithMany().HasForeignKey(r => r.ProductId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(r => r.AppUser).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+        
+        modelBuilder.Entity<NotifyRequest>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.UserId, x.ProductId }).IsUnique();
+            e.HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.AppUser)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
