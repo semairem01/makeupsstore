@@ -1,4 +1,5 @@
-﻿using makeup.Models.Repositories;
+﻿using makeup.Infrastructure.Email;
+using makeup.Models.Repositories;
 using makeup.Models.Services.Dtos;
 
 namespace makeup.Models.Services;
@@ -8,21 +9,24 @@ public class ProductService : IProductService
     private readonly IProductRepository _productRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly INotifyRequestRepository _notifyRepo;        // ← NEW
-    private readonly ILogger<ProductService> _logger;             // ← (opsiyonel) log
+    private readonly INotifyRequestRepository _notifyRepo;
+    private readonly ILogger<ProductService> _logger;
+    private readonly IEmailSender _email;
 
     public ProductService(
         IProductRepository productRepository,
         ICategoryRepository categoryRepository,
         IHttpContextAccessor httpContextAccessor,
-        INotifyRequestRepository notifyRepo,                      // ← NEW
-        ILogger<ProductService> logger)                           // ← (opsiyonel)
+        INotifyRequestRepository notifyRepo,
+        ILogger<ProductService> logger,
+        IEmailSender email)
     {
         _productRepository = productRepository;
         _categoryRepository = categoryRepository;
         _httpContextAccessor = httpContextAccessor;
-        _notifyRepo = notifyRepo;                                  // ← NEW
+        _notifyRepo = notifyRepo;
         _logger = logger;
+        _email = email;
     }
 
     // tüm ürünleri listele
@@ -73,7 +77,7 @@ public class ProductService : IProductService
         var products = await _productRepository.GetAllAsync();
 
         var filtered = products
-            .Where(p => p.CategoryId == categoryId)   // isActive filtrelemeyi FE/endpoint seviyesinde yapıyorsun
+            .Where(p => p.CategoryId == categoryId)
             .Select(p => new ProductDto(
                 p.Id, p.Name, p.Brand, p.Description, p.Price, p.IsActive,
                 p.ImageUrl, p.Color, p.Size, p.CategoryId,
@@ -124,16 +128,17 @@ public class ProductService : IProductService
 
         var product = new Product
         {
-            Name = dto.Name,
-            Brand = dto.Brand,
-            Description = dto.Description,
-            Price = dto.Price,
+            Name          = dto.Name,
+            Brand         = dto.Brand,
+            Description   = dto.Description,
+            Price         = dto.Price,
             StockQuantity = dto.StockQuantity,
-            IsActive = dto.StockQuantity > 0 && dto.IsActive,
-            ImageUrl = dto.ImageUrl,
-            Color = dto.Color,
-            Size = dto.Size,
-            CategoryId = dto.CategoryId
+            // Aktiflik tamamen stoğa bağlı:
+            IsActive      = dto.StockQuantity > 0,
+            ImageUrl      = dto.ImageUrl,
+            Color         = dto.Color,
+            Size          = dto.Size,
+            CategoryId    = dto.CategoryId
         };
 
         await _productRepository.AddAsync(product);
@@ -158,44 +163,64 @@ public class ProductService : IProductService
         if (category == null)
             return ServiceResult<ProductDto>.Fail("Category is not valid!");
 
-        // RESTOCK KONTROLÜ: önceki durum 0 mıydı?
+        // önceki durum: stok bitik mi?
         var wasOut = product.StockQuantity <= 0;
 
-        product.Name = dto.Name;
-        product.Brand = dto.Brand;
-        product.Description = dto.Description;
-        product.Price = dto.Price;
+        product.Name          = dto.Name;
+        product.Brand         = dto.Brand;
+        product.Description   = dto.Description;
+        product.Price         = dto.Price;
         product.StockQuantity = dto.StockQuantity;
-        product.IsActive = product.StockQuantity > 0 && dto.IsActive; // 0 ise zorla false
-        product.ImageUrl = dto.ImageUrl;
-        product.Color = dto.Color;
-        product.Size = dto.Size;
-        product.CategoryId = dto.CategoryId;
+        // Aktiflik stoğa bağlı
+        product.IsActive      = product.StockQuantity > 0;
+        product.ImageUrl      = dto.ImageUrl;
+        product.Color         = dto.Color;
+        product.Size          = dto.Size;
+        product.CategoryId    = dto.CategoryId;
 
         await _productRepository.UpdateAsync(product);
 
-        // 0 → >0 olduysa bekleyenlere haber ver
+        // 0 -> >0 olduysa bekleyenlere e-posta
         if (wasOut && product.StockQuantity > 0)
         {
             try
             {
-                var waiters = await _notifyRepo.GetPendingRequestsAsync(product.Id);
-                var list = waiters.ToList();
+                var waiters = (await _notifyRepo.GetPendingRequestsAsync(product.Id)).ToList();
+                _logger.LogInformation("Restock: product {ProductId} - notifying {Count} waiters",
+                    product.Id, waiters.Count);
 
-                // TODO: burada e-posta/sms/push gönder
-                // Örn. IEmailSender.SendAsync(waiter.AppUser.Email, "...");
-
-                // Şimdilik sadece loglayalım ve kayıtları silelim:
-                foreach (var w in list)
+                foreach (var w in waiters)
                 {
-                    _logger.LogInformation("Restock notify: Product {ProductId} -> User {UserId}", product.Id, w.UserId);
-                    await _notifyRepo.RemoveAsync(w.Id);
+                    var email = w.AppUser?.Email;
+                    if (string.IsNullOrWhiteSpace(email))
+                    {
+                        _logger.LogWarning("Waiter {UserId} has no email for product {ProductId}",
+                            w.UserId, product.Id);
+                        continue;
+                    }
+
+                    var subject = $"Back in stock: {product.Name}";
+                    var url = $"http://localhost:3000/product/{product.Id}";
+                    var html = $@"
+<p>Good news! <strong>{product.Name}</strong> is back in stock.</p>
+<p><a href=""{url}"">Buy now</a></p>";
+
+                    try
+                    {
+                        await _email.SendAsync(email, subject, html, "Good news! The product is back in stock.");
+                        await _notifyRepo.RemoveAsync(w.Id); // başarıyla gönderileni temizle
+                    }
+                    catch (Exception exSend)
+                    {
+                        _logger.LogError(exSend, "Email send failed to {Email} for product {ProductId}",
+                            email, product.Id);
+                        // başarısız olanlar listede kalsın (sonra tekrar denenebilir)
+                    }
                 }
             }
             catch (Exception ex)
             {
-                // Bildirim hatası stok güncellemesini bozmamalı
-                _logger.LogError(ex, "Waitlist notify failed for product {ProductId}", product.Id);
+                _logger.LogError(ex, "Restock notification failed for product {ProductId}", product.Id);
             }
         }
 

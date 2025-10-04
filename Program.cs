@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using makeup.Infrastructure.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -118,6 +119,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("UserOrAdmin", policy =>
         policy.RequireAuthenticatedUser());
 });
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Email"));
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 // Repositories
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
