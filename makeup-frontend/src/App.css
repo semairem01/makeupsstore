@@ -1,89 +1,103 @@
-﻿.navbar {
-    display: flex;
-    justify-content: space-between; /* Sol ve sağa ayır */
-    align-items: center;
-    padding: 0.8rem 2rem;
-    background: linear-gradient(to right, #f78ca0, #f9748f, #fd868c, #fe9a8b);
-    color: white;
-    font-family: 'Poppins', sans-serif;
+﻿/* ===== Lunara Beauty — Peach Pink Navbar ===== */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600&display=swap');
+
+:root{
+    /* Şeftali pembe tonları */
+    --peach-1:#ffd4d4;
+    --peach-2:#ffb5c0;
+    --peach-3:#fe9a8b;
+    --ink:#3b2a2a;
 }
 
-body {
-    font-family: 'Montserrat', sans-serif;
-    background-color: #fff;
-    margin: 0;
-    padding: 0;
+/* Genel */
+html,body{margin:0;padding:0}
+body{
+    font-family:'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    color:var(--ink);
+    background:#fff;
 }
 
-.navbar-logo {
-    font-family: 'Playfair Display', serif;
-    font-size: 2rem;          /* daha büyük görünüm */
-    font-weight: 600;         /* kalınlık */
-    color: #fff;              /* beyaz */
-    text-transform: capitalize; /* baş harfler büyük */
-    letter-spacing: 1px;      /* harf aralığı */
+/* NAVBAR */
+.navbar{
+    position: sticky; top: 0; z-index: 50;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px; padding:10px 20px;
+    background: linear-gradient(90deg,#ffabba 0%, #fe9a8b 35%, #fd868c 100%);
+    color:#fff; box-shadow:0 4px 12px rgba(253,134,140,.25);
 }
 
-.navbar-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1.4rem;
-    font-weight: 600;
+/* Sol: Logo */
+.brand{ display:flex; align-items:center; gap:12px; text-decoration:none; }
+.brand-logo{
+    height:80px; width:80px; display:block; border-radius:20px;
+    box-shadow:0 2px 8px rgba(255,120,140,.15);
+}
+.brand-text{
+    font-family:'Playfair Display', serif; font-weight:700; letter-spacing:.4px;
+    font-size:1.55rem; color:#ffffff;
+    text-shadow:0 1px 0 rgba(0,0,0,.05);
 }
 
-.navbar-right {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
+/* Orta: Arama çubuğu */
+.nav-search{
+    flex:1 1 auto; display:flex; justify-content:center;
+}
+.search-input{
+    width:min(740px, 92%);
+    background:#fff; border:2px solid rgba(0,0,0,.06);
+    border-radius:999px; padding:10px 16px;
+    font-size:.95rem; outline:none;
+    box-shadow:0 2px 10px rgba(255,137,150,.18) inset;
+}
+.search-input::placeholder{ color:#a07a7a; }
+
+/* Sağ: linkler + sepet + avatar */
+.navbar-right{ display:flex; align-items:center; gap:14px; }
+.navbar-right a{ text-decoration:none; color:#fff; font-weight:600; transition:opacity .2s; }
+.navbar-right a:hover{ opacity:.85; }
+
+.btn-pill{
+    background:rgba(255,255,255,.28); padding:8px 14px; border-radius:500px;
+    font-weight:400;
+}
+.btn-pill:hover{ background:rgba(255,255,255,.4); }
+
+/* Logout ghost buton */
+.btn-ghost{
+    border:1px solid rgba(255,255,255,.55);
+    background:rgba(255,255,255,.2); color:#fff;
+    padding:6px 10px; border-radius:10px; cursor:pointer;
+    transition:all .2s ease;
+}
+.btn-ghost:hover{ background:rgba(255,255,255,.32); }
+
+/* 🛒 Sepet — eski stile geri döndü */
+.cart-container{ position:relative; display:flex; align-items:center; }
+.cart-icon{ font-size:1.4rem; cursor:pointer; color:#fff; }
+.cart-badge{
+    position:absolute; top:-11px; right:-13px;
+    background: #91114d; color:#fff; font-size:.70rem;
+    padding:2px 6px; border-radius:50%;
+    line-height:1; min-width:9px; text-align:center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.9);
 }
 
-.navbar-right a {
-    text-decoration: none;
-    color: white;
-    font-weight: 500;
-    transition: opacity 0.2s ease;
+/* Avatar */
+.avatar-link{ display:inline-flex; align-items:center; justify-content:center; }
+.nav-avatar{
+    width:36px; height:36px; border-radius:50%; object-fit:cover;
+    border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.06);
+    transition: transform .15s ease;
 }
+.nav-avatar:hover{ transform: translateY(-1px) scale(1.02); }
+.nav-avatar.placeholder{ display:grid; place-items:center; font-weight:700; color:#b2206d; background:#ffe3f1; }
 
-.navbar-right a:hover {
-    opacity: 0.8;
+/* Mobil ufak iyileştirme */
+@media (max-width: 860px){
+    .brand-text{ display:none; }
+    .nav-search{ max-width:480px; }
 }
-
-/* 🛒 Sepet ikonu */
-.cart-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.cart-icon {
-    font-size: 1.4rem;
-    cursor: pointer;
-}
-
-.cart-badge {
-    position: absolute;
-    top: -8px;
-    right: -10px;
-    background: red;
-    color: white;
-    font-size: 0.75rem;
-    padding: 2px 6px;
-    border-radius: 50%;
-}
-
-.avatar-link { margin-left: 12px; display: inline-flex; align-items: center; justify-content: center; }
-
-.nav-avatar {
-    width: 36px; height: 36px; border-radius: 999px;
-    object-fit: cover; background: #fff; border: 2px solid #ffe3f1;
-    box-shadow: 0 4px 14px rgba(255,105,180,0.25);
-    transition: transform .15s ease, box-shadow .2s ease;
-}
-
-.nav-avatar:hover { transform: translateY(-1px) scale(1.03); }
-
-.nav-avatar.placeholder {
-    display: grid; place-items: center;
-    font-weight: 700; color: #b2206d; background: #ffe3f1; border-color: #ffd0e9;
+@media (max-width: 640px){
+    .nav-search{ display:none; } /* istersen gizle */
+    .btn-ghost, .btn-pill{ padding:6px 10px; }
 }

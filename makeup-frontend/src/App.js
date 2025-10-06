@@ -13,7 +13,7 @@ import ProfilePage from "./components/ProfilePage";
 import axios from "axios";
 import { API_ENDPOINTS } from "./config";
 import AdminApp from "./admin/AdminApp";
-
+import Home from "./components/Home";
 // Admin sayfası için basit placeholder
 function AdminDashboard() {
     return <h1>Admin Dashboard - Sadece Admin görebilir</h1>;
@@ -92,47 +92,80 @@ function App() {
     return (
         <>
             <header className="navbar">
-                <div className="navbar-left">💄 MakeUp Store</div>
+                {/* Sol: Logo + isim (daha büyük) */}
+                <Link to="/" className="brand">
+                    {/* kendi logo dosyan: public/branding/lunara-wordmark.svg ör. */}
+                    <img src="/images/logo1.png" alt="Lunara Beauty" className="brand-logo" />
+                    <span className="brand-text">Lunara Beauty</span>
+                </Link>
 
+                {/* Orta: Arama */}
+                <div className="nav-search">
+                    <input
+                        className="search-input"
+                        type="search"
+                        placeholder="Search products, brands…"
+                        aria-label="Search"
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                const q = e.currentTarget.value?.trim();
+                                if (q) window.location.href = `/products?q=${encodeURIComponent(q)}`;
+                            }
+                        }}
+                    />
+                </div>
+
+                {/* Sağ: linkler + sepet + avatar / login-register */}
                 <div className="navbar-right">
-                    <Link to="/">Home</Link>
-                    {!token && <Link to="/register">Register</Link>}
-                    {!token && <Link to="/login">Login</Link>}
-                    {token && (
-                        <button
-                            onClick={() => {
-                                localStorage.removeItem("token");
-                                localStorage.removeItem("isAdmin");
-                                setCartCount(0);
-                                window.location.href = "/";
-                            }}
-                            style={{ marginLeft: "1rem" }}
-                        >
-                            Logout
-                        </button>
-                    )}
                     
                     {isAdmin && <Link to="/admin">Admin Panel</Link>}
 
+                    {/* Login/Register görünür (token yoksa) */}
+                    {!token && (
+                        <>
+                            <Link to="/login" className="btn-pill">Login</Link>
+                            <Link to="/register" className="btn-pill">Register</Link>
+                        </>
+                    )}
+
+                    {/* Sepet – küçültülmüş ikon + eski rozet stili */}
                     <div className="cart-container">
-                        <Link to="/cart">
+                        <Link to="/cart" className="cart-link" aria-label="Cart">
                             <FaShoppingCart className="cart-icon" />
+                            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
                         </Link>
-                        <span className="cart-badge">{cartCount}</span>
                     </div>
+
+                    {/* Avatar/Logout (token varsa) */}
                     {token && (
-                        <Link to="/profile" className="avatar-link" title="Profilim">
-                            {avatarUrl ? (
-                                <img
-                                    src={`http://localhost:5011${avatarUrl}`}
-                                    alt="Profil"
-                                    className="nav-avatar"
-                                    onError={(e)=>{ e.currentTarget.src="https://via.placeholder.com/36/ffe3f1/000?text=U"; }}
-                                />
-                            ) : (
-                                <div className="nav-avatar placeholder">{initials}</div>
-                            )}
-                        </Link>
+                        <>
+                            <button
+                                className="btn-ghost"
+                                onClick={() => {
+                                    localStorage.removeItem("token");
+                                    localStorage.removeItem("isAdmin");
+                                    setCartCount(0);
+                                    window.location.href = "/";
+                                }}
+                            >
+                                Logout
+                            </button>
+                            <Link to="/profile" className="avatar-link" title="Profilim">
+                                {avatarUrl ? (
+                                    <img
+                                        src={`http://localhost:5011${avatarUrl}`}
+                                        alt="Profil"
+                                        className="nav-avatar"
+                                        onError={(e) => {
+                                            e.currentTarget.src =
+                                                "https://via.placeholder.com/36/ffe3f1/000?text=U";
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="nav-avatar placeholder">{initials}</div>
+                                )}
+                            </Link>
+                        </>
                     )}
                 </div>
             </header>
@@ -141,7 +174,10 @@ function App() {
 
             <main className="main-content">
                 <Routes>
-                    <Route path="/" element={<ProductList onAdded={handleAddedToCart} />} />
+                    <Route path="/" element={<Home onAdded={handleAddedToCart} />} />
+
+                    {/* Ürün listesi ayrı sayfa */}
+                    <Route path="/products" element={<ProductList onAdded={handleAddedToCart} />} />
                     <Route
                         path="/product/:id"
                         element={<ProductDetail onAdded={handleAddedToCart} />}

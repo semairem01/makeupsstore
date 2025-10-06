@@ -10,70 +10,81 @@
 .admin-table{ width:100%; border-collapse:collapse; }
 .admin-table th, .admin-table td{ border-bottom:1px solid #f1f1f1; padding:8px; text-align:left; }
 .btn-link{ background:none; border:none; color:#b2206d; cursor:pointer; }
-/* Formu kart gibi göstermek için */
-.card {
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    padding: 16px;
-    margin: 12px 0;
-    box-shadow: 0 6px 20px rgba(0,0,0,.06);
+
+/* ✅ Düzenle / Sil butonları yan yana boşluklu */
+.admin-table td button {
+    margin-right: 8px;
 }
 
-/* Formu iki/üç sütunlu ızgara yapısı */
+/* ✅ Form grid */
 .grid2 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 12px;
     margin-bottom: 12px;
 }
 
-.grid2 label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 14px;
+/* ✅ Kart görünümü */
+.card {
+    background:#fff;
+    border:1px solid #f3c7dd;
+    border-radius:12px;
+    padding:16px;
+    box-shadow:0 4px 12px rgba(178,32,109,0.08);
+    margin-bottom:16px;
 }
 
-.grid2 input,
-.grid2 select,
-textarea {
-    padding: 6px 8px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+/* ✅ Input ve select stil */
+label {
+    display:flex;
+    flex-direction:column;
+    font-size:0.9rem;
+    color:#444;
+    font-weight:500;
 }
 
-/* Düğme stilleri (varsa çakışmaz) */
+input, select, textarea {
+    margin-top:4px;
+    padding:8px 10px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    font-size:0.9rem;
+    transition:border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+    border-color:#b2206d;
+    outline:none;
+}
+
+/* ✅ Butonlar */
 button {
-    cursor: pointer;
-    padding: 6px 12px;
-    border-radius: 8px;
-    border: none;
-    background: #ff69b4;
-    color: #fff;
-    font-size: 14px;
+    padding:8px 14px;
+    border:none;
+    border-radius:8px;
+    font-size:0.9rem;
+    cursor:pointer;
+    transition:background 0.2s;
+}
+button:hover { opacity:0.9; }
+
+button.btn-primary {
+    background:#b2206d;
+    color:#fff;
+}
+button.btn-outline {
+    background:transparent;
+    border:1px solid #ccc;
+    color:#333;
+}
+button.btn-outline:hover {
+    border-color:#b2206d;
+    color:#b2206d;
 }
 
-button:hover { background: #ff4fa0; }
-
-/* İkincil buton */
-.btn-outline {
-    background: #fff;
-    color: #333;
-    border: 1px solid #ccc;
+/* ✅ Tablo zebra ve hover */
+.admin-table tr:nth-child(even) {
+    background:#fafafa;
 }
-
-/* Tablo içindeki düzenle/sil butonlarına aralık */
-.admin-table td button { margin-right: 8px; }
-
-/* Varsa link butonlar (sil/düzenle) */
-.btn-link {
-    background: none;
-    border: none;
-    color: #b2206d;
-    text-decoration: underline;
-    cursor: pointer;
-    font-size: 13px;
+.admin-table tr:hover {
+    background:#fdf0f6;
 }
-
-.btn-link.danger { color: #cc0000; }

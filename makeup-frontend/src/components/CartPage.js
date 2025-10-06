@@ -133,9 +133,9 @@ function CartPage({ onCleared, onCountChange }) {
                             </div>
 
                             <div className="qty-box">
-                                <button className="qty-btn" onClick={() => inc(item)}>-</button>
+                                <button className="qty-btn" onClick={() => dec(item)}>-</button>
                                 <div className="qty-val">{item.quantity ?? item.Quantity}</div>
-                                <button className="qty-btn" onClick={() => dec(item)}>+</button>
+                                <button className="qty-btn" onClick={() => inc(item)}>+</button>
                                 <button className="qty-btn" style={{ marginLeft: 8 }} onClick={() => removeItem(item.id)}>✕</button>
                             </div>
                         </div>
