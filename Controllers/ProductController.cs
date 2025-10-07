@@ -88,4 +88,12 @@ public class ProductController : ControllerBase
         var products = await _productService.GetDiscountedAsync();
         return Ok(products);
     }
+    
+    [HttpGet("search")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> Search([FromQuery] string q)
+    {
+        var items = await _productService.SearchAsync(q);
+        return Ok(items);
+    }
 }

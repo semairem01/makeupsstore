@@ -12,5 +12,6 @@ public interface IProductService
     Task<IEnumerable<ProductDto>> GetByCategoryAsync(int categoryId);
     Task<IEnumerable<ProductDto>> GetDiscountedAsync();
     Task<IEnumerable<ProductDto>> GetByCategoryTreeAsync(int categoryId);
+    Task<IEnumerable<ProductDto>> SearchAsync(string? query);
 
 }

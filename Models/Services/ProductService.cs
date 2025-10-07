@@ -269,4 +269,13 @@ public class ProductService : IProductService
         await _productRepository.DeleteAsync(product);
         return ServiceResult<bool>.Ok(true, "Product deleted successfully!");
     }
+    
+    public async Task<IEnumerable<ProductDto>> SearchAsync(string? query)
+    {
+        var list = await _productRepository.SearchAsync(query);
+        return list.Select(p => new ProductDto(
+            p.Id, p.Name, p.Brand, p.Description, p.Price, p.IsActive, p.ImageUrl,
+            p.Color, p.Size, p.CategoryId, p.Category?.Name ?? "", p.DiscountPercent
+        ));
+    }
 }
