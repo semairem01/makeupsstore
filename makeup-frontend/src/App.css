@@ -92,6 +92,19 @@ body{
 .nav-avatar:hover{ transform: translateY(-1px) scale(1.02); }
 .nav-avatar.placeholder{ display:grid; place-items:center; font-weight:700; color:#b2206d; background:#ffe3f1; }
 
+.search-input {
+    padding: 10px 14px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    border-color: #ff69b4;
+    box-shadow: 0 0 4px rgba(255, 105, 180, 0.3);
+}
 /* Mobil ufak iyileştirme */
 @media (max-width: 860px){
     .brand-text{ display:none; }

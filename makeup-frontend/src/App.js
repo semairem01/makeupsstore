@@ -101,19 +101,53 @@ function App() {
                 </Link>
 
                 {/* Orta: Arama */}
-                <div className="nav-search">
+                <div className="nav-search" style={{ position: "relative" }}>
                     <input
+                        id="navSearchInput"
                         className="search-input"
                         type="search"
-                        placeholder="Search products, brands…"
+                        placeholder="Ürün, marka veya kategori ara..."
                         aria-label="Search"
                         onKeyDown={(e) => {
                             if (e.key === "Enter") {
                                 const q = e.currentTarget.value?.trim();
-                                if (q) window.location.href = `/products?q=${encodeURIComponent(q)}`;
+                                if (q) {
+                                    window.location.href = `/products?q=${encodeURIComponent(q)}`;
+                                    e.currentTarget.value = "";
+                                }
                             }
                         }}
+                        style={{
+                            paddingRight: "38px", // ikon için sağ boşluk
+                        }}
                     />
+
+                    {/* 🔍 Arama butonu */}
+                    <button
+                        onClick={() => {
+                            const input = document.getElementById("navSearchInput");
+                            const q = input?.value?.trim();
+                            if (q) {
+                                window.location.href = `/products?q=${encodeURIComponent(q)}`;
+                                input.value = "";
+                            }
+                        }}
+                        style={{
+                            position: "absolute",
+                            right: "8px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            border: "none",
+                            background: "none",
+                            cursor: "pointer",
+                            color: "#b2206d", // pembe ton
+                            fontSize: "18px",
+                        }}
+                        aria-label="Ara"
+                        title="Ara"
+                    >
+                        🔍
+                    </button>
                 </div>
 
                 {/* Sağ: linkler + sepet + avatar / login-register */}
