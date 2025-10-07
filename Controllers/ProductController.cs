@@ -80,4 +80,12 @@ public class ProductController : ControllerBase
         if (!result.Success) return NotFound(result.Message);
         return NoContent();
     }
+    
+    [HttpGet("discounted")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetDiscounted()
+    {
+        var products = await _productService.GetDiscountedAsync();
+        return Ok(products);
+    }
 }

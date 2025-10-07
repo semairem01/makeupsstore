@@ -9,4 +9,5 @@ public interface ICartItemService
     Task<ServiceResult<CartItemDto>> UpdateQuantityAsync(int cartItemId, int quantity); // Miktar güncelle
     Task<ServiceResult<bool>> RemoveAsync(int cartItemId); // Sepetten kaldır
     Task<ServiceResult<bool>> ClearAsync(); // Sepeti temizle
+    
 }

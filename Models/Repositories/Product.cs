@@ -19,6 +19,8 @@ public class Product  //Temel ürün ve stok bilgilerini tutar.
     public string? Color { get; set; } 
     public string? Size { get; set; }
     
+    public decimal? DiscountPercent { get; set; }
+    
     public int CategoryId { get; set; }
 
     public Category Category { get; set; } = null!;

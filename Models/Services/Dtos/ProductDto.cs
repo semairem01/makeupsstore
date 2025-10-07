@@ -11,7 +11,8 @@ public record ProductCreateDto(
     string ImageUrl,
     string? Color,
     string? Size,
-    int CategoryId
+    int CategoryId,
+    decimal? DiscountPercent 
 );
 
 public record ProductUpdateDto(
@@ -25,7 +26,8 @@ public record ProductUpdateDto(
     string ImageUrl,
     string? Color,
     string? Size,
-    int CategoryId
+    int CategoryId,
+    decimal? DiscountPercent
 );
 
 public record AdminProductListDto(
@@ -55,5 +57,13 @@ public record ProductDto(
     string? Color,
     string? Size,
     int CategoryId,
-    string CategoryName
-);
+    string CategoryName,
+    decimal? DiscountPercent
+)
+{
+    public decimal FinalPrice =>
+        DiscountPercent.HasValue && DiscountPercent > 0
+            ? Price * (1 - DiscountPercent.Value / 100)
+            : Price;
+}
+    

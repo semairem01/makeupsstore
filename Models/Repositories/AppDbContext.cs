@@ -28,6 +28,9 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 entity.Property(p=>p.Name).HasMaxLength(100).IsRequired();
                 entity.Property(p=>p.Brand).HasMaxLength(100).IsRequired();
                 entity.Property(p => p.Description).HasColumnType("nvarchar(MAX)").IsRequired();
+                entity.Property(p => p.DiscountPercent)
+                    .HasColumnType("decimal(5,2)")  
+                    .IsRequired(false);
                 entity.Property(p => p.Price).HasColumnType("decimal(18,2)");
                 entity.Property(p=>p.StockQuantity).HasDefaultValue(0);
                 entity.Property(p=>p.IsActive).HasDefaultValue(false);

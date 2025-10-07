@@ -44,10 +44,29 @@ public class ProductService : IProductService
             p.Color,
             p.Size,
             p.CategoryId,
-            p.Category.Name
+            p.Category.Name,
+            p.DiscountPercent                 // <-- eklendi
         )).ToList();
     }
 
+    public async Task<IEnumerable<ProductDto>> GetDiscountedAsync()
+    {
+        var all = await _productRepository.GetAllAsync(); // Category Include'lu
+        var discounted = all
+            .Where(p => p.IsActive && (p.DiscountPercent ?? 0) > 0)
+            .Select(p => new ProductDto(
+                p.Id, p.Name, p.Brand, p.Description, p.Price, p.IsActive,
+                p.ImageUrl, p.Color, p.Size, p.CategoryId,
+                p.Category?.Name ?? "",
+                p.DiscountPercent
+            ))
+            .OrderByDescending(p => p.DiscountPercent)
+            .ThenBy(p => p.Name)
+            .ToList();
+
+        return discounted;
+    }
+    
     // tek ürün
     public async Task<ProductDto?> GetByIdAsync(int id)
     {
@@ -65,7 +84,8 @@ public class ProductService : IProductService
             product.Color,
             product.Size,
             product.CategoryId,
-            product.Category.Name
+            product.Category.Name,
+            product.DiscountPercent            // <-- eklendi
         );
     }
 
@@ -81,7 +101,8 @@ public class ProductService : IProductService
             .Select(p => new ProductDto(
                 p.Id, p.Name, p.Brand, p.Description, p.Price, p.IsActive,
                 p.ImageUrl, p.Color, p.Size, p.CategoryId,
-                p.Category?.Name ?? category.Name
+                p.Category?.Name ?? category.Name,
+                p.DiscountPercent            // <-- eklendi
             ))
             .ToList();
 
@@ -112,7 +133,9 @@ public class ProductService : IProductService
             .Where(p => wanted.Contains(p.CategoryId) && p.IsActive)
             .Select(p => new ProductDto(
                 p.Id, p.Name, p.Brand, p.Description, p.Price, p.IsActive,
-                p.ImageUrl, p.Color, p.Size, p.CategoryId, p.Category?.Name ?? ""
+                p.ImageUrl, p.Color, p.Size, p.CategoryId,
+                p.Category?.Name ?? "",
+                p.DiscountPercent            // <-- eklendi
             ))
             .ToList();
 
@@ -138,7 +161,8 @@ public class ProductService : IProductService
             ImageUrl      = dto.ImageUrl,
             Color         = dto.Color,
             Size          = dto.Size,
-            CategoryId    = dto.CategoryId
+            CategoryId    = dto.CategoryId,
+            DiscountPercent = dto.DiscountPercent   // <-- eklendi (DTO’da olmalı)
         };
 
         await _productRepository.AddAsync(product);
@@ -146,7 +170,8 @@ public class ProductService : IProductService
         var productDto = new ProductDto(
             product.Id, product.Name, product.Brand, product.Description, product.Price,
             product.IsActive, product.ImageUrl, product.Color, product.Size,
-            product.CategoryId, category.Name
+            product.CategoryId, category.Name,
+            product.DiscountPercent                 // <-- eklendi
         );
 
         return ServiceResult<ProductDto>.Ok(productDto, "Product created successfully!");
@@ -177,6 +202,7 @@ public class ProductService : IProductService
         product.Color         = dto.Color;
         product.Size          = dto.Size;
         product.CategoryId    = dto.CategoryId;
+        product.DiscountPercent = dto.DiscountPercent;   // <-- eklendi
 
         await _productRepository.UpdateAsync(product);
 
@@ -208,13 +234,12 @@ public class ProductService : IProductService
                     try
                     {
                         await _email.SendAsync(email, subject, html, "Good news! The product is back in stock.");
-                        await _notifyRepo.RemoveAsync(w.Id); // başarıyla gönderileni temizle
+                        await _notifyRepo.RemoveAsync(w.Id);
                     }
                     catch (Exception exSend)
                     {
                         _logger.LogError(exSend, "Email send failed to {Email} for product {ProductId}",
                             email, product.Id);
-                        // başarısız olanlar listede kalsın (sonra tekrar denenebilir)
                     }
                 }
             }
@@ -227,7 +252,8 @@ public class ProductService : IProductService
         var productDto = new ProductDto(
             product.Id, product.Name, product.Brand, product.Description, product.Price,
             product.IsActive, product.ImageUrl, product.Color, product.Size,
-            product.CategoryId, category.Name
+            product.CategoryId, category.Name,
+            product.DiscountPercent                 // <-- eklendi
         );
 
         return ServiceResult<ProductDto>.Ok(productDto, "Product updated successfully!");

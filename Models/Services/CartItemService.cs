@@ -25,22 +25,33 @@ public class CartItemService : ICartItemService
         Guid.Parse(_httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)
                    ?? Guid.Empty.ToString());
 
+    // 🔸 İndirim uygulanmış birim fiyat
+    private static decimal GetEffectiveUnitPrice(Product p)
+    {
+        var rate = (p?.DiscountPercent ?? 0m);
+        return (rate > 0m) ? p.Price * (1 - rate / 100m) : p.Price;
+    }
+
     // Sepeti getir
     public async Task<IEnumerable<CartItemDto>> GetAllAsync()
     {
         var userId = CurrentUserId;
         var cartItems = await _cartItemRepository.GetByUserIdAsync(userId);
 
-        return cartItems.Select(ci => new CartItemDto(
-            ci.Id,
-            ci.ProductId,
-            ci.Product.Name,
-            ci.Product.Brand,
-            ci.Product.ImageUrl,
-            ci.Product.Price,
-            ci.Quantity,
-            ci.Product.Price * ci.Quantity
-        )).ToList();
+        return cartItems.Select(ci =>
+        {
+            var unit = GetEffectiveUnitPrice(ci.Product);     // ✅ indirimli birim
+            return new CartItemDto(
+                ci.Id,
+                ci.ProductId,
+                ci.Product.Name,
+                ci.Product.Brand,
+                ci.Product.ImageUrl,
+                unit,                                         // ✅
+                ci.Quantity,
+                unit * ci.Quantity                            // ✅
+            );
+        }).ToList();
     }
 
     // Sepete ekle (iş kuralları burada)
@@ -66,15 +77,16 @@ public class CartItemService : ICartItemService
             existing.Quantity = newQty;
             await _cartItemRepository.UpdateAsync(existing);
 
+            var unit = GetEffectiveUnitPrice(existing.Product);    // ✅
             var dtoOut = new CartItemDto(
                 existing.Id,
                 existing.ProductId,
                 existing.Product.Name,
                 existing.Product.Brand,
                 existing.Product.ImageUrl,
-                existing.Product.Price,
+                unit,                                              // ✅
                 existing.Quantity,
-                existing.Product.Price * existing.Quantity
+                unit * existing.Quantity                           // ✅
             );
 
             return ServiceResult<CartItemDto>.Ok(dtoOut, "Cart updated.");
@@ -85,8 +97,8 @@ public class CartItemService : ICartItemService
             var cartItem = new CartItem
             {
                 ProductId = dto.ProductId,
-                Quantity = dto.Quantity,
-                UserId = CurrentUserId
+                Quantity  = dto.Quantity,
+                UserId    = CurrentUserId
             };
             await _cartItemRepository.AddAsync(cartItem);
 
@@ -95,15 +107,16 @@ public class CartItemService : ICartItemService
             if (added == null)
                 return ServiceResult<CartItemDto>.Fail("Failed to add item to cart.");
 
+            var unit = GetEffectiveUnitPrice(added.Product);        // ✅
             var dtoOut = new CartItemDto(
                 added.Id,
                 added.ProductId,
                 added.Product.Name,
                 added.Product.Brand,
                 added.Product.ImageUrl,
-                added.Product.Price,
+                unit,                                              // ✅
                 added.Quantity,
-                added.Product.Price * added.Quantity
+                unit * added.Quantity                              // ✅
             );
 
             return ServiceResult<CartItemDto>.Ok(dtoOut, "Item added to cart.");
@@ -134,15 +147,16 @@ public class CartItemService : ICartItemService
         cartItem.Quantity = quantity;
         await _cartItemRepository.UpdateAsync(cartItem);
 
+        var unit = GetEffectiveUnitPrice(cartItem.Product);         // ✅
         var dto = new CartItemDto(
             cartItem.Id,
             cartItem.ProductId,
             cartItem.Product.Name,
             cartItem.Product.Brand,
             cartItem.Product.ImageUrl,
-            cartItem.Product.Price,
+            unit,                                                   // ✅
             cartItem.Quantity,
-            cartItem.Product.Price * cartItem.Quantity
+            unit * cartItem.Quantity                                // ✅
         );
 
         return ServiceResult<CartItemDto>.Ok(dto, "Quantity updated successfully.");
