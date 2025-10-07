@@ -1,4 +1,4 @@
-﻿:root{ --pink:#ff69b4; --bg:#fff; --soft:#ffe3f1; --muted:#f7f7f8; }
+﻿:root{ --pink:#ff69b4; --bg:#fff; --soft:#ffe3f1; --muted: #ea3a92; }
 .profile-wrap{ max-width:980px; margin:24px auto; padding:0 16px; }
 .tabs{ display:flex; gap:8px; margin-bottom:16px; }
 .tabs button{ padding:8px 14px; border-radius:10px; border:1px solid var(--soft); background:#fff; cursor:pointer; }

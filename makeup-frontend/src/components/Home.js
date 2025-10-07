@@ -21,10 +21,10 @@ export default function Home({ onAdded }) {
     // ----- SLIDES -----
     const slides = [
         {
-            image: "/banners/discount.png",
+            image: "/banners/discount2.jpg",
             kicker: "SEASON OFFER",
-            subtitle: "Pastel tones, soft finish — limited time.",
-            cta: { label: "Shop Now", to: "/products?q=makeup" },
+            subtitle: "Selected products up to 40% off",
+            cta: { label: "Shop", to: "/sale" },
             overlay: "light",
         },
         {
@@ -46,7 +46,7 @@ export default function Home({ onAdded }) {
     ];
     // -------------------
 
-    // İlk yük: kategoriler + ürünler
+    // İlk yük: kategoriler + tüm ürünler
     useEffect(() => {
         setLoading(true);
         Promise.all([axios.get(API_ENDPOINTS.CATEGORIES), axios.get(API_ENDPOINTS.PRODUCTS)])
@@ -71,22 +71,30 @@ export default function Home({ onAdded }) {
             .finally(() => setLoading(false));
     }, []);
 
-    // URL değiştiğinde kategori uygula
+    // URL değiştiğinde filtre uygula (kategori veya indirimli ürün)
     useEffect(() => {
         if (!cats.length) return;
-
         const params = new URLSearchParams(location.search);
         const catQuery = (params.get("cat") || "").trim().toLowerCase();
+        const discounted = params.get("discounted"); // ✅ yeni parametre
 
-        if (!catQuery) {
-            setActiveCat(0);
-        } else {
+        // eğer discount parametresi varsa indirimli ürünleri getir
+        if (discounted === "true") {
+            setLoading(true);
+            axios
+                .get(`${API_ENDPOINTS.PRODUCTS}/discounted`)
+                .then((res) => setView(res.data || []))
+                .catch(() => setView([]))
+                .finally(() => setLoading(false));
+            return;
+        }
+
+        // kategori sorgusu varsa
+        if (catQuery) {
             const match = cats.find((c) => (c.name || "").toLowerCase() === catQuery);
-            if (match) {
-                setActiveCat(match.id);
-            } else {
-                setActiveCat(0); // geçersiz kategori durumunda All
-            }
+            setActiveCat(match ? match.id : 0);
+        } else {
+            setActiveCat(0);
         }
 
         // sadece "#featured" varsa o bölüme kaydır
@@ -209,8 +217,7 @@ export default function Home({ onAdded }) {
                                             src={`http://localhost:5011${rv.productImageUrl ?? ""}`}
                                             alt={rv.productName}
                                             onError={(e) => {
-                                                e.currentTarget.src =
-                                                    "https://via.placeholder.com/72x72?text=No+Img";
+                                                e.currentTarget.src = "https://via.placeholder.com/72x72?text=No+Img";
                                             }}
                                         />
                                         <figcaption title={rv.productName}>{rv.productName}</figcaption>

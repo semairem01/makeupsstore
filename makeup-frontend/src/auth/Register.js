@@ -18,6 +18,15 @@ function RuleItem({ ok, text }) {
     );
 }
 
+// 🔠 Ad Soyad normalize + regex
+const normalizeFullName = (s) =>
+    (s ?? "")
+        .normalize("NFC")         // diakritikleri düzgün birleştir
+        .replace(/\s+/g, " ")     // çoklu boşluk -> tek boşluk
+        .trim();
+
+const FULLNAME_REGEX = /^[A-Za-zÇĞİÖŞÜçğıöşü\s'-]{2,60}$/; // harf + boşluk + ' -
+
 function Register() {
     const [form, setForm] = useState({
         fullName: "",
@@ -32,8 +41,7 @@ function Register() {
     const handleChange = (e) =>
         setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
 
-    // Backend ile aynı kurallar:
-    // ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{6,}$
+    // Şifre kuralları (BE ile aynı)
     const checks = useMemo(() => {
         const v = form.password || "";
         return {
@@ -41,18 +49,35 @@ function Register() {
             upper: /[A-Z]/.test(v),
             lower: /[a-z]/.test(v),
             digit: /\d/.test(v),
-            allowed: /^[a-zA-Z\d@$!%*?&]*$/.test(v), // opsiyonel olarak izinli karakter seti
-            match: form.password === form.confirmPassword && form.confirmPassword !== "",
+            allowed: /^[a-zA-Z\d@$!%*?&]*$/.test(v),
+            match:
+                form.password === form.confirmPassword && form.confirmPassword !== "",
         };
     }, [form.password, form.confirmPassword]);
 
-    const allRulesOk = checks.len && checks.upper && checks.lower && checks.digit && checks.allowed;
-    const canSubmit = allRulesOk && checks.match && form.fullName && form.email;
+    // 👤 Full name validasyon
+    const cleanFullName = useMemo(
+        () => normalizeFullName(form.fullName),
+        [form.fullName]
+    );
+    const fullNameValid = FULLNAME_REGEX.test(cleanFullName);
+
+    const allRulesOk =
+        checks.len && checks.upper && checks.lower && checks.digit && checks.allowed;
+    const canSubmit = allRulesOk && checks.match && fullNameValid && form.email;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
         setSuccess("");
+
+        // Full name kontrol
+        if (!fullNameValid) {
+            setError(
+                "Ad Soyad yalnızca harf, boşluk ve ( ' - ) içerebilir, 2-60 karakter olmalı."
+            );
+            return;
+        }
 
         if (!allRulesOk) {
             setError("Şifre kurallarını sağlayınız.");
@@ -65,17 +90,16 @@ function Register() {
 
         try {
             const res = await axios.post(`${API_ENDPOINTS.AUTH}/register`, {
-                userName: form.fullName,           // DTO: UserName
+                userName: cleanFullName,          // ✅ normalize edilmiş değer
                 email: form.email,
-                phoneNumber: form.phone || null,   // DTO: PhoneNumber
-                password: form.password,           // DTO: Password
-                confirmPassword: form.confirmPassword, // DTO: ConfirmPassword
+                phoneNumber: form.phone || null,
+                password: form.password,
+                confirmPassword: form.confirmPassword,
             });
 
             if (res.data?.success) {
                 setSuccess("Kayıt başarılı! Giriş yapabilirsiniz.");
             } else {
-                // ModelState/Validation hataları backend'den bir liste olarak gelebilir
                 const msg =
                     res.data?.message ||
                     (Array.isArray(res.data?.errors) && res.data.errors.join(" • ")) ||
@@ -85,13 +109,14 @@ function Register() {
         } catch (err) {
             const apiMsg =
                 err.response?.data?.message ||
-                (Array.isArray(err.response?.data?.errors) && err.response.data.errors.join(" • ")) ||
+                (Array.isArray(err.response?.data?.errors) &&
+                    err.response.data.errors.join(" • ")) ||
                 "Bir hata oluştu";
             setError(apiMsg);
         }
     };
 
-    // Basit bir “güç” metriği (opsiyonel)
+    // Basit güç metriği (opsiyonel)
     const strengthScore =
         (checks.len ? 1 : 0) +
         (checks.upper ? 1 : 0) +
@@ -106,15 +131,30 @@ function Register() {
                 <p className="auth-subtitle">Create your account</p>
 
                 <form onSubmit={handleSubmit} className="auth-form" noValidate>
-                    <input
-                        className="auth-input"
-                        type="text"
-                        name="fullName"
-                        placeholder="Full name"
-                        value={form.fullName}
-                        onChange={handleChange}
-                        required
-                    />
+                    <div className="space-y-1">
+                        <input
+                            className={`auth-input ${
+                                form.fullName && !fullNameValid ? "border-red-500" : ""
+                            }`}
+                            type="text"
+                            name="fullName"
+                            placeholder="Full name"
+                            value={form.fullName}
+                            onChange={handleChange}
+                            onBlur={() =>
+                                setForm((s) => ({ ...s, fullName: cleanFullName })) // ✅ otomatik normalize
+                            }
+                            required
+                            aria-invalid={form.fullName && !fullNameValid}
+                            aria-describedby="fullname-help"
+                        />
+                        {form.fullName && !fullNameValid && (
+                            <div id="fullname-help" className="text-red-600 text-sm">
+                                Ad Soyad yalnızca harf, boşluk ve ( ' - ) içerebilir, 2-60 karakter olmalı.
+                            </div>
+                        )}
+                    </div>
+
                     <input
                         className="auth-input"
                         type="email"
@@ -143,7 +183,6 @@ function Register() {
                             value={form.password}
                             onChange={handleChange}
                             required
-                            // HTML5 pattern (backend ile eşleşsin)
                             pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{6,}$"
                             aria-describedby="password-rules"
                         />
@@ -156,14 +195,23 @@ function Register() {
                                 <RuleItem ok={checks.upper} text="En az 1 büyük harf (A-Z)" />
                                 <RuleItem ok={checks.lower} text="En az 1 küçük harf (a-z)" />
                                 <RuleItem ok={checks.digit} text="En az 1 rakam (0-9)" />
-                                <RuleItem ok={checks.allowed} text="Sadece izinli karakterler: a-z, A-Z, 0-9, @$!%*?&" />
+                                <RuleItem
+                                    ok={checks.allowed}
+                                    text="Sadece izinli karakterler: a-z, A-Z, 0-9, @$!%*?&"
+                                />
                             </ul>
 
-                            {/* Opsiyonel: basit güç göstergesi */}
+                            {/* Opsiyonel güç göstergesi */}
                             <div className="mt-2">
                                 <div className="h-1 w-full bg-gray-200 rounded">
                                     <div
-                                        className={`h-1 rounded ${strengthScore <= 2 ? "bg-red-500" : strengthScore === 3 ? "bg-yellow-500" : "bg-green-600"}`}
+                                        className={`h-1 rounded ${
+                                            strengthScore <= 2
+                                                ? "bg-red-500"
+                                                : strengthScore === 3
+                                                    ? "bg-yellow-500"
+                                                    : "bg-green-600"
+                                        }`}
                                         style={{ width: `${(strengthScore / 5) * 100}%` }}
                                         aria-hidden="true"
                                     />
@@ -185,16 +233,31 @@ function Register() {
                         required
                     />
                     {!checks.match && form.confirmPassword && (
-                        <div className="text-red-600 text-sm mt-[-6px] mb-2">Şifreler eşleşmiyor</div>
+                        <div className="text-red-600 text-sm mt-[-6px] mb-2">
+                            Şifreler eşleşmiyor
+                        </div>
                     )}
 
-                    <button className="auth-button" type="submit" disabled={!canSubmit} aria-disabled={!canSubmit}>
+                    <button
+                        className="auth-button"
+                        type="submit"
+                        disabled={!canSubmit}
+                        aria-disabled={!canSubmit}
+                    >
                         SIGN UP
                     </button>
                 </form>
 
-                {error && <div className="auth-error" role="alert">{error}</div>}
-                {success && <div className="auth-success" role="status">{success}</div>}
+                {error && (
+                    <div className="auth-error" role="alert">
+                        {error}
+                    </div>
+                )}
+                {success && (
+                    <div className="auth-success" role="status">
+                        {success}
+                    </div>
+                )}
 
                 <div className="auth-switch">
                     Already have an account? <a href="/login">Sign in Now!</a>

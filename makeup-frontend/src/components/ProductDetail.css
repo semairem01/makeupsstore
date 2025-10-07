@@ -50,7 +50,7 @@
 .pd-rating .stars{ letter-spacing:2px; color:#ffc107; }
 .pd-rating .muted{ color:#999; font-size:13px; }
 .pd-rating-text { color:#666; font-size:14px; }
-
+.pd-color{color: var(--pink); }
 .pd-price{
     font-size:26px; font-weight:800; color:var(--pink); margin:10px 0 8px;
 }

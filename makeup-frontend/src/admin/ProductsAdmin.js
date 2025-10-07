@@ -50,6 +50,7 @@ export default function ProductsAdmin() {
         color: "",
         size: "",
         categoryId: 0,
+        discountPercent: "",
     };
     const [form, setForm] = useState(emptyForm);
 
@@ -132,6 +133,7 @@ export default function ProductsAdmin() {
                 color: p.color ?? "",
                 size: p.size ?? "",
                 categoryId: validCatId,
+                discountPercent: p.discountPercent != null ? String(p.discountPercent) : "",
             });
             setShowForm(true);
         } catch (err) {
@@ -172,7 +174,8 @@ export default function ProductsAdmin() {
                 imageUrl: form.imageUrl,
                 color: form.color || null,
                 size: form.size || null,
-                categoryId: Number(form.categoryId) || 0,  // child id
+                categoryId: Number(form.categoryId) || 0,
+                discountPercent: form.discountPercent ? Number(form.discountPercent) : null,
             };
 
             if (!payload.name) { alert("Ürün adı zorunlu."); return; }
@@ -294,6 +297,16 @@ export default function ProductsAdmin() {
                                 inputMode="decimal"
                                 value={form.price}
                                 onChange={(e) => setForm({ ...form, price: e.target.value })}
+                            />
+                        </label>
+                        <label>
+                            İndirim (%)
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="örnek: 20"
+                                value={form.discountPercent}
+                                onChange={(e) => setForm({ ...form, discountPercent: e.target.value })}
                             />
                         </label>
                         <label>

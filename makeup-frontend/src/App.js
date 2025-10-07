@@ -14,6 +14,7 @@ import axios from "axios";
 import { API_ENDPOINTS } from "./config";
 import AdminApp from "./admin/AdminApp";
 import Home from "./components/Home";
+import SalePage from "./components/SalePage";
 // Admin sayfası için basit placeholder
 function AdminDashboard() {
     return <h1>Admin Dashboard - Sadece Admin görebilir</h1>;
@@ -202,6 +203,7 @@ function App() {
                             </PrivateRoute>
                         }
                     />
+                    <Route path="/sale" element={<SalePage onAdded={handleAddedToCart} />} />
                 </Routes>
             </main>
         </>

@@ -3,21 +3,19 @@ import { Link } from "react-router-dom";
 import "./HeroCarousel.css";
 
 /**
- * Basit, bağımsız hero slider
+ * HeroCarousel
  * - Otomatik geçiş (default 4sn)
  * - Hover'da durur
- * - Nokta/dot kontrolü
+ * - Her slide kendi CTA butonuna gider
+ * - SADECE aktif slide'ın butonu tıklanabilir
  */
-export default function HeroCarousel({
-                                         slides = [],
-                                         intervalMs = 4000,
-                                     }) {
+export default function HeroCarousel({ slides = [], intervalMs = 4000 }) {
     const [index, setIndex] = useState(0);
     const timerRef = useRef(null);
     const hovering = useRef(false);
 
+    // Sonraki slayta geçiş
     const next = () => setIndex((i) => (i + 1) % slides.length);
-    const prev = () => setIndex((i) => (i - 1 + slides.length) % slides.length);
 
     useEffect(() => {
         if (!slides.length) return;
@@ -26,8 +24,7 @@ export default function HeroCarousel({
             timerRef.current = setInterval(next, intervalMs);
         }
         return () => clearInterval(timerRef.current);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [index, slides.length]);
+    }, [index, slides.length, intervalMs]);
 
     if (!slides.length) return null;
 
@@ -51,12 +48,30 @@ export default function HeroCarousel({
                     aria-hidden={i !== index}
                 >
                     <div className={`hero-overlay ${s.overlay || "default"}`} />
+
                     <div className="hero-content">
                         {s.kicker && <div className="hero-kicker">{s.kicker}</div>}
                         {s.title && <h2 className="hero-title">{s.title}</h2>}
                         {s.subtitle && <p className="hero-sub">{s.subtitle}</p>}
+
+                        {/* CTA butonu - SADECE aktif slide'da tıklanabilir */}
                         {s.cta && (
-                            <Link to={s.cta.to} className="hero-cta">
+                            <Link
+                                to={s.cta.to}
+                                className="hero-cta"
+                                style={{
+                                    pointerEvents: i === index ? 'auto' : 'none',
+                                    opacity: i === index ? 1 : 0
+                                }}
+                                onClick={(e) => {
+                                    // Güvenlik için: sadece aktif slide'da çalışsın
+                                    if (i !== index) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        return;
+                                    }
+                                }}
+                            >
                                 {s.cta.label}
                             </Link>
                         )}
@@ -64,7 +79,7 @@ export default function HeroCarousel({
                 </article>
             ))}
 
-            {/* Dots */}
+            {/* Nokta kontrolü */}
             <div className="hero-dots" role="tablist" aria-label="Slide dots">
                 {slides.map((_, i) => (
                     <button
@@ -72,6 +87,7 @@ export default function HeroCarousel({
                         className={`dot ${i === index ? "active" : ""}`}
                         onClick={() => setIndex(i)}
                         aria-label={`Go to slide ${i + 1}`}
+                        type="button"
                     />
                 ))}
             </div>

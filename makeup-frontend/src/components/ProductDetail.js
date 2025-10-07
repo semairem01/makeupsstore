@@ -1,4 +1,3 @@
-// src/components/ProductDetail.js
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
@@ -18,7 +17,6 @@ export default function ProductDetail({ onAdded }) {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
     const [qty, setQty] = useState(1);
 
     // favori
@@ -31,10 +29,18 @@ export default function ProductDetail({ onAdded }) {
 
     // Ürün detayını getir
     useEffect(() => {
-        if (!id) { setError("Ürün ID bulunamadı"); setLoading(false); return; }
-        axios.get(`http://localhost:5011/api/product/${id}`)
-            .then(res => { setProduct(res.data); setError(null); })
-            .catch(err => {
+        if (!id) {
+            setError("Ürün ID bulunamadı");
+            setLoading(false);
+            return;
+        }
+        axios
+            .get(`http://localhost:5011/api/product/${id}`)
+            .then((res) => {
+                setProduct(res.data);
+                setError(null);
+            })
+            .catch((err) => {
                 if (err.response?.status === 404) setError("Ürün bulunamadı");
                 else setError("Ürün yüklenirken bir hata oluştu");
             })
@@ -44,8 +50,9 @@ export default function ProductDetail({ onAdded }) {
     // ⭐ review özetini getir
     useEffect(() => {
         if (!id) return;
-        axios.get(`${API_ENDPOINTS.REVIEWS}/product/${id}`)
-            .then(r => {
+        axios
+            .get(`${API_ENDPOINTS.REVIEWS}/product/${id}`)
+            .then((r) => {
                 setRatingAvg(Number(r.data?.average || 0));
                 setRatingCount(Number(r.data?.count || 0));
             })
@@ -55,9 +62,10 @@ export default function ProductDetail({ onAdded }) {
     // Favori kontrolü
     useEffect(() => {
         if (!token || !id) return;
-        axios.get(API_ENDPOINTS.FAVORITES, { headers: { Authorization: `Bearer ${token}` } })
-            .then(r => {
-                const ids = new Set((r.data || []).map(x => x.productId ?? x.ProductId));
+        axios
+            .get(API_ENDPOINTS.FAVORITES, { headers: { Authorization: `Bearer ${token}` } })
+            .then((r) => {
+                const ids = new Set((r.data || []).map((x) => x.productId ?? x.ProductId));
                 setIsFav(ids.has(Number(id)));
             })
             .catch(() => {});
@@ -67,7 +75,9 @@ export default function ProductDetail({ onAdded }) {
         if (!token) return alert("Lütfen giriş yapın.");
         try {
             if (isFav) {
-                await axios.delete(`${API_ENDPOINTS.FAVORITES}/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+                await axios.delete(`${API_ENDPOINTS.FAVORITES}/${id}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
                 setIsFav(false);
             } else {
                 await axios.post(`${API_ENDPOINTS.FAVORITES}/${id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
@@ -95,20 +105,26 @@ export default function ProductDetail({ onAdded }) {
         }
     };
 
-    const priceTL = useMemo(
-        () => (product?.price ?? 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" }),
-        [product]
-    );
+    // 🔹 İndirimli fiyat hesaplama (finalPrice varsa öncelik onda)
+    const hasDiscount = Number(product?.discountPercent) > 0;
+    const finalNum = product?.finalPrice != null
+        ? Number(product.finalPrice)
+        : hasDiscount
+            ? Number(product.price) * (1 - Number(product.discountPercent) / 100)
+            : Number(product?.price || 0);
 
-    // 🔧 STOĞU TOLERANSLI OKU (camel/Pascal) — yoksa “bilgi yok” varsay
+    const priceOldTL = Number(product?.price || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
+    const priceFinalTL = Number(finalNum).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
+
+    // 🔧 stok
     const stockRaw = product?.stockQuantity ?? product?.StockQuantity;
     const hasStockInfo = typeof stockRaw === "number" && !Number.isNaN(stockRaw);
     const stock = hasStockInfo ? Number(stockRaw) : null;
-    const lowStock   = hasStockInfo && stock > 0 && stock <= 5;
+    const lowStock = hasStockInfo && stock > 0 && stock <= 5;
     const outOfStock = hasStockInfo && stock === 0;
 
     if (loading) return <div className="pd-wrap"><div className="pd-skel">Yükleniyor…</div></div>;
-    if (error)   return <div className="pd-wrap"><div className="pd-error">{error}</div></div>;
+    if (error) return <div className="pd-wrap"><div className="pd-error">{error}</div></div>;
     if (!product) return null;
 
     const gallery = [product.imageUrl].filter(Boolean);
@@ -122,7 +138,9 @@ export default function ProductDetail({ onAdded }) {
                         <img
                             src={`http://localhost:5011${gallery[0]}`}
                             alt={product.name}
-                            onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/600x600?text=Resim+Yok"; }}
+                            onError={(e) => {
+                                e.currentTarget.src = "https://via.placeholder.com/600x600?text=Resim+Yok";
+                            }}
                         />
                         <button
                             className={`fav-btn ${isFav ? "fav-active" : ""} ${justToggled ? "fav-just-toggled" : ""}`}
@@ -140,7 +158,9 @@ export default function ProductDetail({ onAdded }) {
                                 key={i}
                                 src={`http://localhost:5011${g}`}
                                 alt={`${product.name} küçük ${i + 1}`}
-                                onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/96x96?text=Yok"; }}
+                                onError={(e) => {
+                                    e.currentTarget.src = "https://via.placeholder.com/96x96?text=Yok";
+                                }}
                             />
                         ))}
                     </div>
@@ -150,11 +170,12 @@ export default function ProductDetail({ onAdded }) {
                 <section className="pd-info">
                     <h1 className="pd-title">{product.name}</h1>
                     <div className="pd-brand">{product.brand}</div>
+                    <div className="pd-color">{product.color}</div>
 
-                    {/* ⭐ gerçek ortalama + sayı */}
+                    {/* ⭐ ortalama puan */}
                     <div className="pd-rating">
                         <div>
-                            {[1,2,3,4,5].map(i => (
+                            {[1, 2, 3, 4, 5].map((i) => (
                                 <Star key={i} filled={i <= Math.round(ratingAvg)} />
                             ))}
                         </div>
@@ -163,10 +184,38 @@ export default function ProductDetail({ onAdded }) {
             </span>
                     </div>
 
-                    <div className="pd-price">{priceTL}</div>
+                    {/* 💰 Fiyat */}
+                    <div className="pd-price">
+                        {hasDiscount ? (
+                            <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "1.8rem", fontWeight: 800, color: "#e91e63" }}>
+                  {priceFinalTL}
+                </span>
+                                <span style={{ textDecoration: "line-through", color: "#888" }}>
+                  {priceOldTL}
+                </span>
+                                <span
+                                    style={{
+                                        background: "#ffe3f1",
+                                        color: "#b2206d",
+                                        fontWeight: 700,
+                                        padding: "4px 8px",
+                                        borderRadius: "999px",
+                                        fontSize: ".9rem",
+                                    }}
+                                >
+                  %{Number(product.discountPercent)} indirim
+                </span>
+                            </div>
+                        ) : (
+                            <span style={{ fontSize: "1.8rem", fontWeight: 800, color: "#e91e63" }}>
+                {priceOldTL}
+              </span>
+                        )}
+                    </div>
 
-                    {/* stok mesajları sadece bilgi varsa */}
-                    {lowStock   && <div className="pd-stock">Son {stock} ürün!</div>}
+                    {/* stok mesajları */}
+                    {lowStock && <div className="pd-stock">Son {stock} ürün!</div>}
                     {outOfStock && <div className="pd-stock pd-stock--out">Stokta yok</div>}
 
                     <div className="pd-qtyrow">
@@ -174,7 +223,7 @@ export default function ProductDetail({ onAdded }) {
                         <button
                             className="pd-addcart"
                             onClick={addToCart}
-                            disabled={outOfStock /* yalnızca gerçekten 0 ise kilitle */}
+                            disabled={outOfStock}
                             title={outOfStock ? "Stokta yok" : "Sepete ekle"}
                         >
                             Sepete Ekle
@@ -201,11 +250,9 @@ export default function ProductDetail({ onAdded }) {
 function QtyStepper({ value, onChange }) {
     return (
         <div className="qty-stepper" role="group" aria-label="Adet">
-            <button
-                className="qty-btn"
-                onClick={() => onChange(Math.max(1, (Number(value) || 1) - 1))}
-                aria-label="Azalt"
-            >−</button>
+            <button className="qty-btn" onClick={() => onChange(Math.max(1, (Number(value) || 1) - 1))} aria-label="Azalt">
+                −
+            </button>
             <input
                 className="qty-input"
                 type="number"
@@ -213,11 +260,9 @@ function QtyStepper({ value, onChange }) {
                 value={value}
                 onChange={(e) => onChange(Math.max(1, Number(e.target.value)))}
             />
-            <button
-                className="qty-btn"
-                onClick={() => onChange((Number(value) || 1) + 1)}
-                aria-label="Arttır"
-            >+</button>
+            <button className="qty-btn" onClick={() => onChange((Number(value) || 1) + 1)} aria-label="Arttır">
+                +
+            </button>
         </div>
     );
 }

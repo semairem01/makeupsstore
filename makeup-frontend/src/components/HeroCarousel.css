@@ -11,33 +11,45 @@ html, body { overflow-x: hidden; }
 }
 
 /* === HERO === */
-/* Banner tam genişlik + doğru oran:
-   Görseli tam göstermek için 2:1 oran veriyoruz (bannerı öyle üretmiştik) */
 .hero{
     position: relative;
     width: 100%;
-    aspect-ratio: 2 / 1;     /* 2400x1200 gibi */
-    max-height: 520px;
-    min-height: 340px;
-    border-radius: 0;         /* kenarları düz; istersen 16px yapabilirsin */
+    aspect-ratio: 2 / 1;
+    max-height: 600px;
+    min-height: 500px;
+    border-radius: 0;
     overflow: hidden;
-    box-shadow: none;         /* full-bleed’de gölgeyi kapattım */
-    margin: 0;                /* üst/alt boşluk yok */
+    box-shadow: none;
+    margin: 0;
 }
 
 /* Slide katmanı */
 .hero-slide{
-    position: absolute; inset: 0;
-    background-size: cover;           /* taşmadan tüm alanı doldur */
+    position: absolute;
+    inset: 0;
+    background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
-    opacity: 0; transform: scale(1);  /* scale(1.02) kaldırıldı, bulanıklık yok */
+    opacity: 0;
+    transform: scale(1);
     transition: opacity .5s ease;
+    /* Pasif slide'ların tüm etkileşimini kapat */
+    pointer-events: none;
 }
-.hero-slide.is-active{ opacity: 1; }
 
-/* Overlay konum + varyasyonlar (opsiyonel) */
-.hero-overlay{ position: absolute; inset: 0; pointer-events: none; }
+/* Aktif slide tıklanabilir hale gelsin */
+.hero-slide.is-active{
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Overlay konum + varyasyonlar */
+.hero-overlay{
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
 .hero-overlay.default{
     background: linear-gradient(90deg,
     rgba(255,218,219,.85) 0%,
@@ -60,61 +72,99 @@ html, body { overflow-x: hidden; }
 
 /* İçerik */
 .hero-content{
-    position: relative; z-index: 2;
+    position: relative;
+    z-index: 2;
     height: 100%;
-    display: flex; flex-direction: column; justify-content: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     padding: clamp(16px, 4vw, 42px);
-    max-width: 680px; color: #3b2a2a;
+    max-width: 680px;
+    color: #3b2a2a;
 }
+
 .hero-kicker{
-    display: inline-block; font-weight: 600; letter-spacing: .08em;
-    color: #a84e64; background: rgba(255,255,255,.7);
-    padding: 6px 10px; border-radius: 999px; margin-bottom: 10px; font-size: .82rem;
+    display: inline-block;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: #a84e64;
+    background: rgba(255,255,255,.7);
+    padding: 6px 10px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+    font-size: .82rem;
 }
+
 .hero-title{
     font-family: 'Playfair Display', serif;
     font-size: clamp(28px, 4.5vw, 44px);
-    line-height: 1.15; margin: 0 0 8px; color: #2b1b1b;
+    line-height: 1.15;
+    margin: 0 0 8px;
+    color: #2b1b1b;
 }
 .hero-title .accent{ color:#e5487a; }
-.hero-sub{ font-size: 1rem; opacity: .9; margin: 0 0 18px; }
-.hero-cta{
-    display: inline-block; background: linear-gradient(90deg,#fe9a8b,#fd868c);
-    color: #fff; text-decoration: none; font-weight: 700;
-    padding: 12px 20px; border-radius: 999px;
-    box-shadow: 0 10px 24px rgba(253,134,140,.35);
-    transition: transform .15s ease, box-shadow .15s ease;
-}
-.hero-cta:hover{ transform: translateY(-1px); box-shadow: 0 14px 32px rgba(253,134,140,.45); }
 
-/* Oklar (ekran kenarlarından güvenli mesafe) */
-.hero-arrow{
-    position: absolute; top: 50%; transform: translateY(-50%);
-    border: none; background: rgba(255,255,255,.75);
-    width: 40px; height: 40px; border-radius: 999px;
-    font-size: 24px; line-height: 40px; text-align: center;
-    cursor: pointer; color: #6e3b3b;
-    box-shadow: 0 6px 16px rgba(0,0,0,.12);
+.hero-sub{
+    font-size: 1rem;
+    opacity: .9;
+    margin: 0 0 18px;
 }
-.hero-arrow:hover{ background: #fff; }
-.hero-arrow.left{ left: clamp(8px, 2vw, 24px); }
-.hero-arrow.right{ right: clamp(8px, 2vw, 24px); }
+
+/* CTA Butonu - sadece inline style'dan gelen pointer-events'e güven */
+.hero-cta{
+    display: inline-block;
+    background: linear-gradient(90deg,#fe9a8b,#fd868c);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    padding: 12px 20px;
+    border-radius: 999px;
+    box-shadow: 0 10px 24px rgba(253,134,140,.35);
+    transition: transform .15s ease, box-shadow .15s ease, opacity .3s ease;
+    cursor: pointer;
+    position: relative;
+    z-index: 10;
+}
+
+.hero-cta:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 14px 32px rgba(253,134,140,.45);
+}
 
 /* Dots */
 .hero-dots{
-    position: absolute; left: 0; right: 0; bottom: 12px;
-    display: flex; gap: 8px; justify-content: center;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 12px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    z-index: 20;
 }
+
 .hero-dots .dot{
-    width: 9px; height: 9px; border-radius: 999px; border: none;
-    background: rgba(255,255,255,.7); cursor: pointer;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255,255,255,.7);
+    cursor: pointer;
+    transition: all .2s ease;
 }
+
 .hero-dots .dot.active{
-    background: #fe9a8b; box-shadow: 0 0 0 3px rgba(255,255,255,.65);
+    background: #fe9a8b;
+    box-shadow: 0 0 0 3px rgba(255,255,255,.65);
 }
 
 /* Tablet */
 @media (max-width: 768px){
-    .hero{ aspect-ratio: 16/9; min-height: 280px; }
-    .hero-content{ max-width: 92%; }
+    .hero{
+        aspect-ratio: 16/9;
+        min-height: 280px;
+    }
+    .hero-content{
+        max-width: 92%;
+    }
 }
