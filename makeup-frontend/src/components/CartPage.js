@@ -1,4 +1,5 @@
-﻿import React, { useEffect, useMemo, useState, useCallback } from "react";
+﻿// src/components/CartPage.jsx
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import axios from "axios";
 import { API_ENDPOINTS } from "../config";
 import { useNavigate } from "react-router-dom";
@@ -7,14 +8,6 @@ import "./CartPage.css";
 function CartPage({ onCleared, onCountChange }) {
     const [cartItems, setCartItems] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [paying, setPaying] = useState(false);
-    const [payment, setPayment] = useState({
-        cardNumber: "4242 4242 4242 4242",
-        expMonth: 12,
-        expYear: new Date().getFullYear() + 1,
-        cvv: "123",
-        nameOnCard: "Test User",
-    });
 
     const token = localStorage.getItem("token");
     const navigate = useNavigate();
@@ -66,32 +59,6 @@ function CartPage({ onCleared, onCountChange }) {
         onCleared?.();
     };
 
-    const simulatePayment = async () => {
-        setPaying(true);
-        try {
-            const res = await axios.post(`${API_ENDPOINTS.PAYMENTS}/simulate`, payment, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.data.success) { alert(res.data.message || "Ödeme reddedildi."); return; }
-
-            const order = await axios.post(`${API_ENDPOINTS.ORDERS}/checkout`, {}, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (order.data.success) {
-                alert("Sipariş başarıyla oluşturuldu!");
-                onCleared?.();
-                navigate("/orders");
-            } else {
-                alert(order.data.message || "Sipariş oluşturulamadı.");
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Ödeme/sipariş sırasında hata oluştu.");
-        } finally {
-            setPaying(false);
-        }
-    };
-
     if (loading) return <p>Sepet yükleniyor...</p>;
 
     return (
@@ -129,7 +96,9 @@ function CartPage({ onCleared, onCountChange }) {
                             <div className="info">
                                 <h4>{item.productName ?? item.ProductName}</h4>
                                 <p>Face / Beauty</p>
-                                <div className="price">₺{(item.unitPrice ?? item.UnitPrice)?.toFixed?.(2) ?? (item.unitPrice ?? item.UnitPrice)}</div>
+                                <div className="price">
+                                    ₺{(item.unitPrice ?? item.UnitPrice)?.toFixed?.(2) ?? (item.unitPrice ?? item.UnitPrice)}
+                                </div>
                             </div>
 
                             <div className="qty-box">
@@ -147,8 +116,11 @@ function CartPage({ onCleared, onCountChange }) {
                             <div className="total">
                                 Amount Price<br /> ₺{total.toFixed(2)}
                             </div>
-                            <button className="checkout-btn" onClick={simulatePayment} disabled={paying}>
-                                {paying ? "Ödeniyor..." : "Check Out"}
+                            <button
+                                className="checkout-btn"
+                                onClick={() => navigate("/checkout")}   // ⬅️ Artık ödeme sayfasına gider
+                            >
+                                Check Out
                                 <span className="badge">
                   {(cartItems || []).reduce((s, x) => s + (x.quantity ?? x.Quantity ?? 0), 0)}
                 </span>

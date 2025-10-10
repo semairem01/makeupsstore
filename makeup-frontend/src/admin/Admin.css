@@ -81,6 +81,14 @@ button.btn-outline:hover {
     color:#b2206d;
 }
 
+.pill { padding:4px 10px; border-radius:999px; font-size:12px; }
+.pill-siparisalindi { background:#fff1e6; color:#b46900; }
+.pill-hazirlaniyor  { background:#e9f2ff; color:#1b63c4; }
+.pill-kargoda       { background:#e8fff2; color:#0e8a3a; }
+.pill-teslimedildi  { background:#edf7ed; color:#1b5e20; }
+.pill-iptaledildi   { background:#ffe8ea; color:#b00020; }
+.admin-table td, .admin-table th { white-space:nowrap; }
+
 /* ✅ Tablo zebra ve hover */
 .admin-table tr:nth-child(even) {
     background:#fafafa;

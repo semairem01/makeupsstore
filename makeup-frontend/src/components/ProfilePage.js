@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { API_ENDPOINTS } from "../config";
 import "./ProfilePage.css";
-
+import ProfileOrders from "./ProfileOrders";
 export default function ProfilePage() {
     const token = localStorage.getItem("token");
     const [tab, setTab] = useState("account");
@@ -96,7 +96,7 @@ export default function ProfilePage() {
             )}
 
             {tab === "favorites" && <FavoritesList />}
-            {tab === "orders" && <OrdersList />}
+            {tab === "orders" && <ProfileOrders />}
             {tab === "addresses" && <div className="card muted">Adres yönetimini 2 adımda ekleriz (liste + ekle/düzenle modal).</div>}
             {tab === "password" && <ChangePasswordCard />}
         </div>
@@ -171,37 +171,5 @@ function ChangePasswordCard() {
             </div>
         </div>
     );
-}
 
-// ✅ BURAYA TAŞINDI: ChangePasswordCard'ın DIŞINDA, ayrı bir fonksiyon
-function OrdersList() {
-    const token = localStorage.getItem("token");
-    const [orders, setOrders] = useState([]);
-
-    useEffect(() => {
-        if (!token) return;
-        axios.get(`${API_ENDPOINTS.ORDERS}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-            .then(res => setOrders(res.data))
-            .catch(() => {});
-    }, [token]);
-
-    if (!orders.length) {
-        return <div className="card muted">Henüz siparişiniz yok.</div>;
-    }
-
-    return (
-        <div className="grid">
-            {orders.map(o => (
-                <div key={o.id} className="fav-card">
-                    <div className="meta">
-                        <div className="name">Sipariş #{o.id}</div>
-                        <div className="brand">Tarih: {new Date(o.orderDate).toLocaleDateString("tr-TR")}</div>
-                        <div className="price">Durum: {o.status}</div>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
 }

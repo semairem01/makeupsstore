@@ -1,0 +1,97 @@
+﻿.summary { display: grid; gap: 8px; }
+.summary .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+}
+.summary .row.total {
+    margin-top: 6px;
+    font-size: 18px;
+}
+.pay-btn {
+    margin-top: 10px;
+    background: #ff69b4;
+    color: #fff;
+    border: none;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.pay-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+.card-form {
+    display: grid;
+    gap: 14px;
+}
+
+/* Card visual preview (like a real credit card) */
+.card-preview {
+    background: linear-gradient(135deg, #2409ec, #ff69b4);
+    border-radius: 12px;
+    padding: 20px;
+    color: white;
+    font-family: "Poppins", sans-serif;
+    box-shadow: 0 8px 20px rgba(255, 105, 180, 0.4);
+}
+
+/* Metallic chip design */
+.card-preview .chip {
+    width: 40px;
+    height: 28px;
+    background: linear-gradient(180deg, #e0e0e0, #c0c0c0);
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+/* Card number styling */
+.card-preview .card-number {
+    letter-spacing: 2px;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+/* Footer: shows cardholder and expiration date */
+.card-preview .card-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+}
+
+.card-preview .card-footer label {
+    display: block;
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+/* Input fields layout */
+.card-form .inputs {
+    display: grid;
+    gap: 10px;
+}
+
+/* Row for MM / YYYY / CVV */
+.card-form .row {
+    display: flex;
+    gap: 8px;
+}
+
+/* Input base style */
+.card-form input {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.9rem;
+    width: 100%;
+    transition: all 0.2s;
+}
+
+/* Focus effect with pink highlight */
+.card-form input:focus {
+    outline: none;
+    border-color: #ff69b4;
+    box-shadow: 0 0 4px rgba(255, 105, 180, 0.4);
+}

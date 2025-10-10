@@ -15,6 +15,8 @@ import { API_ENDPOINTS } from "./config";
 import AdminApp from "./admin/AdminApp";
 import Home from "./components/Home";
 import SalePage from "./components/SalePage";
+import CheckoutPage from "./components/CheckoutPage";
+
 // Admin sayfası için basit placeholder
 function AdminDashboard() {
     return <h1>Admin Dashboard - Sadece Admin görebilir</h1>;
@@ -36,7 +38,7 @@ function App() {
 
     const [cartCount, setCartCount] = useState(0);
     const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem("avatarUrl"));
-    const [initials, setInitials]     = useState("U");
+    const [initials, setInitials] = useState("U");
 
     useEffect(() => {
         if (!token) {
@@ -48,7 +50,6 @@ function App() {
                 headers: { Authorization: `Bearer ${token}` },
             })
             .then((res) => {
-                // quantity büyük harfli gelirse fallback ekledik
                 const totalQty = (res.data || []).reduce(
                     (sum, x) => sum + (x.quantity ?? x.Quantity ?? 0),
                     0
@@ -59,20 +60,23 @@ function App() {
     }, [token]);
 
     useEffect(() => {
-        if (!token) { setAvatarUrl(null); 
+        if (!token) {
+            setAvatarUrl(null);
             setInitials("U");
             localStorage.removeItem("avatarUrl");
-            return; }
-        axios.get(`${API_ENDPOINTS.PROFILE}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-            .then(res => {
+            return;
+        }
+        axios
+            .get(`${API_ENDPOINTS.PROFILE}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((res) => {
                 const avatar = res.data?.avatarUrl || null;
                 setAvatarUrl(avatar);
                 if (avatar) localStorage.setItem("avatarUrl", avatar);
 
                 const fn = (res.data?.firstName || "").trim();
-                const ln = (res.data?.lastName  || "").trim();
+                const ln = (res.data?.lastName || "").trim();
                 const email = res.data?.email || "";
                 const init =
                     (fn ? fn[0] : "") + (ln ? ln[0] : (!fn && email ? email[0] : ""));
@@ -84,7 +88,7 @@ function App() {
                 localStorage.removeItem("avatarUrl");
             });
     }, [token]);
-    
+
     const handleAddedToCart = (qty = 1) =>
         setCartCount((prev) => prev + (Number(qty) || 1));
 
@@ -93,20 +97,19 @@ function App() {
     return (
         <>
             <header className="navbar">
-                {/* Sol: Logo + isim (daha büyük) */}
+                {/* Sol: Logo + isim */}
                 <Link to="/" className="brand">
-                    {/* kendi logo dosyan: public/branding/lunara-wordmark.svg ör. */}
                     <img src="/images/logo1.png" alt="Lunara Beauty" className="brand-logo" />
                     <span className="brand-text">Lunara Beauty</span>
                 </Link>
 
-                {/* Orta: Arama */}
-                <div className="nav-search" style={{ position: "relative" }}>
+                {/* Orta: Arama (şık + ikonlu) */}
+                <div className="nav-search pretty">
                     <input
                         id="navSearchInput"
                         className="search-input"
                         type="search"
-                        placeholder="Ürün, marka veya kategori ara..."
+                        placeholder="Ürün, marka veya kategori ara…"
                         aria-label="Search"
                         onKeyDown={(e) => {
                             if (e.key === "Enter") {
@@ -116,14 +119,14 @@ function App() {
                                     e.currentTarget.value = "";
                                 }
                             }
-                        }}
-                        style={{
-                            paddingRight: "38px", // ikon için sağ boşluk
+                            if (e.key === "Escape") {
+                                e.currentTarget.value = "";
+                            }
                         }}
                     />
 
-                    {/* 🔍 Arama butonu */}
                     <button
+                        className="search-btn"
                         onClick={() => {
                             const input = document.getElementById("navSearchInput");
                             const q = input?.value?.trim();
@@ -132,30 +135,17 @@ function App() {
                                 input.value = "";
                             }
                         }}
-                        style={{
-                            position: "absolute",
-                            right: "8px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            border: "none",
-                            background: "none",
-                            cursor: "pointer",
-                            color: "#b2206d", // pembe ton
-                            fontSize: "18px",
-                        }}
                         aria-label="Ara"
                         title="Ara"
                     >
-                        🔍
+                        <img src="/icons/search.png" alt="" />
                     </button>
                 </div>
 
                 {/* Sağ: linkler + sepet + avatar / login-register */}
                 <div className="navbar-right">
-                    
                     {isAdmin && <Link to="/admin">Admin Panel</Link>}
 
-                    {/* Login/Register görünür (token yoksa) */}
                     {!token && (
                         <>
                             <Link to="/login" className="btn-pill">Login</Link>
@@ -163,7 +153,6 @@ function App() {
                         </>
                     )}
 
-                    {/* Sepet – küçültülmüş ikon + eski rozet stili */}
                     <div className="cart-container">
                         <Link to="/cart" className="cart-link" aria-label="Cart">
                             <FaShoppingCart className="cart-icon" />
@@ -171,7 +160,6 @@ function App() {
                         </Link>
                     </div>
 
-                    {/* Avatar/Logout (token varsa) */}
                     {token && (
                         <>
                             <button
@@ -204,25 +192,17 @@ function App() {
                     )}
                 </div>
             </header>
-            
+
             <CategoryMenu />
 
             <main className="main-content">
                 <Routes>
                     <Route path="/" element={<Home onAdded={handleAddedToCart} />} />
-
-                    {/* Ürün listesi ayrı sayfa */}
                     <Route path="/products" element={<ProductList onAdded={handleAddedToCart} />} />
-                    <Route
-                        path="/product/:id"
-                        element={<ProductDetail onAdded={handleAddedToCart} />}
-                    />
+                    <Route path="/product/:id" element={<ProductDetail onAdded={handleAddedToCart} />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/login" element={<Login />} />
-                    <Route
-                        path="/category/:id"
-                        element={<ProductList onAdded={handleAddedToCart} />}
-                    />
+                    <Route path="/category/:id" element={<ProductList onAdded={handleAddedToCart} />} />
                     <Route
                         path="/cart"
                         element={<CartPage onCleared={handleCartCleared} onCountChange={setCartCount} />}
@@ -238,6 +218,7 @@ function App() {
                         }
                     />
                     <Route path="/sale" element={<SalePage onAdded={handleAddedToCart} />} />
+                    <Route path="/checkout" element={<CheckoutPage />} />
                 </Routes>
             </main>
         </>

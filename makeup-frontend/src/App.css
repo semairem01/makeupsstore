@@ -101,6 +101,91 @@ body{
     transition: all 0.2s ease;
 }
 
+.nav-search.pretty {
+    position: relative;
+    width: min(420px, 55vw);     /* 💡 daha kısa hale getirdik */
+    display: flex;
+    align-items: center;
+    justify-content: center;     /* 💡 ortalıyoruz */
+    margin: 0 auto;
+}
+
+/* input'u pille çevirip sağda ikon için boşluk bırakıyoruz */
+.nav-search.pretty .search-input {
+    width: 100%;
+    height: 44px;
+    padding: 10px 48px 10px 16px;   /* sağda buton boşluğu */
+    border: 1px solid #ead3df;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(6px);
+    font-size: 15px;
+    outline: none;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    box-shadow:
+            0 10px 26px rgba(178, 32, 109, 0.06),
+            inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+/* focus’ta pembe ışıma */
+.nav-search.pretty .search-input:focus {
+    border-color: #ff69b4;
+    box-shadow:
+            0 12px 28px rgba(178, 32, 109, 0.10),
+            0 0 0 3px rgba(255, 105, 180, 0.18),
+            inset 0 1px 0 rgba(255,255,255,.95);
+    background: #fff;
+}
+
+/* input ile buton arasına ince ayraç çizgisi */
+.nav-search.pretty::after {
+    content: "";
+    position: absolute;
+    right: 48px;                /* butonun soluna */
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    background: linear-gradient(#edd6e2, #e9ccdb);
+    border-radius: 1px;
+    pointer-events: none;
+}
+
+/* Sağdaki yuvarlak buton */
+.nav-search.pretty .search-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 36px;
+    width: 36px;
+    border: none;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;        /* dikey ortalama */
+    justify-content: center;
+    cursor: pointer;
+    background: linear-gradient(180deg, #ffe3f1 0%, #ffd3e9 100%);
+    box-shadow: 0 6px 16px rgba(178, 32, 109, 0.18);
+    transition: transform .1s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.nav-search.pretty .search-btn:hover {
+    transform: translateY(-50%) scale(1.03);
+    box-shadow: 0 8px 20px rgba(178, 32, 109, 0.25);
+}
+
+.nav-search.pretty .search-btn:active {
+    transform: translateY(-50%) scale(0.98);
+}
+
+/* Kendi ikonun: otomatik beyaz/siyah destekli PNG/SVG */
+.nav-search.pretty .search-btn img {
+    width: 17px;
+    height: 17px;
+    display: block;
+    filter: drop-shadow(0 1px 0 rgba(136, 34, 34, 0.5));
+}
+
 .search-input:focus {
     border-color: #ff69b4;
     box-shadow: 0 0 4px rgba(255, 105, 180, 0.3);
@@ -113,4 +198,10 @@ body{
 @media (max-width: 640px){
     .nav-search{ display:none; } /* istersen gizle */
     .btn-ghost, .btn-pill{ padding:6px 10px; }
+}
+.navbar .nav-search.pretty {
+    flex: 0 0 auto !important;   
+    width: 600px;                
+    max-width: 55vw;             
+    margin: 0 auto;              
 }
