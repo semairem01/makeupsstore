@@ -15,5 +15,7 @@ public class Order
     public ICollection<OrderItem> OrderItems { get; set; }
     
     public string? TrackingNumber { get; set; }
+    public string? ShippingMethod { get; set; }   // "standard" | "express"
+    public decimal ShippingFee { get; set; }
     
 }

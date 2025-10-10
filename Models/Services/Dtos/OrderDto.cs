@@ -15,7 +15,10 @@ public record OrderDto(
     Guid UserId,
     DateTime OrderDate,
     string Status,
-    List<OrderItemDto> Items
+    List<OrderItemDto> Items,
+    decimal ShippingFee,           
+    string? ShippingMethod,
+    string? TrackingNumber
 );
 
 // Sipariş oluşturmak için
@@ -32,4 +35,9 @@ public record OrderItemCreateDto(
 public record OrderItemUpdateDto(
     int Id,
     int Quantity
+);
+
+public record CheckoutRequestDto(
+    string ShippingMethod,         // "standard" | "express"
+    decimal ShippingFee            // 0 if free shipping
 );

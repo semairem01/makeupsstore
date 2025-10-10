@@ -60,6 +60,9 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 entity.Property(o => o.OrderDate).HasDefaultValueSql("GETDATE()");
                 entity.Property(o => o.Status)
                     .HasConversion<string>();
+                
+                entity.Property(o => o.ShippingFee).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+                entity.Property(o => o.ShippingMethod).HasMaxLength(20).HasDefaultValue("standard");
                     
                 entity.HasOne(o => o.AppUser)
                     .WithMany()

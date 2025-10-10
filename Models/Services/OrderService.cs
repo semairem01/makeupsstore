@@ -13,9 +13,13 @@ public class OrderService : IOrderService
     private readonly IProductRepository _productRepository;
     private readonly ICartItemRepository _cartItemRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    public OrderService(IOrderRepository orderRepository, IProductRepository productRepository,
+
+    public OrderService(
+        IOrderRepository orderRepository,
+        IProductRepository productRepository,
         ICartItemRepository cartItemRepository,
-        IHttpContextAccessor httpContextAccessor, AppDbContext context)
+        IHttpContextAccessor httpContextAccessor,
+        AppDbContext context)
     {
         _context = context;
         _orderRepository = orderRepository;
@@ -23,9 +27,18 @@ public class OrderService : IOrderService
         _cartItemRepository = cartItemRepository;
         _httpContextAccessor = httpContextAccessor;
     }
-    private Guid CurrentUserId =>
-        Guid.Parse(_httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)
-                   ?? Guid.Empty.ToString());
+
+    private Guid CurrentUserId => Guid.Parse(_httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+
+    // ✅ İndirimli fiyat hesaplama metodu
+    private static decimal GetEffectivePrice(Product product)
+    {
+        var discountRate = product?.DiscountPercent ?? 0m;
+        return (discountRate > 0m) 
+            ? product.Price * (1 - discountRate / 100m) 
+            : product.Price;
+    }
+
     public async Task<IEnumerable<OrderDto>> GetAllAsync(Guid userId)
     {
         var orders = await _orderRepository.GetByUserIdAsync(userId);
@@ -45,7 +58,6 @@ public class OrderService : IOrderService
             return ServiceResult<OrderDto>.Fail("No items in the order.");
 
         var orderItems = new List<OrderItem>();
-
         foreach (var item in dto.Items)
         {
             var product = await _productRepository.GetByIdAsync(item.ProductId);
@@ -55,9 +67,7 @@ public class OrderService : IOrderService
             if (product.StockQuantity < item.Quantity)
                 return ServiceResult<OrderDto>.Fail($"Not enough stock for {product.Name}.");
 
-            // Stok düşürme
             product.StockQuantity -= item.Quantity;
-            
             if (product.StockQuantity <= 0)
             {
                 product.StockQuantity = 0;
@@ -65,11 +75,13 @@ public class OrderService : IOrderService
             }
             await _productRepository.UpdateAsync(product);
 
+            // ✅ İndirimli fiyat kullan
+            var effectivePrice = GetEffectivePrice(product);
             orderItems.Add(new OrderItem
             {
                 ProductId = product.Id,
                 Quantity = item.Quantity,
-                UnitPrice = product.Price
+                UnitPrice = effectivePrice  // ✅ İndirimli fiyat
             });
         }
 
@@ -78,7 +90,9 @@ public class OrderService : IOrderService
             UserId = userId,
             OrderDate = DateTime.UtcNow,
             Status = OrderStatus.SiparisAlindi,
-            OrderItems = orderItems
+            OrderItems = orderItems,
+            ShippingFee = 0,
+            ShippingMethod = "standard"
         };
 
         await _orderRepository.AddAsync(order);
@@ -96,78 +110,80 @@ public class OrderService : IOrderService
         return ServiceResult<bool>.Ok(true, "Order deleted successfully!");
     }
 
-    public async Task<ServiceResult<OrderDto>> CheckoutAsync()
+    public async Task<ServiceResult<OrderDto>> CheckoutAsync(Guid userId, decimal shippingFee, string shippingMethod)
+    {
+        if (userId == Guid.Empty)
+            return ServiceResult<OrderDto>.Fail("Kullanıcı bulunamadı");
+
+        var normalizedMethod = string.IsNullOrWhiteSpace(shippingMethod) 
+            ? "standard" 
+            : shippingMethod.Trim().ToLowerInvariant();
+        
+        if (normalizedMethod != "standard" && normalizedMethod != "express")
+            normalizedMethod = "standard";
+        
+        if (shippingFee < 0) shippingFee = 0;
+
+        await using var tx = await _context.Database.BeginTransactionAsync();
+        try
         {
-            // 1) kullanıcı
-            if (CurrentUserId == Guid.Empty)
-                return ServiceResult<OrderDto>.Fail("Kullanıcı bulunamadı");
+            var cartItems = (await _cartItemRepository.GetByUserIdAsync(userId)).ToList();
+            if (!cartItems.Any())
+                return ServiceResult<OrderDto>.Fail("Sepetiniz boş");
 
-            
-            await using var tx = await _context.Database.BeginTransactionAsync();
-            try
+            var orderItems = new List<OrderItem>();
+            foreach (var ci in cartItems)
             {
-                // 1) Sepeti çek
-                var cartItems = (await _cartItemRepository.GetByUserIdAsync(CurrentUserId)).ToList();
-                if (!cartItems.Any())
-                    return ServiceResult<OrderDto>.Fail("Sepetiniz boş");
+                var product = await _productRepository.GetByIdAsync(ci.ProductId);
+                if (product == null || !product.IsActive)
+                    return ServiceResult<OrderDto>.Fail($"Ürün geçersiz: {ci.ProductId}");
 
-                // 2) Stok kontrol + stok düş
-                var orderItems = new List<OrderItem>();
-                foreach (var ci in cartItems)
+                if (product.StockQuantity < ci.Quantity)
+                    return ServiceResult<OrderDto>.Fail($"{product.Name} için yeterli stok yok.");
+
+                product.StockQuantity -= ci.Quantity;
+                if (product.StockQuantity <= 0)
                 {
-                    var product = await _productRepository.GetByIdAsync(ci.ProductId);
-                    if (product == null || !product.IsActive)
-                        return ServiceResult<OrderDto>.Fail($"Ürün geçersiz: {ci.ProductId}");
-
-                    if (product.StockQuantity < ci.Quantity)
-                        return ServiceResult<OrderDto>.Fail($"{product.Name} için yeterli stok yok.");
-
-                    product.StockQuantity -= ci.Quantity;
-                    if (product.StockQuantity <= 0)
-                    {
-                        product.StockQuantity = 0;
-                        product.IsActive = false;
-                    }
-                    await _productRepository.UpdateAsync(product);
-
-                    orderItems.Add(new OrderItem
-                    {
-                        ProductId = ci.ProductId,
-                        Quantity = ci.Quantity,
-                        UnitPrice = product.Price
-                    });
+                    product.StockQuantity = 0;
+                    product.IsActive = false;
                 }
+                await _productRepository.UpdateAsync(product);
 
-                // 3) Sipariş oluştur
-                var order = new Order
+                // ✅ İndirimli fiyat kullan
+                var effectivePrice = GetEffectivePrice(product);
+                orderItems.Add(new OrderItem
                 {
-                    UserId = CurrentUserId,
-                    OrderDate = DateTime.UtcNow,
-                    Status = OrderStatus.SiparisAlindi,
-                    OrderItems = orderItems
-                };
-
-                await _orderRepository.AddAsync(order);
-
-                // 4) Sepeti temizle
-                await _cartItemRepository.ClearCartAsync(CurrentUserId);
-
-                // 5) DTO için include’larla tekrar yükle
-                var loaded = await _orderRepository.GetByIdAsync(order.Id);
-
-                // 6) Transaction commit
-                await tx.CommitAsync();
-
-                return ServiceResult<OrderDto>.Ok(MapToDto(loaded!), "Sipariş başarıyla oluşturuldu");
+                    ProductId = ci.ProductId,
+                    Quantity = ci.Quantity,
+                    UnitPrice = effectivePrice  // ✅ İndirimli fiyat
+                });
             }
-            catch (Exception ex)
+
+            var order = new Order
             {
-                // Herhangi bir hata → tüm değişiklikleri geri al
-                await tx.RollbackAsync();
-                return ServiceResult<OrderDto>.Fail(ex.Message);
-            }
+                UserId = userId,
+                OrderDate = DateTime.UtcNow,
+                Status = OrderStatus.SiparisAlindi,
+                OrderItems = orderItems,
+                ShippingFee = shippingFee,
+                ShippingMethod = normalizedMethod
+            };
+
+            await _orderRepository.AddAsync(order);
+            await _cartItemRepository.ClearCartAsync(userId);
+            
+            var loaded = await _orderRepository.GetByIdAsync(order.Id);
+            await tx.CommitAsync();
+
+            return ServiceResult<OrderDto>.Ok(MapToDto(loaded!), "Sipariş başarıyla oluşturuldu");
         }
-    
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync();
+            return ServiceResult<OrderDto>.Fail(ex.Message);
+        }
+    }
+
     public async Task<ServiceResult<bool>> CancelOrderAsync(int orderId, Guid userId)
     {
         try
@@ -180,6 +196,7 @@ public class OrderService : IOrderService
             return ServiceResult<bool>.Fail(ex.Message);
         }
     }
+
     private OrderDto MapToDto(Order order)
     {
         return new OrderDto(
@@ -191,12 +208,47 @@ public class OrderService : IOrderService
                 oi.ProductId,
                 oi.Product.Name,
                 oi.Product.ImageUrl,
-                oi.UnitPrice,
+                oi.UnitPrice,  // ✅ Artık indirimli fiyat
                 oi.Quantity,
                 oi.UnitPrice * oi.Quantity
-            )).ToList()
+            )).ToList(),
+            order.ShippingFee,
+            order.ShippingMethod,
+            order.TrackingNumber
         );
     }
     
-    
+    public async Task<IEnumerable<AdminOrderListItemDto>> AdminListAsync()
+    {
+        var all = await _orderRepository.GetAllAsync();
+        return all.Select(o => new AdminOrderListItemDto(
+            o.Id,
+            o.UserId,
+            o.OrderDate,
+            o.Status.ToString(),
+            o.ShippingFee,
+            o.ShippingMethod,
+            o.TrackingNumber,
+            o.OrderItems.Sum(oi => oi.UnitPrice * oi.Quantity)
+        ));
+    }
+
+    public async Task<ServiceResult<OrderDto>> AdminUpdateAsync(int orderId, AdminOrderUpdateDto dto)
+    {
+        var order = await _orderRepository.GetByIdAsync(orderId);
+        if (order == null) return ServiceResult<OrderDto>.Fail("Order not found.");
+
+        // validate & set status
+        if (!Enum.TryParse<OrderStatus>(dto.Status, ignoreCase: true, out var newStatus))
+            return ServiceResult<OrderDto>.Fail("Invalid status.");
+
+        order.Status = newStatus;
+        order.TrackingNumber = string.IsNullOrWhiteSpace(dto.TrackingNumber) ? null : dto.TrackingNumber.Trim();
+
+        await _orderRepository.UpdateAsync(order);
+
+        var loaded = await _orderRepository.GetByIdAsync(order.Id);
+        return ServiceResult<OrderDto>.Ok(MapToDto(loaded!), "Order updated.");
+    }
+
 }
