@@ -54,9 +54,7 @@ namespace makeup.Models.Repositories
                     .OrderBy(p => p.Brand).ThenBy(p => p.Name)
                     .ToListAsync();
 
-            //----------------------------------------------------
-            // 1️⃣ OR destekli çok kelimeli arama ayrıştırma
-            //----------------------------------------------------
+            
             var orGroups = Regex.Split(query, @"\s+\|\s+|(\sOR\s)", RegexOptions.IgnoreCase)
                                 .Where(s => !string.IsNullOrWhiteSpace(s) && !Regex.IsMatch(s, @"^\s*OR\s*$", RegexOptions.IgnoreCase))
                                 .Select(s => s.Trim())
@@ -64,15 +62,10 @@ namespace makeup.Models.Repositories
 
             if (orGroups.Count == 0)
                 orGroups.Add(query.Trim());
-
-            //----------------------------------------------------
-            // 2️⃣ Collation: Türkçe karakter duyarlı ama accent-insensitive
-            //----------------------------------------------------
+            
             string coll = "Turkish_CI_AI"; // MSSQL için uygun
 
-            //----------------------------------------------------
-            // 3️⃣ Her OR grubu (AND şartları ile)
-            //----------------------------------------------------
+           
             IQueryable<Product> baseQuery = _context.Products
                 .Include(p => p.Category)
                 .Where(p => p.IsActive);
@@ -99,14 +92,18 @@ namespace makeup.Models.Repositories
 
                 finalQuery = finalQuery.Union(subQuery); // OR gruplarını birleştir
             }
-
-            //----------------------------------------------------
-            // 4️⃣ Sonuçları sırala ve döndür
-            //----------------------------------------------------
+            
             return await finalQuery
                 .OrderBy(p => p.Brand)
                 .ThenBy(p => p.Name)
                 .ToListAsync();
+        }
+        
+        public IQueryable<Product> Query()
+        {
+            return _context.Products
+                .Include(p => p.Category)
+                .AsQueryable();
         }
     }
 }

@@ -96,4 +96,12 @@ public class ProductController : ControllerBase
         var items = await _productService.SearchAsync(q);
         return Ok(items);
     }
+    
+    [HttpGet("browse")]
+    [AllowAnonymous]
+    public async Task<ActionResult<PagedResult<ProductDto>>> Browse([FromQuery] ProductBrowseQuery query)
+    {
+        var result = await _productService.BrowseAsync(query);
+        return Ok(result);
+    }
 }

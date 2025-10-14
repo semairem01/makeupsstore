@@ -134,7 +134,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<ICartItemService, CartItemService>();
-
+builder.Services.AddScoped<IRecommendService, RecommendService>();
 builder.Services.AddHttpContextAccessor();
 
 // Build the app

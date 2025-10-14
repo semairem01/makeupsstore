@@ -25,7 +25,7 @@ public class ProductsController : ControllerBase
         _productRepository = productRepository;
     }
 
-    // ✅ Admin listesi (stoklu DTO döner)
+    // ✅ Admin listesi (stoklu + yeni alanlar)
     [HttpGet]
     public async Task<ActionResult<IEnumerable<AdminProductListDto>>> GetAll(
         [FromQuery] string? q, [FromQuery] int? categoryId)
@@ -57,7 +57,21 @@ public class ProductsController : ControllerBase
                 p.Color,
                 p.Size,
                 p.CategoryId,
-                p.Category != null ? p.Category.Name : string.Empty
+                p.Category != null ? p.Category.Name : string.Empty,
+
+                // 🔽 yeni alanlar
+                (int)p.SuitableForSkin,
+                p.Finish != null ? p.Finish.ToString() : null,
+                p.Coverage != null ? p.Coverage.ToString() : null,
+                p.Longwear,
+                p.Waterproof,
+                p.PhotoFriendly,
+                p.HasSpf,
+                p.FragranceFree,
+                p.NonComedogenic,
+                p.ShadeFamily,
+                p.Tags,
+                p.DiscountPercent
             ))
             .OrderBy(p => p.Id)
             .ToList();
@@ -65,7 +79,7 @@ public class ProductsController : ControllerBase
         return Ok(result);
     }
 
-    // ✅ Admin detay (edit formu) – stok dâhil
+    // ✅ Admin detay (edit formu) – stok dâhil + yeni alanlar
     [HttpGet("{id:int}")]
     public async Task<ActionResult<AdminProductListDto>> GetById(int id)
     {
@@ -84,7 +98,21 @@ public class ProductsController : ControllerBase
             p.Color,
             p.Size,
             p.CategoryId,
-            p.Category != null ? p.Category.Name : string.Empty
+            p.Category != null ? p.Category.Name : string.Empty,
+
+            // 🔽 yeni alanlar
+            (int)p.SuitableForSkin,
+            p.Finish != null ? p.Finish.ToString() : null,
+            p.Coverage != null ? p.Coverage.ToString() : null,
+            p.Longwear,
+            p.Waterproof,
+            p.PhotoFriendly,
+            p.HasSpf,
+            p.FragranceFree,
+            p.NonComedogenic,
+            p.ShadeFamily,
+            p.Tags,
+            p.DiscountPercent
         );
 
         return Ok(dto);
@@ -139,14 +167,12 @@ public class ProductsController : ControllerBase
         var relative = $"/{relDir}/{fname}".Replace("\\", "/");
         return Ok(new { path = relative });
     }
-    
+
     [HttpPost("{id:int}/notify-waiters")]
     public async Task<IActionResult> NotifyWaiters(int id, [FromServices] INotifyRequestRepository notifyRepo)
     {
         var pending = await notifyRepo.GetPendingRequestsAsync(id);
-        // TODO: burada pending kullanıcılarına e-posta / push gönder
-        // gönderildikten sonra pending istekleri repo.RemoveAsync(...) ile temizleyebilirsin
-
+        // TODO: pending kullanıcılarına e-posta / push gönder ve gönderildiyse repo.RemoveAsync(...) ile temizle
         return Ok(new { notified = pending.Count() });
     }
 }

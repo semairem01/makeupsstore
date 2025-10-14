@@ -12,7 +12,19 @@ public record ProductCreateDto(
     string? Color,
     string? Size,
     int CategoryId,
-    decimal? DiscountPercent 
+    decimal? DiscountPercent,
+    
+    int SuitableForSkin,            // SkinTypeFlags (int olarak)
+    string? Finish,                 // FinishType?
+    string? Coverage,               // CoverageLevel?
+    bool Longwear,
+    bool Waterproof,
+    bool PhotoFriendly,
+    bool HasSpf,
+    bool FragranceFree,
+    bool NonComedogenic,
+    string? ShadeFamily,
+    string? Tags
 );
 
 public record ProductUpdateDto(
@@ -27,7 +39,19 @@ public record ProductUpdateDto(
     string? Color,
     string? Size,
     int CategoryId,
-    decimal? DiscountPercent
+    decimal? DiscountPercent,
+    
+    int SuitableForSkin,
+    string? Finish,
+    string? Coverage,
+    bool Longwear,
+    bool Waterproof,
+    bool PhotoFriendly,
+    bool HasSpf,
+    bool FragranceFree,
+    bool NonComedogenic,
+    string? ShadeFamily,
+    string? Tags
 );
 
 public record AdminProductListDto(
@@ -42,7 +66,20 @@ public record AdminProductListDto(
     string? Color,
     string? Size,
     int CategoryId,
-    string CategoryName
+    string CategoryName,
+    
+    int SuitableForSkin,
+    string? Finish,
+    string? Coverage,
+    bool Longwear,
+    bool Waterproof,
+    bool PhotoFriendly,
+    bool HasSpf,
+    bool FragranceFree,
+    bool NonComedogenic,
+    string? ShadeFamily,
+    string? Tags,
+    decimal? DiscountPercent
 );
 
 // Kullanıcıya ürün listesi/görünümü için DTO (stok bilgisini göstermiyoruz!)
@@ -58,7 +95,23 @@ public record ProductDto(
     string? Size,
     int CategoryId,
     string CategoryName,
-    decimal? DiscountPercent
+    decimal? DiscountPercent,
+    
+    int SuitableForSkin,
+    string? Finish,
+    string? Coverage,
+    bool Longwear,
+    bool Waterproof,
+    bool PhotoFriendly,
+    bool HasSpf,
+    bool FragranceFree,
+    bool NonComedogenic,
+    string? ShadeFamily,
+    string? Tags,
+    
+    double? RatingAverage,   // 0..5
+    int RatingCount 
+  
 )
 {
     public decimal FinalPrice =>
@@ -66,4 +119,6 @@ public record ProductDto(
             ? Price * (1 - DiscountPercent.Value / 100)
             : Price;
 }
+
+
     
