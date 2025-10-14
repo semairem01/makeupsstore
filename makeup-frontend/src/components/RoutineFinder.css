@@ -1,0 +1,380 @@
+﻿/* RoutineFinder.css */
+
+.rf-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.rf-sub {
+    text-align: center;
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+.rf-steps {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 2rem 0;
+}
+
+.dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.dot.on {
+    background: linear-gradient(135deg, #ff6b9d 0%, #c239b3 100%);
+    color: white;
+}
+
+.bar {
+    width: 60px;
+    height: 4px;
+    background: #f0f0f0;
+    transition: all 0.3s;
+}
+
+.bar.on {
+    background: linear-gradient(90deg, #ff6b9d 0%, #c239b3 100%);
+}
+
+.rf-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin: 2rem 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.rf-card h3 {
+    margin-bottom: 1.5rem;
+    color: #333;
+}
+
+.rf-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.rf-pill {
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #f3c7dd;
+    border-radius: 24px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.rf-pill:hover {
+    border-color: #ff6b9d;
+    transform: translateY(-2px);
+}
+
+.rf-pill.active {
+    background: linear-gradient(135deg, #ff6b9d 0%, #c239b3 100%);
+    border-color: transparent;
+    color: white;
+}
+
+.rf-pills.small .rf-pill {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.rf-more {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+.rf-more label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.rf-more-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 1.5rem;
+}
+
+.rf-more-label {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #666;
+}
+
+.rf-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.rf-btn {
+    padding: 1rem 2.5rem;
+    background: linear-gradient(135deg, #ff6b9d 0%, #c239b3 100%);
+    color: white;
+    border: none;
+    border-radius: 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.rf-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 107, 157, 0.3);
+}
+
+.rf-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.rf-ghost {
+    padding: 1rem 2.5rem;
+    background: transparent;
+    color: #666;
+    border: 2px solid #e0e0e0;
+    border-radius: 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.rf-ghost:hover:not(:disabled) {
+    border-color: #ff6b9d;
+    color: #ff6b9d;
+}
+
+.rf-ghost:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Özet / Results Section */
+.rf-result {
+    margin-top: 3rem;
+}
+
+.rf-title {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    color: #333;
+}
+
+.rf-title b {
+    background: linear-gradient(135deg, #ff6b9d 0%, #c239b3 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Eski bucket görünümü (fallback) */
+.rf-buckets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.rf-bucket {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.rf-bucket-title {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.rf-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.rf-tag {
+    padding: 0.25rem 0.75rem;
+    background: #f3c7dd;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    color: #c239b3;
+}
+
+.rf-shades {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.rf-chip {
+    padding: 0.25rem 0.75rem;
+    background: #fff0f6;
+    border: 1px solid #f3c7dd;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.rf-hint {
+    text-align: center;
+    color: #999;
+    font-size: 0.9rem;
+    font-style: italic;
+    margin-top: 1rem;
+}
+
+/* Backend Ürün Kartları */
+.rf-bucket-section {
+    margin-bottom: 3rem;
+}
+
+.rf-bucket-section .rf-bucket-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #333;
+    padding-left: 1rem;
+    border-left: 4px solid #ff6b9d;
+}
+
+.rf-products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+}
+
+.rf-product-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.rf-product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.rf-product-card img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+}
+
+.rf-product-info {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.rf-product-brand {
+    font-size: 0.85rem;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rf-product-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0.5rem 0;
+    color: #333;
+}
+
+.rf-product-category {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.rf-product-shade {
+    font-size: 0.85rem;
+    color: #ff6b9d;
+    margin-bottom: 0.5rem;
+}
+
+.rf-product-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.rf-badge {
+    padding: 0.25rem 0.75rem;
+    background: #f0f0f0;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.rf-product-price {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #ff6b9d;
+    margin-top: auto;
+    margin-bottom: 1rem;
+}
+
+.rf-add-to-cart {
+    width: 100%;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #ff6b9d 0%, #c239b3 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.rf-add-to-cart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .rf-more-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rf-products-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rf-buckets {
+        grid-template-columns: 1fr;
+    }
+
+    .rf-pills {
+        justify-content: center;
+    }
+}

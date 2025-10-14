@@ -15,7 +15,7 @@ const toInt = (v) => {
     return Number.isNaN(n) ? 0 : n;
 };
 function getAxiosErrorMessage(errOrResp) {
-    const r = errOrResp?.response ?? errOrResp; // resp da olabilir
+    const r = errOrResp?.response ?? errOrResp;
     const d = r?.data;
     if (typeof d === "string") return d;
     if (d?.message) return d.message;
@@ -25,6 +25,27 @@ function getAxiosErrorMessage(errOrResp) {
         try { return Object.values(d.errors).flat().join("\n"); } catch {}
     }
     try { return JSON.stringify(d ?? errOrResp); } catch { return String(d ?? errOrResp); }
+}
+
+// ✅ Bit-mask seçenekleri
+const SKIN = [
+    { bit: 1,  label: "Dry" },
+    { bit: 2,  label: "Oily" },
+    { bit: 4,  label: "Combination" },
+    { bit: 8,  label: "Sensitive" },
+    { bit: 16, label: "Normal" },
+];
+const toggleBit = (mask, bit) => (mask & bit) ? (mask & ~bit) : (mask | bit);
+const ALL_SKIN_MASK = SKIN.reduce((m, s) => (m | s.bit), 0);
+
+// (Opsiyonel) preset butonlarında duplicate'siz tag eklemek için ufak helper
+function mergeTags(current, addList) {
+    const cur = (current || "")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+    for (const t of addList) if (!cur.includes(t)) cur.push(t);
+    return cur.join(", ");
 }
 
 export default function ProductsAdmin() {
@@ -37,7 +58,7 @@ export default function ProductsAdmin() {
     const [editing, setEditing] = useState(null); // null => create, sayı => edit id
     const [showForm, setShowForm] = useState(false);
 
-    // price & stock string tutulur (input uyumu için)
+    // form state (price & stock string tutulur)
     const emptyForm = {
         id: 0,
         name: "",
@@ -51,6 +72,17 @@ export default function ProductsAdmin() {
         size: "",
         categoryId: 0,
         discountPercent: "",
+        suitableForSkin: ALL_SKIN_MASK,   // varsayılan: tüm ciltlere uygun
+        finish: "",
+        coverage: "",
+        longwear: false,
+        waterproof: false,
+        photoFriendly: false,
+        hasSpf: false,
+        fragranceFree: false,
+        nonComedogenic: false,
+        shadeFamily: "",
+        tags: ""
     };
     const [form, setForm] = useState(emptyForm);
 
@@ -134,6 +166,17 @@ export default function ProductsAdmin() {
                 size: p.size ?? "",
                 categoryId: validCatId,
                 discountPercent: p.discountPercent != null ? String(p.discountPercent) : "",
+                suitableForSkin: Number(p.suitableForSkin ?? ALL_SKIN_MASK),
+                finish: p.finish ?? "",
+                coverage: p.coverage ?? "",
+                longwear: !!p.longwear,
+                waterproof: !!p.waterproof,
+                photoFriendly: !!p.photoFriendly,
+                hasSpf: !!p.hasSpf,
+                fragranceFree: !!p.fragranceFree,
+                nonComedogenic: !!p.nonComedogenic,
+                shadeFamily: p.shadeFamily ?? "",
+                tags: p.tags ?? ""
             });
             setShowForm(true);
         } catch (err) {
@@ -175,7 +218,18 @@ export default function ProductsAdmin() {
                 color: form.color || null,
                 size: form.size || null,
                 categoryId: Number(form.categoryId) || 0,
-                discountPercent: form.discountPercent ? Number(form.discountPercent) : null,
+                discountPercent: form.discountPercent !== "" ? toNumber(form.discountPercent) : null, // ← düzeltildi
+                suitableForSkin: Number(form.suitableForSkin || 0),
+                finish: form.finish || null,
+                coverage: form.coverage || null,
+                longwear: !!form.longwear,
+                waterproof: !!form.waterproof,
+                photoFriendly: !!form.photoFriendly,
+                hasSpf: !!form.hasSpf,
+                fragranceFree: !!form.fragranceFree,
+                nonComedogenic: !!form.nonComedogenic,
+                shadeFamily: form.shadeFamily || null,
+                tags: form.tags || null
             };
 
             if (!payload.name) { alert("Ürün adı zorunlu."); return; }
@@ -234,7 +288,7 @@ export default function ProductsAdmin() {
             </div>
 
             {showForm && (
-                <div className="card card--pink" style={{ margin: "12px 0", padding: 12 }}>
+                <div className="card card--pink admin-form" style={{ margin: "12px 0", padding: 12 }}>
                     <h3>{editing ? "Ürünü Güncelle" : "Yeni Ürün"}</h3>
 
                     {/* Görsel önizleme + yükleme */}
@@ -267,7 +321,11 @@ export default function ProductsAdmin() {
                         </div>
                     </div>
 
-                    <div className="grid2">
+                    {/* *** 1. grid2: responsive *** */}
+                    <div
+                        className="grid2"
+                        style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:12 }}
+                    >
                         <label>
                             Ad
                             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -345,44 +403,185 @@ export default function ProductsAdmin() {
                         />
                     </label>
 
-                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    {/* --- Öneri Motoru Alanları --- */}
+                    <div className="card" style={{marginTop:12, padding:12}}>
+                        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
+                            <h4 style={{margin:0}}>Öneri / Rutin Alanları</h4>
+
+                            {/* Preset butonları */}
+                            <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
+                                <button type="button" className="btn-outline"
+                                        title="Günlük/doğal"
+                                        onClick={()=>setForm(f=>({
+                                            ...f,
+                                            finish: "Natural", coverage: f.coverage || "Sheer",
+                                            longwear:false, waterproof:false, photoFriendly:false, hasSpf:false,
+                                            tags: mergeTags(f.tags, ["skin-like"])
+                                        }))}>
+                                    Preset: Office
+                                </button>
+
+                                <button type="button" className="btn-outline"
+                                        title="Açık hava"
+                                        onClick={()=>setForm(f=>({
+                                            ...f,
+                                            hasSpf:true, waterproof:true, longwear:true,
+                                            finish: f.finish || "Natural",
+                                            tags: mergeTags(f.tags, ["spf"])
+                                        }))}>
+                                    Preset: Outdoor
+                                </button>
+
+                                <button type="button" className="btn-outline"
+                                        title="Akşam/parti"
+                                        onClick={()=>setForm(f=>({
+                                            ...f,
+                                            finish:"Shimmer", longwear:true, photoFriendly:true,
+                                            tags: mergeTags(f.tags, ["glitter","metallic"])
+                                        }))}>
+                                    Preset: Party
+                                </button>
+
+                                <button type="button" className="btn-outline"
+                                        title="Yumuşak ışıltı"
+                                        onClick={()=>setForm(f=>({
+                                            ...f,
+                                            finish: f.finish || "Dewy",
+                                            coverage: f.coverage || "Medium",
+                                            longwear:true
+                                        }))}>
+                                    Preset: Soft Glam
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* *** 2. grid2: responsive *** */}
+                        <div
+                            className="grid2"
+                            style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:12, marginTop:10 }}
+                        >
+                            <label>
+                                Finish
+                                <select value={form.finish} onChange={e=>setForm({...form, finish:e.target.value})}>
+                                    <option value="">—</option>
+                                    <option value="Dewy">Dewy</option>
+                                    <option value="Natural">Natural</option>
+                                    <option value="Matte">Matte</option>
+                                    <option value="Shimmer">Shimmer</option>
+                                </select>
+                            </label>
+
+                            <label>
+                                Coverage
+                                <select value={form.coverage} onChange={e=>setForm({...form, coverage:e.target.value})}>
+                                    <option value="">—</option>
+                                    <option value="Sheer">Sheer</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Full">Full</option>
+                                </select>
+                            </label>
+
+                            <label>
+                                ShadeFamily (ör. coral|peach|mauve)
+                                <input value={form.shadeFamily} onChange={e=>setForm({...form, shadeFamily:e.target.value})}/>
+                            </label>
+
+                            <label>
+                                Tags (virgülle ayırın)
+                                <input value={form.tags} onChange={e=>setForm({...form, tags:e.target.value})}/>
+                            </label>
+                        </div>
+
+                        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:8}}>
+                            <div>
+                                <div style={{fontWeight:600, marginBottom:6}}>Cilt Uyumu</div>
+
+                                {/* Hızlı aksiyonlar */}
+                                <div style={{display:"flex", gap:8, marginBottom:6}}>
+                                    <button type="button" className="btn-outline" onClick={() => setForm(f => ({...f, suitableForSkin: ALL_SKIN_MASK}))}>
+                                        Tümünü Seç
+                                    </button>
+                                    <button type="button" className="btn-outline" onClick={() => setForm(f => ({...f, suitableForSkin: 0}))}>
+                                        Temizle
+                                    </button>
+                                </div>
+
+                                <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+                                    {SKIN.map(s=>(
+                                        <label key={s.bit} style={{display:"inline-flex", gap:6, alignItems:"center"}}>
+                                            <input
+                                                type="checkbox"
+                                                checked={(form.suitableForSkin & s.bit) === s.bit}
+                                                onChange={()=>setForm(f=>({...f, suitableForSkin: toggleBit(f.suitableForSkin, s.bit)}))}
+                                            />
+                                            <span>{s.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <div style={{fontWeight:600, marginBottom:6}}>Özellikler</div>
+                                <div className="grid2" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:12 }}>
+                                    <label><input type="checkbox" checked={form.longwear} onChange={e=>setForm({...form, longwear:e.target.checked})}/> Longwear</label>
+                                    <label><input type="checkbox" checked={form.waterproof} onChange={e=>setForm({...form, waterproof:e.target.checked})}/> Waterproof</label>
+                                    <label><input type="checkbox" checked={form.photoFriendly} onChange={e=>setForm({...form, photoFriendly:e.target.checked})}/> Photo Friendly</label>
+                                    <label><input type="checkbox" checked={form.hasSpf} onChange={e=>setForm({...form, hasSpf:e.target.checked})}/> SPF</label>
+                                    <label><input type="checkbox" checked={form.fragranceFree} onChange={e=>setForm({...form, fragranceFree:e.target.checked})}/> Fragrance Free</label>
+                                    <label><input type="checkbox" checked={form.nonComedogenic} onChange={e=>setForm({...form, nonComedogenic:e.target.checked})}/> Non-Comedogenic</label>
+                                </div>
+
+                                {/* (Opsiyonel) Rozet önizleme */}
+                                <div style={{marginTop:8, display:"flex", gap:6, flexWrap:"wrap"}}>
+                                    {form.hasSpf && <span className="chip">SPF</span>}
+                                    {form.longwear && <span className="chip">Longwear</span>}
+                                    {form.waterproof && <span className="chip">Waterproof</span>}
+                                    {form.photoFriendly && <span className="chip">Photo</span>}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="admin-form__actions" style={{ display: "flex", gap: 8 }}>
                         <button onClick={save}>{editing ? "Kaydet" : "Ekle"}</button>
                         <button className="btn-outline" onClick={() => setShowForm(false)}>İptal</button>
                     </div>
                 </div>
             )}
 
-            <table className="admin-table">
-                <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Ad</th>
-                    <th>Marka</th>
-                    <th>Kategori</th>
-                    <th>Fiyat</th>
-                    <th>Stok</th>
-                    <th>Aktif</th>
-                    <th></th>
-                </tr>
-                </thead>
-                <tbody>
-                {list.map((p) => (
-                    <tr key={p.id}>
-                        <td>{p.id}</td>
-                        <td>{p.name}</td>
-                        <td>{p.brand}</td>
-                        <td>{p.categoryName}</td>
-                        <td>₺{Number(p.price).toLocaleString("tr-TR")}</td>
-                        <td>{p.stockQuantity}</td>
-                        <td>{p.isActive ? "Evet" : "Hayır"}</td>
-                        <td style={{ whiteSpace: "nowrap" }}>
-                            <button className="btn-link" onClick={() => startEdit(p.id)}>Düzenle</button>
-                            <button className="btn-link danger" onClick={() => del(p.id)}>Sil</button>
-                        </td>
+            <div className="admin-table-wrap">
+                <table className="admin-table">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Ad</th>
+                        <th>Marka</th>
+                        <th>Kategori</th>
+                        <th>Fiyat</th>
+                        <th>Stok</th>
+                        <th>Aktif</th>
+                        <th></th>
                     </tr>
-                ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                    {list.map((p) => (
+                        <tr key={p.id}>
+                            <td>{p.id}</td>
+                            <td>{p.name}</td>
+                            <td>{p.brand}</td>
+                            <td>{p.categoryName}</td>
+                            <td>₺{Number(p.price).toLocaleString("tr-TR")}</td>
+                            <td>{p.stockQuantity}</td>
+                            <td>{p.isActive ? "Evet" : "Hayır"}</td>
+                            <td style={{ whiteSpace: "nowrap" }}>
+                                <button className="btn-link" onClick={() => startEdit(p.id)}>Düzenle</button>
+                                <button className="btn-link danger" onClick={() => del(p.id)}>Sil</button>
+                            </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

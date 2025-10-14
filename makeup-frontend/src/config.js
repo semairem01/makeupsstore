@@ -23,7 +23,7 @@ export const API_ENDPOINTS = {
     ADMIN_ORDERS: `${API_BASE_URL}/api/admin/orders`,
     ADMIN_UPLOAD_IMAGE: `${API_BASE_URL}/api/admin/products/upload-image`,
     NOTIFY_PRODUCT: (id) => `${API_BASE_URL}/api/notify/product/${id}`,
-    
+    RECOMMEND_ROUTINE: `${API_BASE_URL}/api/recommend/routine`,
 };
 
 // App configuration

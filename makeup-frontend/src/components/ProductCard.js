@@ -33,12 +33,10 @@ export default function ProductCard({ product, onAdded }) {
         return () => { ignore = true; };
     }, [product.id]);
 
-    // 📦 Stok kontrolü
     const stockRaw = product?.stockQuantity ?? product?.StockQuantity;
     const hasStockInfo = typeof stockRaw === "number" && !Number.isNaN(stockRaw);
     const isOut = product?.isActive === false || (hasStockInfo && Number(stockRaw) <= 0);
 
-    // 💰 İNDİRİM hesaplama (DTO’da finalPrice varsa onu kullan)
     const hasDiscount = Number(product?.discountPercent) > 0;
     const finalNum =
         product?.finalPrice != null
@@ -61,7 +59,6 @@ export default function ProductCard({ product, onAdded }) {
         if (isOut)   return alert("This item is out of stock.");
         try {
             setAdding(true);
-            // 🧾 Sepete her zaman satış fiyatını gönder (finalPrice/discount’a göre)
             await axios.post(
                 `${API_ENDPOINTS.CART}/add`,
                 { productId: product.id, quantity: 1, unitPrice: finalNum },
@@ -89,21 +86,29 @@ export default function ProductCard({ product, onAdded }) {
         }
     };
 
+    // ---- inline layout styles (butonları aynı hizaya getirir) ----
+    const cardStyle = { display: "flex", flexDirection: "column", height: "100%" };
+    const metaStyle = { display: "flex", flexDirection: "column", gap: 6, flex: "1 1 auto" };
+    const nameStyle = {
+        display: "-webkit-box",
+        WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+        lineHeight: 1.3,
+        minHeight: "2.6em" // 2 satırlık yer
+    };
+    const addBtnStyle = { marginTop: "auto", alignSelf: "stretch" };
+    // ---------------------------------------------------------------
+
     return (
-        <article className="p-card">
+        <article className="p-card" style={cardStyle}>
             <Link to={`/product/${product.id}`} className="thumb" style={{ position: "relative", display: "block" }}>
                 {hasDiscount && (
                     <span
                         style={{
-                            position: "absolute",
-                            top: 8,
-                            left: 8,
-                            background: "#ff2e72",
-                            color: "#fff",
-                            padding: "4px 8px",
-                            borderRadius: "999px",
-                            fontWeight: 700,
-                            fontSize: "0.8rem",
+                            position: "absolute", top: 8, left: 8,
+                            background: "#ff2e72", color: "#fff",
+                            padding: "4px 8px", borderRadius: "999px",
+                            fontWeight: 700, fontSize: "0.8rem",
                         }}
                     >
             -%{Number(product.discountPercent)}
@@ -112,22 +117,20 @@ export default function ProductCard({ product, onAdded }) {
                 <img
                     src={`http://localhost:5011${product.imageUrl}`}
                     alt={product.name}
-                    onError={(e) => {
-                        e.currentTarget.src = "https://via.placeholder.com/400x400?text=No+Image";
-                    }}
+                    onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/400x400?text=No+Image"; }}
+                    style={{ display: "block", width: "100%", height: "auto" }}
                 />
             </Link>
 
-            <div className="meta">
+            <div className="meta" style={metaStyle}>
                 <div className="brand">{product.brand}</div>
-                <Link to={`/product/${product.id}`} className="name">
+                <Link to={`/product/${product.id}`} className="name" style={nameStyle}>
                     {product.name}
                 </Link>
 
                 <Stars value={avg} />
                 <div className="rating-text">{avg.toFixed(1)} · {count} reviews</div>
 
-                {/* 💲 Fiyat bölümü */}
                 <div className="price">
                     {hasDiscount ? (
                         <div style={{ display: "flex", alignItems: "baseline", gap: "6px", flexWrap: "wrap" }}>
@@ -143,11 +146,22 @@ export default function ProductCard({ product, onAdded }) {
             </div>
 
             {isOut ? (
-                <button className="btn-add btn-outline" onClick={requestNotify}>
+                <button className="btn-add btn-outline" onClick={requestNotify} style={addBtnStyle}>
                     Notify me
                 </button>
             ) : (
-                <button className="btn-add" onClick={addToCart} disabled={adding}>
+                <button
+                    className="btn-add"
+                    onClick={addToCart}
+                    disabled={adding}
+                    style={{
+                        marginTop: "auto",
+                        alignSelf: "stretch",
+                        background: "#f1798a",   // 🔹 Arka plan rengi
+                        color: "#fff",           // 🔹 Yazı rengi
+                        border: "none",
+                    }}
+                >
                     {adding ? "Adding…" : "Add to Cart"}
                 </button>
             )}

@@ -1,207 +1,367 @@
-﻿/* ===== Lunara Beauty — Peach Pink Navbar ===== */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600&display=swap');
 
-:root{
-    /* Şeftali pembe tonları */
-    --peach-1:#ffd4d4;
-    --peach-2:#ffb5c0;
-    --peach-3:#fe9a8b;
-    --ink:#3b2a2a;
+/* RESET */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-/* Genel */
-html,body{margin:0;padding:0}
-body{
-    font-family:'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    color:var(--ink);
-    background:#fff;
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
 }
 
-/* NAVBAR */
-.navbar{
-    position: sticky; top: 0; z-index: 50;
-    display:flex; align-items:center; justify-content:space-between;
-    gap:16px; padding:10px 20px;
-    background: linear-gradient(90deg,#ffabba 0%, #fe9a8b 35%, #fd868c 100%);
-    color:#fff; box-shadow:0 4px 12px rgba(253,134,140,.25);
+body {
+    font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    color: #3b2a2a;
+    background: #fff;
 }
 
-/* Sol: Logo */
-.brand{ display:flex; align-items:center; gap:12px; text-decoration:none; }
-.brand-logo{
-    height:80px; width:80px; display:block; border-radius:20px;
-    box-shadow:0 2px 8px rgba(255,120,140,.15);
-}
-.brand-text{
-    font-family:'Playfair Display', serif; font-weight:700; letter-spacing:.4px;
-    font-size:1.55rem; color:#ffffff;
-    text-shadow:0 1px 0 rgba(0,0,0,.05);
+:root {
+    --peach-1: #ffd4d4;
+    --peach-2: #ffb5c0;
+    --peach-3: #fe9a8b;
+    --ink: #3b2a2a;
 }
 
-/* Orta: Arama çubuğu */
-.nav-search{
-    flex:1 1 auto; display:flex; justify-content:center;
-}
-.search-input{
-    width:min(740px, 92%);
-    background:#fff; border:2px solid rgba(0,0,0,.06);
-    border-radius:999px; padding:10px 16px;
-    font-size:.95rem; outline:none;
-    box-shadow:0 2px 10px rgba(255,137,150,.18) inset;
-}
-.search-input::placeholder{ color:#a07a7a; }
+/* ============================================
+   NAVBAR - Lunara Beauty Ana Navbar
+   ============================================ */
 
-/* Sağ: linkler + sepet + avatar */
-.navbar-right{ display:flex; align-items:center; gap:14px; }
-.navbar-right a{ text-decoration:none; color:#fff; font-weight:600; transition:opacity .2s; }
-.navbar-right a:hover{ opacity:.85; }
-
-.btn-pill{
-    background:rgba(255,255,255,.28); padding:8px 14px; border-radius:500px;
-    font-weight:400;
-}
-.btn-pill:hover{ background:rgba(255,255,255,.4); }
-
-/* Logout ghost buton */
-.btn-ghost{
-    border:1px solid rgba(255,255,255,.55);
-    background:rgba(255,255,255,.2); color:#fff;
-    padding:6px 10px; border-radius:10px; cursor:pointer;
-    transition:all .2s ease;
-}
-.btn-ghost:hover{ background:rgba(255,255,255,.32); }
-
-/* 🛒 Sepet — eski stile geri döndü */
-.cart-container{ position:relative; display:flex; align-items:center; }
-.cart-icon{ font-size:1.4rem; cursor:pointer; color:#fff; }
-.cart-badge{
-    position:absolute; top:-11px; right:-13px;
-    background: #91114d; color:#fff; font-size:.70rem;
-    padding:2px 6px; border-radius:50%;
-    line-height:1; min-width:9px; text-align:center;
-    box-shadow:0 0 0 1px rgba(255,255,255,.9);
-}
-
-/* Avatar */
-.avatar-link{ display:inline-flex; align-items:center; justify-content:center; }
-.nav-avatar{
-    width:36px; height:36px; border-radius:50%; object-fit:cover;
-    border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.06);
-    transition: transform .15s ease;
-}
-.nav-avatar:hover{ transform: translateY(-1px) scale(1.02); }
-.nav-avatar.placeholder{ display:grid; place-items:center; font-weight:700; color:#b2206d; background:#ffe3f1; }
-
-.search-input {
-    padding: 10px 14px;
-    border-radius: 20px;
-    border: 1px solid #ddd;
-    font-size: 15px;
-    outline: none;
-    transition: all 0.2s ease;
-}
-
-.nav-search.pretty {
-    position: relative;
-    width: min(420px, 55vw);     /* 💡 daha kısa hale getirdik */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
     display: flex;
     align-items: center;
-    justify-content: center;     /* 💡 ortalıyoruz */
+    justify-content: space-between;
+    gap: clamp(6px, 1.5vw, 16px);
+    padding: clamp(6px, 1.5vw, 10px) clamp(10px, 2.5vw, 20px);
+    background: linear-gradient(90deg, #ffabba 0%, #fe9a8b 35%, #fd868c 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(253, 134, 140, .25);
+    width: 100%;
+    max-width: 100vw;
+}
+
+/* Logo Bölümü */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1.5vw, 12px);
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.brand-logo {
+    height: clamp(40px, 7vw, 80px);
+    width: clamp(40px, 7vw, 80px);
+    display: block;
+    border-radius: clamp(12px, 2vw, 20px);
+    box-shadow: 0 2px 8px rgba(255, 120, 140, .15);
+    object-fit: cover;
+}
+
+.brand-text {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    letter-spacing: .4px;
+    font-size: clamp(1rem, 2.5vw, 1.55rem);
+    color: #ffffff;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, .05);
+    white-space: nowrap;
+}
+
+/* Arama Bölümü */
+.nav-search,
+.nav-search.pretty {
+    flex: 1 1 auto;
+    max-width: clamp(280px, 45vw, 600px);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin: 0 auto;
 }
 
-/* input'u pille çevirip sağda ikon için boşluk bırakıyoruz */
-.nav-search.pretty .search-input {
+.nav-search.pretty .search-input,
+.search-input {
     width: 100%;
-    height: 44px;
-    padding: 10px 48px 10px 16px;   /* sağda buton boşluğu */
+    height: clamp(36px, 6vw, 44px);
+    padding: 10px clamp(42px, 7vw, 48px) 10px clamp(12px, 2vw, 16px);
     border: 1px solid #ead3df;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(6px);
-    font-size: 15px;
+    font-size: clamp(0.8rem, 1.8vw, 0.95rem);
     outline: none;
     transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
-    box-shadow:
-            0 10px 26px rgba(178, 32, 109, 0.06),
-            inset 0 1px 0 rgba(255,255,255,.9);
+    box-shadow: 0 10px 26px rgba(178, 32, 109, 0.06), inset 0 1px 0 rgba(255, 255, 255, .9);
 }
 
-/* focus’ta pembe ışıma */
-.nav-search.pretty .search-input:focus {
+.nav-search.pretty .search-input::placeholder {
+    color: #a07a7a;
+}
+
+.nav-search.pretty .search-input:focus,
+.search-input:focus {
     border-color: #ff69b4;
-    box-shadow:
-            0 12px 28px rgba(178, 32, 109, 0.10),
-            0 0 0 3px rgba(255, 105, 180, 0.18),
-            inset 0 1px 0 rgba(255,255,255,.95);
+    box-shadow: 0 12px 28px rgba(178, 32, 109, 0.10), 0 0 0 3px rgba(255, 105, 180, 0.18);
     background: #fff;
 }
 
-/* input ile buton arasına ince ayraç çizgisi */
+/* Ayraç çizgisi */
 .nav-search.pretty::after {
     content: "";
     position: absolute;
-    right: 48px;                /* butonun soluna */
-    top: 8px;
-    bottom: 8px;
-    width: 3px;
+    right: clamp(42px, 6vw, 48px);
+    top: 50%;
+    transform: translateY(-50%);
+    height: 55%;
+    width: 2px;
     background: linear-gradient(#edd6e2, #e9ccdb);
     border-radius: 1px;
     pointer-events: none;
 }
 
-/* Sağdaki yuvarlak buton */
+/* Arama butonu */
 .nav-search.pretty .search-btn {
     position: absolute;
-    right: 6px;
+    right: clamp(4px, 0.8vw, 6px);
     top: 50%;
     transform: translateY(-50%);
-    height: 36px;
-    width: 36px;
+    height: clamp(28px, 5vw, 36px);
+    width: clamp(28px, 5vw, 36px);
     border: none;
     border-radius: 999px;
     display: flex;
-    align-items: center;        /* dikey ortalama */
+    align-items: center;
     justify-content: center;
     cursor: pointer;
     background: linear-gradient(180deg, #ffe3f1 0%, #ffd3e9 100%);
     box-shadow: 0 6px 16px rgba(178, 32, 109, 0.18);
-    transition: transform .1s ease, box-shadow .2s ease, background .2s ease;
+    transition: transform .1s ease;
 }
 
 .nav-search.pretty .search-btn:hover {
     transform: translateY(-50%) scale(1.03);
-    box-shadow: 0 8px 20px rgba(178, 32, 109, 0.25);
 }
 
-.nav-search.pretty .search-btn:active {
-    transform: translateY(-50%) scale(0.98);
-}
-
-/* Kendi ikonun: otomatik beyaz/siyah destekli PNG/SVG */
 .nav-search.pretty .search-btn img {
-    width: 17px;
-    height: 17px;
+    width: clamp(13px, 2vw, 17px);
+    height: clamp(13px, 2vw, 17px);
     display: block;
     filter: drop-shadow(0 1px 0 rgba(136, 34, 34, 0.5));
 }
 
-.search-input:focus {
-    border-color: #ff69b4;
-    box-shadow: 0 0 4px rgba(255, 105, 180, 0.3);
+/* Sağ Taraf - Actions */
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 1.2vw, 14px);
+    flex-shrink: 0;
 }
-/* Mobil ufak iyileştirme */
-@media (max-width: 860px){
-    .brand-text{ display:none; }
-    .nav-search{ max-width:480px; }
+
+.navbar-right a {
+    text-decoration: none;
+    color: #fff;
+    font-weight: 600;
+    transition: opacity .2s;
+    white-space: nowrap;
+    font-size: clamp(0.75rem, 1.5vw, 0.9rem);
 }
-@media (max-width: 640px){
-    .nav-search{ display:none; } /* istersen gizle */
-    .btn-ghost, .btn-pill{ padding:6px 10px; }
+
+.navbar-right a:hover {
+    opacity: .85;
 }
-.navbar .nav-search.pretty {
-    flex: 0 0 auto !important;   
-    width: 600px;                
-    max-width: 55vw;             
-    margin: 0 auto;              
+
+/* Butonlar */
+.btn-pill {
+    background: rgba(255, 255, 255, .28);
+    padding: clamp(5px, 1vw, 8px) clamp(10px, 1.8vw, 14px);
+    border-radius: 500px;
+    font-weight: 400;
+    font-size: clamp(0.75rem, 1.4vw, 0.85rem);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-pill:hover {
+    background: rgba(255, 255, 255, .4);
+}
+
+.btn-ghost {
+    border: 1px solid rgba(255, 255, 255, .55);
+    background: rgba(255, 255, 255, .2);
+    color: #fff;
+    padding: clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 10px);
+    border-radius: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: clamp(0.75rem, 1.4vw, 0.85rem);
+}
+
+.btn-ghost:hover {
+    background: rgba(255, 255, 255, .32);
+}
+
+/* Sepet */
+.cart-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.cart-link {
+    color: #fff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+.cart-icon {
+    font-size: clamp(1.1rem, 2vw, 1.4rem);
+    cursor: pointer;
+    color: #fff;
+}
+
+.cart-badge {
+    position: absolute;
+    top: clamp(-9px, -1.2vw, -11px);
+    right: clamp(-10px, -1.5vw, -13px);
+    background: #91114d;
+    color: #fff;
+    font-size: clamp(0.6rem, 1vw, 0.7rem);
+    padding: 2px clamp(4px, 0.8vw, 6px);
+    border-radius: 50%;
+    line-height: 1;
+    min-width: 8px;
+    text-align: center;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .9);
+}
+
+/* Avatar */
+.avatar-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-avatar {
+    width: clamp(30px, 5vw, 36px);
+    height: clamp(30px, 5vw, 36px);
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .06);
+    transition: transform .15s ease;
+}
+
+.nav-avatar:hover {
+    transform: translateY(-1px) scale(1.02);
+}
+
+.nav-avatar.placeholder {
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    color: #b2206d;
+    background: #ffe3f1;
+    font-size: clamp(0.8rem, 1.5vw, 0.95rem);
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+@media (max-width: 1200px) {
+    .navbar {
+        padding: 8px 16px;
+    }
+}
+
+@media (max-width: 992px) {
+    .navbar {
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 860px) {
+    .navbar {
+        padding: 6px 10px;
+    }
+
+    .brand-text {
+        display: none;
+    }
+
+    .brand-logo {
+        height: 50px;
+        width: 50px;
+    }
+}
+
+@media (max-width: 640px) {
+    .navbar {
+        padding: 6px 8px;
+    }
+
+    .brand-logo {
+        height: 45px;
+        width: 45px;
+    }
+
+    .nav-search,
+    .nav-search.pretty {
+        display: none !important;
+    }
+
+    .btn-ghost,
+    .btn-pill {
+        padding: 5px 8px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar {
+        padding: 5px 6px;
+    }
+
+    .brand-logo {
+        height: 40px;
+        width: 40px;
+    }
+
+    .navbar-right a:not(.cart-link):not(.avatar-link) {
+        display: none;
+    }
+
+    .btn-ghost,
+    .btn-pill {
+        padding: 4px 6px;
+        font-size: 0.7rem;
+    }
+
+    .nav-avatar {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+@media (max-width: 380px) {
+    .navbar {
+        padding: 4px 5px;
+    }
+
+    .brand-logo {
+        height: 36px;
+        width: 36px;
+    }
+
+    .navbar-right {
+        gap: 3px;
+    }
 }

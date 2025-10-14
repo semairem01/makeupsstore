@@ -5,6 +5,7 @@ import ProductCard from "./ProductCard";
 import { Link, useLocation } from "react-router-dom";
 import "./Home.css";
 import HeroCarousel from "./HeroCarousel";
+import FeaturedShelf from "./FeaturedShelf";
 
 function Star({ filled }) {
     return <span style={{ color: filled ? "#ffc107" : "#ddd", marginRight: 2 }}>★</span>;
@@ -157,52 +158,20 @@ export default function Home({ onAdded }) {
                     </article>
                     <article className="promo-card peach">
                         <div>
-                            <h3>Top Rated</h3>
-                            <p>Community favorites you’ll love</p>
-                            <a href="#featured" className="link">Discover →</a>
+                            <h3>Find Your Look 💄</h3>
+                            <p>Answer a few fun questions and get your perfect makeup routine!</p>
+                            <Link to="/routine" className="link">Try Now →</Link>
                         </div>
                         <img
-                            src="https://images.unsplash.com/photo-1522336572468-97b06e8ef143?q=80&w=800&auto=format&fit=crop"
-                            alt=""
+                            src="https://images.unsplash.com/photo-1619946794135-5bc917a27793?q=80&w=800&auto=format&fit=crop"
+                            alt="Routine Finder"
                         />
                     </article>
                 </section>
 
                 {/* FEATURED */}
                 <section id="featured" className="featured">
-                    <header className="featured-head">
-                        <h2>Featured Products</h2>
-                        <div className="tabs">
-                            {cats.map((c) => (
-                                <button
-                                    key={c.id}
-                                    className={`tab ${activeCat === c.id ? "active" : ""}`}
-                                    onClick={() => setActiveCat(c.id)}
-                                >
-                                    {c.name}
-                                </button>
-                            ))}
-                        </div>
-                    </header>
-
-                    <div className="featured-body">
-                        {loading ? (
-                            <div className="grid skeleton">
-                                {Array.from({ length: 8 }).map((_, i) => <div className="skel-card" key={i} />)}
-                            </div>
-                        ) : (
-                            <div className="grid">
-                                {view.slice(0, 12).map((p) => (
-                                    <ProductCard key={p.id} product={p} onAdded={onAdded} />
-                                ))}
-                                {view.length === 0 && (
-                                    <div style={{ gridColumn: "1 / -1", color: "#666" }}>
-                                        Bu kategoride ürün bulunamadı.
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                    <FeaturedShelf onAdded={onAdded}/>
                 </section>
 
                 {/* TESTIMONIALS */}
