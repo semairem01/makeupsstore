@@ -77,9 +77,8 @@ export default function Home({ onAdded }) {
         if (!cats.length) return;
         const params = new URLSearchParams(location.search);
         const catQuery = (params.get("cat") || "").trim().toLowerCase();
-        const discounted = params.get("discounted"); // ✅ yeni parametre
+        const discounted = params.get("discounted");
 
-        // eğer discount parametresi varsa indirimli ürünleri getir
         if (discounted === "true") {
             setLoading(true);
             axios
@@ -90,7 +89,6 @@ export default function Home({ onAdded }) {
             return;
         }
 
-        // kategori sorgusu varsa
         if (catQuery) {
             const match = cats.find((c) => (c.name || "").toLowerCase() === catQuery);
             setActiveCat(match ? match.id : 0);
@@ -98,7 +96,6 @@ export default function Home({ onAdded }) {
             setActiveCat(0);
         }
 
-        // sadece "#featured" varsa o bölüme kaydır
         if (location.hash === "#featured") {
             const el = document.getElementById("featured");
             if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -129,7 +126,7 @@ export default function Home({ onAdded }) {
     const [recentReviews, setRecentReviews] = useState([]);
     useEffect(() => {
         axios
-            .get(`${API_ENDPOINTS.REVIEWS}/recent?take=6`)
+            .get(`${API_ENDPOINTS.REVIEWS}/recent?take=12`)
             .then((r) => setRecentReviews(r.data || []))
             .catch(() => setRecentReviews([]));
     }, []);
@@ -173,11 +170,18 @@ export default function Home({ onAdded }) {
                 <section id="featured" className="featured">
                     <FeaturedShelf onAdded={onAdded}/>
                 </section>
+            </div>
 
-                {/* TESTIMONIALS */}
-                {recentReviews.length > 0 && (
-                    <section className="testi">
-                        <h2>What customers say</h2>
+            {/* TESTIMONIALS – Featured benzeri başlık + sonsuz kaydırma */}
+            {recentReviews.length > 0 && (
+                <section className="testi full-bleed" style={{ '--testi-speed': '40s' }}>
+                    <div className="fp-title">
+                        <h2 className="fp-heading">What customers say</h2>
+                        <p className="fp-sub">Real reviews from our community</p>
+                    </div>
+
+                    {recentReviews.length < 4 ? (
+                        // az yorum: animasyonsuz grid
                         <div className="testi__rail">
                             {recentReviews.map((rv) => (
                                 <figure className="testi__card" key={rv.id}>
@@ -185,28 +189,48 @@ export default function Home({ onAdded }) {
                                         <img
                                             src={`http://localhost:5011${rv.productImageUrl ?? ""}`}
                                             alt={rv.productName}
-                                            onError={(e) => {
-                                                e.currentTarget.src = "https://via.placeholder.com/72x72?text=No+Img";
-                                            }}
+                                            onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/80x80?text=No+Img"; }}
                                         />
                                         <figcaption title={rv.productName}>{rv.productName}</figcaption>
                                     </Link>
-                                    <div style={{ margin: "6px 0" }}>
-                                        {[1, 2, 3, 4, 5].map((i) => (
-                                            <Star key={i} filled={i <= rv.rating} />
-                                        ))}
+                                    <div style={{ margin: "8px 0" }}>
+                                        {[1,2,3,4,5].map((i) => <Star key={i} filled={i <= rv.rating} />)}
                                     </div>
-                                    {rv.comment && <blockquote>“{rv.comment}”</blockquote>}
+                                    {rv.comment && <blockquote>"{rv.comment}"</blockquote>}
                                     <div className="testi__meta">
-                                        — {rv.userDisplayName} ·{" "}
-                                        {new Date(rv.createdAt).toLocaleDateString("tr-TR")}
+                                        — {rv.userDisplayName} · {new Date(rv.createdAt).toLocaleDateString("tr-TR")}
                                     </div>
                                 </figure>
                             ))}
                         </div>
-                    </section>
-                )}
-            </div>
+                    ) : (
+                        // çok yorum: sonsuz kayan şerit (marquee)
+                        <div className="testi__marquee" aria-label="Customer reviews carousel">
+                            <div className="testi__track">
+                                {[...recentReviews, ...recentReviews].map((rv, idx) => (
+                                    <figure className="testi__card" key={`${rv.id}-${idx}`}>
+                                        <Link to={`/product/${rv.productId}`} className="testi__prod">
+                                            <img
+                                                src={`http://localhost:5011${rv.productImageUrl ?? ""}`}
+                                                alt={rv.productName}
+                                                onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/80x80?text=No+Img"; }}
+                                            />
+                                            <figcaption title={rv.productName}>{rv.productName}</figcaption>
+                                        </Link>
+                                        <div style={{ margin: "8px 0" }}>
+                                            {[1,2,3,4,5].map((i) => <Star key={i} filled={i <= rv.rating} />)}
+                                        </div>
+                                        {rv.comment && <blockquote>"{rv.comment}"</blockquote>}
+                                        <div className="testi__meta">
+                                            — {rv.userDisplayName} · {new Date(rv.createdAt).toLocaleDateString("tr-TR")}
+                                        </div>
+                                    </figure>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </section>
+            )}
         </>
     );
 }

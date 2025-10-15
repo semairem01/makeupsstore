@@ -52,9 +52,6 @@ export default function ContactPage() {
 
             {/* SAĞ: form + harita */}
             <section className="contact-form">
-                <div className="contact-hero">
-                    <img src="/images/contact.jpeg" alt="Lunara studio" />
-                </div>
 
                 <p className="kicker">Contact us</p>
                 <h1 className="headline">Use the form below to reach out.</h1>

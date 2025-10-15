@@ -1,6 +1,6 @@
 ﻿:root{
     --ink:#2a1a22;
-    --accent:#b2206d;
+    --accent: #f1798a;
     --peach:#ffe3f1;
     --peach-ink:#7a6b71;
     --panel:#f2e7df;         /* referans bej tonu */
@@ -27,6 +27,7 @@
     border-radius:1px;
     padding:22px 20px;
     box-shadow:0 8px 20px rgba(218, 21, 73, 0.05);
+    
 
 }
 
@@ -80,41 +81,78 @@
 
 /* SAĞ PANEL */
 .contact-form{
-    background:#fff;
-    border:1px solid var(--border);
-    border-radius:1px;
-    padding:26px;
-    box-shadow:0 8px 18px rgba(0,0,0,.05);
+    background-image: url("/public/images/contact1.jpg"); /* 👈 görselin yolu */
+    background-size: cover;           /* resmi tam sığdırır */
+    background-position: center;      /* ortalar */
+    background-repeat: no-repeat;     /* tekrarlanmaz */
+    background-attachment: fixed;     /* kaydırınca sabit kalır (isteğe bağlı) */
+    color: #2a1a22;
+    border: 1px solid #f3c7dd;
+    border-radius: 1px;
+    padding: 26px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
 }
 
+.contact-form::before {
+    content: "";
+    position: absolute;
+    inset: 0; /* tüm alanı kapla */
+    background: rgba(255, 255, 255, 0.53); /* beyaz yarı saydam tül */
+    backdrop-filter: blur(2px); /* bulanıklık miktarı */
+    z-index: 0; /* altta kal */
+}
+
+/* form ve içerik üstte kalsın */
+.contact-form > * {
+    position: relative;
+    z-index: 1;
+}
 .kicker{
-    margin:0; color:#8b7f77; letter-spacing:.14em; text-transform:uppercase; font-size:12px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    color: #d97aa6;
+    letter-spacing: 1px;
 }
 .headline{
-    margin:8px 0 18px;
-    font-size:34px; line-height:1.15;
-    color:var(--ink);
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 600;
+    color: rgb(241, 121, 138);
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
 }
 
-/* Inputlar – referans krem tonu */
-.form{ display:flex; flex-direction:column; gap:12px; }
-.form input, .form textarea{
-    border:1px solid #eadfd7;
-    background:#f8f4f0;
-    border-radius:8px;
-    padding:12px 14px;
-    font-size:15px;
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
-.form input:focus, .form textarea:focus{
-    outline:none;
-    border-color:#d4c7be;
-    box-shadow:0 0 0 3px rgba(212,199,190,.35);
+
+.form input,
+.form textarea {
+    border: 1px solid #eddce0;
+    border-radius: 3px;
+    background: rgba(241, 121, 138, 0.1); /* pembe tonlu beyaz */
+    padding: 12px 16px;
+    font-size: 15px;
+    color: var(--ink);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.form input:focus,
+.form textarea:focus {
+    outline: none;
+    border-color: #ea0f55;
+    box-shadow: 0 0 0 3px rgba(212, 199, 190, 0.35);
 }
 
 .form button{
     align-self:flex-start;
     padding:10px 18px;
-    border:none; border-radius:999px;
+    border:none; border-radius:5px;
     font-weight:700; color:#fff; cursor:pointer;
     background:var(--accent);
     transition:transform .15s ease, filter .15s ease;
@@ -128,7 +166,7 @@
 .map-wrap{
     margin-top:18px;
     border:1px solid #eadfd7;
-    border-radius:10px;
+    border-radius:3px;
     overflow:hidden;
 }
 .map-wrap iframe{ width:100%; height:300px; border:0; }
@@ -152,7 +190,7 @@
 
 .contact-hero .hero-overlay{
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,0));
+    background: linear-gradient(180deg, rgba(165, 57, 57, 0.28), rgba(0,0,0,0));
     color: #fff; font-weight: 600; letter-spacing:.04em;
     display: flex; align-items: flex-start; padding: 14px;
     font-size: 14px;

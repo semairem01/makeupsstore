@@ -15,17 +15,26 @@ const initialFilters = {
     brands: [],
     colors: [],
     sizes: [],
-    suitableForSkin: 0,  // ✅ Bitmask olarak başlat (0 = filtre yok)
-    minRating: 0,
+    suitableForSkin: 0,
+    selectedRatings: [],  // ✅ Çoklu seçim için array
+
+    // ✅ Yeni özellik filtreleri
+    hasSpf: false,
+    fragranceFree: false,
+    nonComedogenic: false,
+    longwear: false,
+    waterproof: false,
+    photoFriendly: false,
+    finish: "",          // "", "Dewy", "Natural", "Matte", "Shimmer"
+    coverage: "",        // "", "Sheer", "Medium", "Full"
 };
 
-// ✅ Backend'le aynı bit değerlerini kullan
 const SKIN_BITS = {
-    Dry: 1,         // 1 << 0
-    Oily: 2,        // 1 << 1
-    Combination: 4, // 1 << 2
-    Sensitive: 8,   // 1 << 3
-    Normal: 16      // 1 << 4
+    Dry: 1,
+    Oily: 2,
+    Combination: 4,
+    Sensitive: 8,
+    Normal: 16
 };
 
 function Star({ filled }) {
@@ -48,7 +57,6 @@ export default function FeaturedShelf({ onAdded }) {
         topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
-    // Kategoriler
     useEffect(() => {
         axios.get(API_ENDPOINTS.CATEGORIES).then((r) => {
             const list = (r.data || []).map((c) => ({
@@ -60,7 +68,6 @@ export default function FeaturedShelf({ onAdded }) {
         });
     }, []);
 
-    // Browse çağrısı
     useEffect(() => {
         const params = new URLSearchParams();
         params.set("page", String(page));
@@ -73,15 +80,18 @@ export default function FeaturedShelf({ onAdded }) {
         if (filters.inStock) params.set("inStock", "true");
         if (filters.discounted) params.set("discounted", "true");
         if (filters.brands?.length) params.set("brands", filters.brands.join(","));
-        if (filters.colors?.length) params.set("colors", filters.colors.join(","));
-        if (filters.sizes?.length) params.set("sizes", filters.sizes.join(","));
+        if (filters.suitableForSkin > 0) params.set("suitableForSkin", String(filters.suitableForSkin));
 
-        // ✅ Bitmask'i integer olarak gönder
-        if (filters.suitableForSkin > 0) {
-            params.set("suitableForSkin", String(filters.suitableForSkin));
-        }
-
-        if (filters.minRating) params.set("minRating", String(filters.minRating));
+        // ✅ Yeni filtreler
+        if (filters.selectedRatings?.length) params.set("selectedRatings", filters.selectedRatings.join(","));
+        if (filters.hasSpf) params.set("hasSpf", "true");
+        if (filters.fragranceFree) params.set("fragranceFree", "true");
+        if (filters.nonComedogenic) params.set("nonComedogenic", "true");
+        if (filters.longwear) params.set("longwear", "true");
+        if (filters.waterproof) params.set("waterproof", "true");
+        if (filters.photoFriendly) params.set("photoFriendly", "true");
+        if (filters.finish) params.set("finish", filters.finish);
+        if (filters.coverage) params.set("coverage", filters.coverage);
 
         setLoading(true);
         axios
@@ -113,31 +123,44 @@ export default function FeaturedShelf({ onAdded }) {
         goPage(1);
     };
 
-    // ✅ Skin type toggle: bitmask üzerinden çalış
     const toggleSkinType = (skinType) => {
         const bit = SKIN_BITS[skinType];
         if (!bit) return;
-
         setFilters((f) => {
             const current = f.suitableForSkin || 0;
-            // Eğer bit aktifse kapat, değilse aç
             const newMask = (current & bit) ? (current & ~bit) : (current | bit);
             return { ...f, suitableForSkin: newMask };
         });
         goPage(1);
     };
 
-    // ✅ Seçili skin type'ları kontrol et
     const isSkinTypeSelected = (skinType) => {
         const bit = SKIN_BITS[skinType];
         return !!(filters.suitableForSkin & bit);
+    };
+
+    // ✅ Rating toggle fonksiyonu
+    const toggleRating = (rating) => {
+        setFilters((f) => {
+            const current = new Set(f.selectedRatings || []);
+            if (current.has(rating)) {
+                current.delete(rating);
+            } else {
+                current.add(rating);
+            }
+            return { ...f, selectedRatings: Array.from(current).sort((a, b) => b - a) };
+        });
+        goPage(1);
+    };
+
+    const isRatingSelected = (rating) => {
+        return filters.selectedRatings?.includes(rating) || false;
     };
 
     const skinTypes = ["Dry", "Oily", "Combination", "Sensitive", "Normal"];
 
     return (
         <section ref={topRef} className="featured-shelf full-bleed">
-            {/* Başlık */}
             <header className="shelf-head">
                 <div className="fp-title">
                     <h2 className="fp-heading">Featured Products</h2>
@@ -157,9 +180,7 @@ export default function FeaturedShelf({ onAdded }) {
                 </div>
             </header>
 
-            {/* Gövde: Sol filtre + Sağ ürün grid */}
             <div className="shelf-body">
-                {/* SOL: Filtreler */}
                 <aside className="filters">
                     {/* Sort */}
                     <div className="f-block">
@@ -248,7 +269,7 @@ export default function FeaturedShelf({ onAdded }) {
                         </div>
                     </div>
 
-                    {/* ✅ Skin Type - Bitmask ile çalışan versiyon */}
+                    {/* Skin Type */}
                     <div className="f-block">
                         <div className="f-title">Skin Type</div>
                         <div className="chips">
@@ -262,30 +283,140 @@ export default function FeaturedShelf({ onAdded }) {
                                 </button>
                             ))}
                         </div>
-                       
                     </div>
 
-                    {/* Rating */}
+                    {/* ✅ Rating - Çoklu seçim versiyonu */}
                     <div className="f-block">
                         <div className="f-title">Rating</div>
                         <div className="stars-picker">
                             {[5, 4, 3, 2, 1].map((r) => (
                                 <button
                                     key={r}
-                                    className={`star-btn ${filters.minRating === r ? "on" : ""}`}
-                                    onClick={() => {
-                                        setFilters((f) => ({ ...f, minRating: f.minRating === r ? 0 : r }));
-                                        goPage(1);
-                                    }}
-                                    title={`${r}+ stars`}
+                                    className={`star-btn ${isRatingSelected(r) ? "on" : ""}`}
+                                    onClick={() => toggleRating(r)}
+                                    title={`${r} stars`}
                                 >
                                     {[1, 2, 3, 4, 5].map((i) => (
                                         <Star key={i} filled={i <= r} />
                                     ))}
-                                    <span className="star-text">&nbsp;{r}+</span>
+                                    <span className="star-text">&nbsp;{r}★</span>
                                 </button>
                             ))}
                         </div>
+                        {filters.selectedRatings?.length > 0 && (
+                            <p style={{ fontSize: "0.85em", color: "#666", marginTop: 4 }}>
+                                Selected: {filters.selectedRatings.sort((a, b) => b - a).join(", ")} star{filters.selectedRatings.length > 1 ? "s" : ""}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* ✅ Finish */}
+                    <div className="f-block">
+                        <div className="f-title">Finish</div>
+                        <div className="chips">
+                            {["Dewy", "Natural", "Matte", "Shimmer"].map((f) => (
+                                <button
+                                    key={f}
+                                    className={`chip ${filters.finish === f ? "on" : ""}`}
+                                    onClick={() => {
+                                        setFilters((prev) => ({ ...prev, finish: prev.finish === f ? "" : f }));
+                                        goPage(1);
+                                    }}
+                                >
+                                    {f}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ✅ Coverage */}
+                    <div className="f-block">
+                        <div className="f-title">Coverage</div>
+                        <div className="chips">
+                            {["Sheer", "Medium", "Full"].map((c) => (
+                                <button
+                                    key={c}
+                                    className={`chip ${filters.coverage === c ? "on" : ""}`}
+                                    onClick={() => {
+                                        setFilters((prev) => ({ ...prev, coverage: prev.coverage === c ? "" : c }));
+                                        goPage(1);
+                                    }}
+                                >
+                                    {c}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ✅ Product Features */}
+                    <div className="f-block">
+                        <div className="f-title">Features</div>
+                        <label className="f-check">
+                            <input
+                                type="checkbox"
+                                checked={filters.hasSpf}
+                                onChange={(e) => {
+                                    setFilters((f) => ({ ...f, hasSpf: e.target.checked }));
+                                    goPage(1);
+                                }}
+                            />
+                            SPF Protection
+                        </label>
+                        <label className="f-check">
+                            <input
+                                type="checkbox"
+                                checked={filters.waterproof}
+                                onChange={(e) => {
+                                    setFilters((f) => ({ ...f, waterproof: e.target.checked }));
+                                    goPage(1);
+                                }}
+                            />
+                            Waterproof
+                        </label>
+                        <label className="f-check">
+                            <input
+                                type="checkbox"
+                                checked={filters.longwear}
+                                onChange={(e) => {
+                                    setFilters((f) => ({ ...f, longwear: e.target.checked }));
+                                    goPage(1);
+                                }}
+                            />
+                            Long-wearing
+                        </label>
+                        <label className="f-check">
+                            <input
+                                type="checkbox"
+                                checked={filters.photoFriendly}
+                                onChange={(e) => {
+                                    setFilters((f) => ({ ...f, photoFriendly: e.target.checked }));
+                                    goPage(1);
+                                }}
+                            />
+                            Photo Friendly
+                        </label>
+                        <label className="f-check">
+                            <input
+                                type="checkbox"
+                                checked={filters.fragranceFree}
+                                onChange={(e) => {
+                                    setFilters((f) => ({ ...f, fragranceFree: e.target.checked }));
+                                    goPage(1);
+                                }}
+                            />
+                            Fragrance Free
+                        </label>
+                        <label className="f-check">
+                            <input
+                                type="checkbox"
+                                checked={filters.nonComedogenic}
+                                onChange={(e) => {
+                                    setFilters((f) => ({ ...f, nonComedogenic: e.target.checked }));
+                                    goPage(1);
+                                }}
+                            />
+                            Non-Comedogenic
+                        </label>
                     </div>
 
                     <button
@@ -299,7 +430,6 @@ export default function FeaturedShelf({ onAdded }) {
                     </button>
                 </aside>
 
-                {/* SAĞ: Grid + Pager */}
                 <div className="grid-wrap">
                     {loading ? (
                         <div className="fs-grid skeleton">
