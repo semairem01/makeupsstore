@@ -349,7 +349,14 @@ namespace makeup.Models.Services
             });
         }
 
-        // 🔥 GÜNCEL BrowseAsync (MinRating + Skin bitmask + LEFT JOIN rating)
+        // ProductService.cs içindeki BrowseAsync metodunu bu şekilde güncelleyin
+
+        // ProductService.cs içindeki BrowseAsync metodunu bu şekilde güncelleyin
+
+        // ProductService.cs içindeki BrowseAsync metodunu tamamen bu şekilde değiştirin
+
+        // ProductService.cs içindeki BrowseAsync metodunu tamamen bu şekilde değiştirin
+
         public async Task<PagedResult<ProductDto>> BrowseAsync(ProductBrowseQuery q)
         {
             q ??= new ProductBrowseQuery();
@@ -357,6 +364,7 @@ namespace makeup.Models.Services
             var page = Math.Max(1, q.Page);
             var pageSize = Math.Clamp(q.PageSize, 6, 48);
 
+            // Rating aggregation
             var reviewsAgg = _db.ProductReviews
                 .GroupBy(r => r.ProductId)
                 .Select(g => new
@@ -378,9 +386,11 @@ namespace makeup.Models.Services
                     RatingCount = (int?)(r != null ? r.Cnt : null)
                 };
 
+            // Stok filtresi
             if (q.InStock == true)
                 baseQuery = baseQuery.Where(x => x.Product.StockQuantity > 0);
 
+            // Kategori filtreleri
             if (q.CategoryId is int cid)
                 baseQuery = baseQuery.Where(x => x.Product.CategoryId == cid);
 
@@ -406,6 +416,7 @@ namespace makeup.Models.Services
                 baseQuery = baseQuery.Where(x => wanted.Contains(x.Product.CategoryId));
             }
 
+            // Arama
             if (!string.IsNullOrWhiteSpace(q.Q))
             {
                 var term = q.Q.Trim();
@@ -415,26 +426,78 @@ namespace makeup.Models.Services
                     EF.Functions.Like(x.Product.Description, $"%{term}%"));
             }
 
+            // Fiyat filtreleri
             if (q.PriceMin is decimal pmin) baseQuery = baseQuery.Where(x => x.Product.Price >= pmin);
             if (q.PriceMax is decimal pmax) baseQuery = baseQuery.Where(x => x.Product.Price <= pmax);
             if (q.Discounted == true) baseQuery = baseQuery.Where(x => (x.Product.DiscountPercent ?? 0) > 0);
 
+            // Marka filtresi
             var brands = SplitCsv(q.Brands);
             if (brands.Length > 0)
                 baseQuery = baseQuery.Where(x => brands.Contains(x.Product.Brand));
 
-            // Skin bit-mask (OR). AND istersen "== mask"
+            // Cilt tipi (bitmask)
             if (q.SuitableForSkin is int mask && mask > 0)
                 baseQuery = baseQuery.Where(x => ((int)x.Product.SuitableForSkin & mask) != 0);
 
-            // MinRating: yorum olmayanlar elenir (alternatif: (x.RatingAverage ?? 0) >= minRate)
-            if (q.MinRating is int minRate && minRate > 0)
-                baseQuery = baseQuery.Where(x => x.RatingAverage != null && x.RatingAverage >= minRate);
+            // ✅ Rating - ÇOKLU SEÇIM (örn: "3,4,5" = 3 VEYA 4 VEYA 5 yıldızlı ürünler)
+            if (!string.IsNullOrWhiteSpace(q.SelectedRatings))
+            {
+                // "4,5" gibi string'i int array'e çevir
+                var ratings = q.SelectedRatings
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(s => int.TryParse(s, out var num) ? num : -1)
+                    .Where(n => n >= 1 && n <= 5)
+                    .ToList();
 
-            if (q.HasSpf == true) baseQuery = baseQuery.Where(x => x.Product.HasSpf);
-            if (q.FragranceFree == true) baseQuery = baseQuery.Where(x => x.Product.FragranceFree);
-            if (q.NonComedogenic == true) baseQuery = baseQuery.Where(x => x.Product.NonComedogenic);
+                if (ratings.Any())
+                {
+                    baseQuery = baseQuery.Where(x =>
+                        x.RatingAverage != null &&
+                        ratings.Any(rating =>
+                            x.RatingAverage >= rating - 0.5 &&
+                            x.RatingAverage < rating + 0.5
+                        )
+                    );
+                }
+            }
 
+            // ✅ Yeni özellik filtreleri
+            if (q.HasSpf == true)
+                baseQuery = baseQuery.Where(x => x.Product.HasSpf);
+
+            if (q.FragranceFree == true)
+                baseQuery = baseQuery.Where(x => x.Product.FragranceFree);
+
+            if (q.NonComedogenic == true)
+                baseQuery = baseQuery.Where(x => x.Product.NonComedogenic);
+
+            if (q.Longwear == true)
+                baseQuery = baseQuery.Where(x => x.Product.Longwear);
+
+            if (q.Waterproof == true)
+                baseQuery = baseQuery.Where(x => x.Product.Waterproof);
+
+            if (q.PhotoFriendly == true)
+                baseQuery = baseQuery.Where(x => x.Product.PhotoFriendly);
+
+            // ✅ Finish filtresi
+            if (!string.IsNullOrWhiteSpace(q.Finish))
+            {
+                var finishEnum = ParseFinish(q.Finish);
+                if (finishEnum.HasValue)
+                    baseQuery = baseQuery.Where(x => x.Product.Finish == finishEnum.Value);
+            }
+
+            // ✅ Coverage filtresi
+            if (!string.IsNullOrWhiteSpace(q.Coverage))
+            {
+                var coverageEnum = ParseCoverage(q.Coverage);
+                if (coverageEnum.HasValue)
+                    baseQuery = baseQuery.Where(x => x.Product.Coverage == coverageEnum.Value);
+            }
+
+            // Sıralama
             var sort = string.IsNullOrWhiteSpace(q.Sort) ? "best" : q.Sort;
 
             var orderedQuery = sort switch
@@ -444,7 +507,9 @@ namespace makeup.Models.Services
                 "discount" => baseQuery.OrderByDescending(x => x.Product.DiscountPercent ?? 0)
                     .ThenBy(x => x.Product.Price),
                 "new" => baseQuery.OrderByDescending(x => x.Product.Id),
-                "best" => baseQuery.OrderByDescending(x => x.RatingAverage ?? 0).ThenByDescending(x => x.Product.Id),
+                "best" => baseQuery.OrderByDescending(x => x.RatingAverage ?? 0)
+                    .ThenByDescending(x => x.RatingCount ?? 0)
+                    .ThenByDescending(x => x.Product.Id),
                 _ => baseQuery.OrderBy(x => x.Product.Brand).ThenBy(x => x.Product.Name)
             };
 
