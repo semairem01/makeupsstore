@@ -1,5 +1,6 @@
 ﻿using makeup.Infrastructure.Email;
 using makeup.Models.Repositories;
+using makeup.Models.Repositories.Entities;
 using makeup.Models.Services.Dtos;
 using Microsoft.EntityFrameworkCore;
 
@@ -57,6 +58,7 @@ namespace makeup.Models.Services
                 .ToArray();
         }
 
+        // ✅ StockQuantity eklendi
         private static ProductDto ToDto(Product p, double? ratingAvg = null, int ratingCount = 0)
             => new(
                 p.Id,
@@ -83,7 +85,8 @@ namespace makeup.Models.Services
                 p.ShadeFamily,
                 p.Tags,
                 ratingAvg,
-                ratingCount
+                ratingCount,
+                p.StockQuantity  // ✅ EKLENDI
             );
 
         private async Task<Dictionary<int, (double Avg, int Count)>> GetRatingsMapAsync(IEnumerable<int> productIds)
@@ -92,7 +95,7 @@ namespace makeup.Models.Services
             if (!ids.Any()) return new Dictionary<int, (double, int)>();
 
             var ratingAgg = await _db.ProductReviews
-                .Where(r => ids.Contains(r.ProductId))
+                .Where(r => ids.Contains(r.ProductId) && r.Status == ProductReview.ReviewStatus.Approved)
                 .GroupBy(r => r.ProductId)
                 .Select(g => new
                 {
@@ -349,14 +352,6 @@ namespace makeup.Models.Services
             });
         }
 
-        // ProductService.cs içindeki BrowseAsync metodunu bu şekilde güncelleyin
-
-        // ProductService.cs içindeki BrowseAsync metodunu bu şekilde güncelleyin
-
-        // ProductService.cs içindeki BrowseAsync metodunu tamamen bu şekilde değiştirin
-
-        // ProductService.cs içindeki BrowseAsync metodunu tamamen bu şekilde değiştirin
-
         public async Task<PagedResult<ProductDto>> BrowseAsync(ProductBrowseQuery q)
         {
             q ??= new ProductBrowseQuery();
@@ -366,6 +361,7 @@ namespace makeup.Models.Services
 
             // Rating aggregation
             var reviewsAgg = _db.ProductReviews
+                .Where(r => r.Status == ProductReview.ReviewStatus.Approved)
                 .GroupBy(r => r.ProductId)
                 .Select(g => new
                 {
@@ -375,7 +371,7 @@ namespace makeup.Models.Services
                 });
 
             var baseQuery =
-                from p in _db.Products.AsNoTracking().Where(p => p.IsActive)
+                from p in _db.Products.AsNoTracking()  // ✅ IsActive kontrolü kaldırıldı
                 join r in reviewsAgg on p.Id equals r.ProductId into gj
                 from r in gj.DefaultIfEmpty()
                 select new
@@ -386,7 +382,7 @@ namespace makeup.Models.Services
                     RatingCount = (int?)(r != null ? r.Cnt : null)
                 };
 
-            // Stok filtresi
+            // ✅ Stok filtresi (SADECE InStock parametresi true ise uygulanır)
             if (q.InStock == true)
                 baseQuery = baseQuery.Where(x => x.Product.StockQuantity > 0);
 
@@ -440,10 +436,9 @@ namespace makeup.Models.Services
             if (q.SuitableForSkin is int mask && mask > 0)
                 baseQuery = baseQuery.Where(x => ((int)x.Product.SuitableForSkin & mask) != 0);
 
-            // ✅ Rating - ÇOKLU SEÇIM (örn: "3,4,5" = 3 VEYA 4 VEYA 5 yıldızlı ürünler)
+            // Rating - ÇOKLU SEÇIM
             if (!string.IsNullOrWhiteSpace(q.SelectedRatings))
             {
-                // "4,5" gibi string'i int array'e çevir
                 var ratings = q.SelectedRatings
                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Select(s => int.TryParse(s, out var num) ? num : -1)
@@ -462,7 +457,7 @@ namespace makeup.Models.Services
                 }
             }
 
-            // ✅ Yeni özellik filtreleri
+            // Özellik filtreleri
             if (q.HasSpf == true)
                 baseQuery = baseQuery.Where(x => x.Product.HasSpf);
 
@@ -481,7 +476,7 @@ namespace makeup.Models.Services
             if (q.PhotoFriendly == true)
                 baseQuery = baseQuery.Where(x => x.Product.PhotoFriendly);
 
-            // ✅ Finish filtresi
+            // Finish filtresi
             if (!string.IsNullOrWhiteSpace(q.Finish))
             {
                 var finishEnum = ParseFinish(q.Finish);
@@ -489,7 +484,7 @@ namespace makeup.Models.Services
                     baseQuery = baseQuery.Where(x => x.Product.Finish == finishEnum.Value);
             }
 
-            // ✅ Coverage filtresi
+            // Coverage filtresi
             if (!string.IsNullOrWhiteSpace(q.Coverage))
             {
                 var coverageEnum = ParseCoverage(q.Coverage);

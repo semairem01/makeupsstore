@@ -42,5 +42,6 @@ namespace makeup.Models.Services.Dtos
         // ✅ Finish & Coverage
         public string? Finish { get; set; }      // "Dewy", "Natural", "Matte", "Shimmer"
         public string? Coverage { get; set; }    // "Sheer", "Medium", "Full"
+        
     }
 }

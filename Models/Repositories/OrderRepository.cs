@@ -71,6 +71,9 @@ public class OrderRepository : IOrderRepository
         if(order == null)
             throw new Exception("Sipariş bulunamadı.");
         
+        if (order.Status == OrderStatus.IptalEdildi)
+            throw new Exception("Sipariş zaten iptal edilmiş.");
+        
         if (order.Status == OrderStatus.Kargoda || order.Status == OrderStatus.TeslimEdildi)
             throw new Exception("Sipariş kargoya verildikten sonra iptal edilemez.");
 

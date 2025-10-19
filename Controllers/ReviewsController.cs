@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using makeup.Models.Repositories;
 using makeup.Models.Repositories.Entities;
+using makeup.Models.Services;
 using makeup.Models.Services.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,18 +14,23 @@ namespace makeup.Controllers;
 public class ReviewsController : ControllerBase
 {
     private readonly AppDbContext _ctx;
-    public ReviewsController(AppDbContext ctx) { _ctx = ctx; }
+    private readonly IPurchaseReadService _purchase; // ✅ eklendi
+
+    public ReviewsController(AppDbContext ctx, IPurchaseReadService purchase)
+    {
+        _ctx = ctx;
+        _purchase = purchase; // ✅ eklendi
+    }
 
     private Guid? CurrentUserId =>
         Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 
-    // GET api/reviews/product/123  ==> ürünün yorumları + özet
+    // GET api/reviews/product/123  ==> ürünün yorumları + özet (SADECE ONAYLI)
     [HttpGet("product/{productId:int}")]
     public async Task<ActionResult<ReviewListDto>> ListByProduct(int productId)
     {
-        // 1) SQL'e çevrilemeyen (switch expression vb.) şeyleri burada yapmıyoruz.
         var raw = await _ctx.ProductReviews
-            .Where(r => r.ProductId == productId)
+            .Where(r => r.ProductId == productId && r.Status == ProductReview.ReviewStatus.Approved) // ✅ sadece onaylı
             .Include(r => r.AppUser)
             .OrderByDescending(r => r.CreatedAt)
             .Select(r => new
@@ -35,13 +41,14 @@ public class ReviewsController : ControllerBase
                 r.Comment,
                 r.CreatedAt,
                 r.UpdatedAt,
+                r.IsVerifiedPurchase, // (gerekirse FE'de rozet için kullanırsın)
+                r.Status,
                 FirstName = r.AppUser.FirstName,
                 LastName  = r.AppUser.LastName,
                 UserName  = r.AppUser.UserName
             })
             .ToListAsync();
 
-        // 2) Bellekte, rahatça string işleme / "display name" üretimi
         static string BuildDisplay(string? first, string? last, string? userName)
         {
             if (!string.IsNullOrWhiteSpace(first))
@@ -66,7 +73,6 @@ public class ReviewsController : ControllerBase
         var count = items.Count;
         var avg = count == 0 ? 0 : Math.Round(items.Average(i => i.Rating), 2);
 
-        // 3) Analyzer uyarısı olmasın diye dağılım sözlüğünü açıkça kuruyoruz
         var dist = new Dictionary<int, int> { {1,0},{2,0},{3,0},{4,0},{5,0} };
         foreach (var it in items) dist[it.Rating]++;
 
@@ -80,7 +86,7 @@ public class ReviewsController : ControllerBase
         var uid = CurrentUserId!.Value;
 
         var q = _ctx.ProductReviews
-            .Where(r => r.ProductId == productId && r.UserId == uid)
+            .Where(r => r.ProductId == productId && r.UserId == uid) // ✅ kendi yorumu; statü filtresi yok
             .Include(r => r.AppUser)
             .Select(r => new
             {
@@ -110,13 +116,14 @@ public class ReviewsController : ControllerBase
         );
         return Ok(dto);
     }
-    
+
     [HttpGet("recent")]
     public async Task<ActionResult<IEnumerable<ReviewRecentDto>>> Recent([FromQuery] int take = 6)
     {
         if (take is < 1 or > 24) take = 6;
 
         var raw = await _ctx.ProductReviews
+            .Where(r => r.Status == ProductReview.ReviewStatus.Approved) // ✅ sadece onaylı
             .Include(r => r.AppUser)
             .Include(r => r.Product)
             .OrderByDescending(r => r.CreatedAt)
@@ -160,8 +167,8 @@ public class ReviewsController : ControllerBase
 
         return Ok(items);
     }
-    
-    // POST api/reviews
+
+    // POST api/reviews  — sadece SATIN ALAN kullanıcı, yorum PENDING başlar
     [HttpPost]
     [Authorize]
     public async Task<ActionResult> Create([FromBody] ReviewCreateDto dto)
@@ -173,19 +180,26 @@ public class ReviewsController : ControllerBase
             .AnyAsync(r => r.ProductId == dto.ProductId && r.UserId == uid);
         if (exists) return Conflict("Bu ürüne zaten bir yorumunuz var. Güncelleyebilirsiniz.");
 
+        // ✅ satın alma kontrolü
+        var purchased = await _purchase.HasPurchasedAsync(uid, dto.ProductId);
+        if (!purchased) return Forbid("Bu ürüne yorum yazmak için önce satın almanız gerekir.");
+
         var r = new ProductReview
         {
             ProductId = dto.ProductId,
             UserId = uid,
             Rating = dto.Rating,
-            Comment = string.IsNullOrWhiteSpace(dto.Comment) ? null : dto.Comment.Trim()
+            Comment = string.IsNullOrWhiteSpace(dto.Comment) ? null : dto.Comment.Trim(),
+            IsVerifiedPurchase = true,              // ✅ rozet
+            Status = ProductReview.ReviewStatus.Pending           // ✅ admin onayı
         };
+
         _ctx.ProductReviews.Add(r);
         await _ctx.SaveChangesAsync();
-        return Ok();
+        return Ok(new { r.Id });
     }
 
-    // PUT api/reviews/{id}
+    // PUT api/reviews/{id} — güncellenen yorum tekrar PENDING'e düşsün
     [HttpPut("{id:int}")]
     [Authorize]
     public async Task<ActionResult> Update(int id, [FromBody] ReviewUpdateDto dto)
@@ -199,12 +213,12 @@ public class ReviewsController : ControllerBase
         r.Rating = dto.Rating;
         r.Comment = string.IsNullOrWhiteSpace(dto.Comment) ? null : dto.Comment.Trim();
         r.UpdatedAt = DateTime.UtcNow;
+        r.Status = ProductReview.ReviewStatus.Pending; // ✅ tekrar moderasyona
 
         await _ctx.SaveChangesAsync();
         return Ok();
     }
 
-    
     // DELETE api/reviews/{id}
     [HttpDelete("{id:int}")]
     [Authorize]

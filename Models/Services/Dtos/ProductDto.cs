@@ -110,8 +110,8 @@ public record ProductDto(
     string? Tags,
     
     double? RatingAverage,   // 0..5
-    int RatingCount 
-  
+    int RatingCount,
+    int StockQuantity
 )
 {
     public decimal FinalPrice =>
