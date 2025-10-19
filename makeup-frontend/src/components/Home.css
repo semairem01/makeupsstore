@@ -1,4 +1,6 @@
-﻿/* SAYFA KAPSAYICI */
+﻿
+@import url('https://fonts.googleapis.com/css2?family=Parisienne&display=swap');
+/* SAYFA KAPSAYICI */
 .home-wrap {
     display: flex;
     flex-direction: column;

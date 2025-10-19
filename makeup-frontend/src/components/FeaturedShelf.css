@@ -1,12 +1,22 @@
 ﻿@import url('https://fonts.googleapis.com/css2?family=Parisienne&display=swap');
 
+/* Eski CSS'i sil ve bunu koy: */
 .featured-shelf { display:flex; flex-direction:column; gap:14px; }
 
-/* flush opsiyonel */
-.featured-shelf.flush { margin-left:-16px; }
-@media (max-width:980px){ .featured-shelf.flush { margin-left:0; } }
+.featured-shelf aside {
+    background-image:
+    linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.35)),
+    url("/public/images/filterbg.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 182, 193, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(178, 32, 109, 0.08);
+}
 
-/* ---------- HEADER ---------- */
 .shelf-head{
     display:flex; flex-direction:column; align-items:center; gap:12px;
 }
@@ -20,82 +30,18 @@
 .shelf-tabs .tab.active{ background:#ffe3f1; border-color:#ffbad9; color:#b2206d; }
 .shelf-tabs .tab:hover{ background:#fff2f7; }
 
-/* ---------- LAYOUT ---------- */
 .shelf-body{
     display:grid;
-    grid-template-columns: 340px minmax(0,1fr); /* sağ kolon sıkışmaz */
+    grid-template-columns: 340px minmax(0,1fr);
     gap:32px;
     align-items:start;
 }
-.shelf-body > *{ min-width:0; }            /* grid çocukları taşmasın */
+.shelf-body > *{ min-width:0; }
 
 @media (max-width:1100px){
     .shelf-body{ grid-template-columns:1fr; }
-    .filters{ position:static; }            /* mobile’de sticky kapat */
 }
 
-/* ---------- FILTERS ---------- */
-/* premium, yumuşak pembe ton */
-.filters{
-    position:sticky; top:80px; height:fit-content;
-    background: linear-gradient(180deg,#ffffff 0%, #fff7fb 100%);
-    border:1px solid #f3d9e5; border-radius:16px; padding:18px;
-    box-shadow:0 8px 22px rgba(178,32,109,.06);
-}
-.f-block{ margin-bottom:16px; }
-
-.f-title{
-    font-weight:800; color:#2a1a22; font-size:14px; margin-bottom:8px;
-    display:flex; align-items:center; gap:8px;
-}
-.f-title::after{
-    content:""; flex:1 1 auto; height:1px;
-    background:linear-gradient(90deg,#ffd6e8,transparent); border-radius:999px;
-}
-
-.f-label{ font-weight:700; color:#2a1a22; }
-.f-input,.f-select{
-    padding:10px 12px; border-radius:12px; border:1px solid #e8dbe2; width:100%; background:#fff;
-}
-.f-input:focus,.f-select:focus{ border-color:#ff9ac5; box-shadow:0 0 0 3px rgba(255,154,197,.18); }
-.price-row{ display:flex; align-items:center; gap:8px; }
-.f-check{ display:flex; align-items:center; gap:8px; color:#4b3b43; }
-
-.f-apply{
-    background:#ff69b4; color:#fff; border:none; border-radius:12px; padding:10px 12px;
-    cursor:pointer; width:100%; font-weight:700; box-shadow:0 10px 20px rgba(255,105,180,.18);
-}
-.f-apply:hover{ filter:brightness(0.98); }
-
-.f-clear{
-    background:#fff; color:#b2206d; border:1px solid #f0d8e6; border-radius:12px;
-    padding:10px 12px; cursor:pointer; width:100%; font-weight:700;
-}
-
-/* chips (Brand & Skin Type) */
-.chips{ display:flex; flex-wrap:wrap; gap:10px; }
-.chip{
-    border:1px solid #ead3df; background:#fff; border-radius:999px; padding:8px 12px;
-    cursor:pointer; transition:transform .12s ease, background .2s ease, border .2s ease;
-    font-weight:600; color:#70224b;
-}
-.chip:hover{ background:#fff3f8; }
-.chip.on{ background:#ffe3f1; border-color:#ffbad9; color:#b2206d; transform:translateY(-1px); }
-
-/* Rating yıldız seçici */
-.stars-picker{ display:flex; flex-direction:column; gap:8px; }
-.star-btn{
-    display:flex; align-items:center; gap:6px;
-    width:100%; padding:8px 10px; border-radius:12px; border:1px solid #f0d8e6;
-    background:#fff; cursor:pointer; transition:all .15s ease;
-}
-.star-btn:hover{ background:#fff7fb; }
-.star-btn.on{
-    background:#ffeaf4; border-color:#ffbad9; box-shadow:0 6px 16px rgba(255,105,180,.10);
-}
-.star-text{ font-size:13px; color:#7a6b71; }
-
-/* ---------- GRID ---------- */
 .grid-wrap{ display:flex; flex-direction:column; gap:12px; min-width:0; width:100%; flex:1 1 auto; }
 
 .featured-shelf .fs-grid{
@@ -107,32 +53,17 @@
 @media (max-width:900px){  .featured-shelf .fs-grid{ grid-template-columns: repeat(2, minmax(220px,1fr)); } }
 @media (max-width:560px){  .featured-shelf .fs-grid{ grid-template-columns: 1fr; } }
 
-/* ---------- CARD ---------- */
 .p-card{
     border:1px solid #f3d9e5; border-radius:16px; overflow:hidden; background:#fff;
     transition:all .2s ease; box-shadow:0 6px 14px rgba(0,0,0,.04);
 }
 .p-card:hover{ transform:translateY(-4px); box-shadow:0 10px 20px rgba(0,0,0,.08); border-color:#ffb7d5; }
 
-.p-card .thumb{
-    aspect-ratio:1 / 1.05; border-bottom:1px solid #f6e6ef;
-    display:flex; align-items:center; justify-content:center; padding:10px; background:#fff;
-}
-.p-card .thumb img{
-    max-width:100% !important; max-height:100% !important;
-    width:auto !important; height:auto !important; object-fit:contain !important; display:block;
-}
-.p-card .meta{ padding:12px 14px 10px; }
-.p-card .brand{ font-size:13px; color:#7b6c74; }
-.p-card .name{ font-size:15px; line-height:1.3; color:#2a1a22; font-weight:600; margin:4px 0 6px; }
-.price span{ font-size:15px; }
-.btn-add{
-    background:#ff69b4; border:none; color:#fff; border-radius:10px; padding:10px 12px;
-    margin:10px 12px 14px; font-weight:600; cursor:pointer; transition:background .2s;
-}
-.btn-add:hover{ background:#ff4fa8; }
+.pager{ display:flex; align-items:center; justify-content:center; gap:8px; padding-top:10px; flex-wrap:wrap; }
+.pager-nav,.page-btn{ border:1px solid #f0d8e6; background:#fff; border-radius:10px; padding:8px 12px; cursor:pointer; min-width:40px; }
+.page-btn.active{ background:#ffe3f1; border-color:#ffbad9; color:#b2206d; font-weight:700; }
+.pager-nav:disabled{ opacity:.5; cursor:not-allowed; }
 
-/* ---------- SKELETON ---------- */
 .fs-grid.skeleton .skel-card{
     height:260px; border-radius:14px;
     background:linear-gradient(90deg,#f5f5f6 25%,#ecebed 37%,#f5f5f6 63%);
@@ -140,13 +71,6 @@
 }
 @keyframes shimmer{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
 
-/* ---------- PAGER ---------- */
-.pager{ display:flex; align-items:center; justify-content:center; gap:8px; padding-top:10px; flex-wrap:wrap; }
-.pager-nav,.page-btn{ border:1px solid #f0d8e6; background:#fff; border-radius:10px; padding:8px 12px; cursor:pointer; min-width:40px; }
-.page-btn.active{ background:#ffe3f1; border-color:#ffbad9; color:#b2206d; font-weight:700; }
-.pager-nav:disabled{ opacity:.5; cursor:not-allowed; }
-
-/* ---------- FULL-BLEED KAPSAYICI ---------- */
 .full-bleed{
     width:100vw;
     margin-left:calc(50% - 50vw);
@@ -155,40 +79,91 @@
     padding-right:clamp(16px,5vw,48px);
 }
 
-/* ---------- BAŞLIK ŞERİDİ (arka planlı) ---------- */
+.fp-heading{
+    font-family: 'Parisienne', cursive;  /* 👈 yeni */
+    font-size:clamp(33px,4.5vw,46px);
+    color:#f1798a;
+    margin:0;
+    letter-spacing: 0.5px;  /* script font için hafif */
+    font-weight: 400;       /* Parisienne tek ağırlık */
+}
 .fp-title{
-    width:100vw;               /* şeridin tam genişlikte kalması için */
+    width:100vw;
     margin-left:calc(-50vw + 50%);
     padding:42px 0 50px;
     text-align:center;
     position:relative;
     border-top:1px solid rgba(255,192,203,.4);
     border-bottom:1px solid rgba(255,192,203,.4);
-    overflow:hidden;
-    background:
-            linear-gradient(rgba(255,240,245,.6), rgba(255,240,245,.6)),
-            url("/public/images/featured.jpeg") center/cover no-repeat;
+    background: linear-gradient(rgba(255,240,245,.6), rgba(255,240,245,.6)), url("/public/images/featured.jpeg") center/cover no-repeat;
     background-attachment:fixed;
     box-shadow:0 12px 34px rgba(178,32,109,.15), inset 0 0 14px rgba(255,255,255,.3);
 }
-.fp-title::before{
-    content:""; position:absolute; inset:0;
-    background:radial-gradient(circle at top center, rgba(255,255,255,.7) 0%, rgba(255,255,255,.3) 30%, transparent 70%);
-    mix-blend-mode:screen; pointer-events:none;
-}
-.fp-heading{
-    font-family:'Parisienne',cursive; font-size:clamp(33px,4.5vw,46px);
-    font-weight:400; color:#f1798a; margin:0; letter-spacing:1px;
-    text-shadow:0 1px 4px rgba(255,182,193,.25), 0 0 6px rgba(255,192,203,.2);
-    position:relative; z-index:1; transition:all .3s ease-in-out;
-}
-.fp-sub{
-    font-size:15px; color:#945b70; margin-top:8px; font-weight:400; opacity:.9; letter-spacing:.3px;
-    position:relative; z-index:1;
+.fp-heading{ font-size:clamp(33px,4.5vw,46px); color:#f1798a; margin:0; letter-spacing:1px; }
+.fp-sub{ font-size:15px; color:#945b70; margin-top:8px; font-weight:400; opacity:.9; }
+.price-range{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: var(--track, #eee);   /* track rengi */
+    border-radius: 999px;
+    outline: none;
 }
 
-/* küçük ekran başlık ayarı */
-@media (max-width:640px){
-    .shelf-head.combo{ padding:12px 14px; border-radius:14px; }
-    .shelf-title::after{ width:54px; bottom:-6px; }
+/* WebKit: track */
+.price-range::-webkit-slider-runnable-track{
+    height: 8px;
+    background: var(--track, #eee);
+    border-radius: 999px;
+}
+
+/* WebKit: thumb */
+.price-range::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--thumb, #ec4899); /* başlık rengi */
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    margin-top: -5px; /* track ortalamak için */
+    cursor: pointer;
+}
+
+/* Firefox: track + progress (dolu kısım) */
+.price-range::-moz-range-track{
+    height: 8px;
+    background: var(--track, #eee);
+    border-radius: 999px;
+}
+.price-range::-moz-range-progress{
+    height: 8px;
+    background: var(--fill, var(--track, #eee));
+    border-radius: 999px;
+}
+
+.price-range::-moz-range-thumb{
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--thumb, #ec4899);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    cursor: pointer;
+}
+
+
+.range-min{
+    --track: #fde2f3;  /* açık pembe track */
+    --thumb: #ec4899;  /* pembe thumb */
+    --fill: #f9eeb8;  /* Firefox’ta dolu kısım */
+}
+
+
+.range-max{
+    --track: #fde2f3; 
+    --thumb: #ec4899;  /* pembe thumb */
+    --fill: #f9eeb8;  /* Firefox dolu kısım */
 }
