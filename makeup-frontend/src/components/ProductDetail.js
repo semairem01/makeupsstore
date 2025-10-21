@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom"; // ⭐ useLocation + useNavigate
 import axios from "axios";
 import { API_ENDPOINTS } from "../config";
 import Reviews from "./Reviews";
@@ -12,6 +12,8 @@ function Star({ filled }) {
 
 export default function ProductDetail({ onAdded }) {
     const { id } = useParams();
+    const location = useLocation();         // ⭐
+    const navigate = useNavigate();         // ⭐
     const token = localStorage.getItem("token");
 
     const [product, setProduct] = useState(null);
@@ -19,15 +21,15 @@ export default function ProductDetail({ onAdded }) {
     const [error, setError] = useState(null);
     const [qty, setQty] = useState(1);
 
-    // favori
     const [isFav, setIsFav] = useState(false);
     const [justToggled, setJustToggled] = useState(false);
 
-    // ⭐ review özeti
     const [ratingAvg, setRatingAvg] = useState(0);
     const [ratingCount, setRatingCount] = useState(0);
 
-    // Ürün detayını getir
+    const [variant, setVariant] = useState(null);
+
+    // Ürünü getir
     useEffect(() => {
         if (!id) {
             setError("Ürün ID bulunamadı");
@@ -37,7 +39,14 @@ export default function ProductDetail({ onAdded }) {
         axios
             .get(`http://localhost:5011/api/product/${id}`)
             .then((res) => {
-                setProduct(res.data);
+                const p = res.data;
+                setProduct(p);
+
+                // Varsayılan seçim
+                const def =
+                    p?.variants?.find((v) => v.isDefault) ??
+                    (Array.isArray(p?.variants) && p.variants.length > 0 ? p.variants[0] : null);
+                setVariant(def || null);
                 setError(null);
             })
             .catch((err) => {
@@ -47,17 +56,34 @@ export default function ProductDetail({ onAdded }) {
             .finally(() => setLoading(false));
     }, [id]);
 
-    // ⭐ review özetini getir
+    // ⭐ URL'den variantId oku ve uygun varyantı seç
+    useEffect(() => {
+        if (!product?.variants) return;
+        const params = new URLSearchParams(location.search);
+        const variantIdFromUrl = params.get("variantId");
+        if (variantIdFromUrl) {
+            const v = product.variants.find(v => v.id === Number(variantIdFromUrl));
+            if (v && v.id !== variant?.id) {
+                setVariant(v);
+            }
+        }
+    }, [location.search, product, variant?.id]);
+
+    // ⭐ Yorum özetini getir (variantId'li)
     useEffect(() => {
         if (!id) return;
+
+        const params = new URLSearchParams();
+        if (variant?.id) params.set("variantId", String(variant.id));
+
         axios
-            .get(`${API_ENDPOINTS.REVIEWS}/product/${id}`)
+            .get(`${API_ENDPOINTS.REVIEWS}/product/${id}?${params.toString()}`)
             .then((r) => {
                 setRatingAvg(Number(r.data?.average || 0));
                 setRatingCount(Number(r.data?.count || 0));
             })
             .catch(() => {});
-    }, [id]);
+    }, [id, variant?.id]);
 
     // Favori kontrolü
     useEffect(() => {
@@ -95,7 +121,11 @@ export default function ProductDetail({ onAdded }) {
         try {
             await axios.post(
                 "http://localhost:5011/api/cart/add",
-                { productId: product.id, quantity: qty },
+                {
+                    productId: product.id,
+                    variantId: variant?.id ?? null, // ✅ varyant gönder
+                    quantity: qty,
+                },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             onAdded?.(qty);
@@ -105,19 +135,28 @@ export default function ProductDetail({ onAdded }) {
         }
     };
 
-    // 🔹 İndirimli fiyat hesaplama (finalPrice varsa öncelik onda)
-    const hasDiscount = Number(product?.discountPercent) > 0;
-    const finalNum = product?.finalPrice != null
-        ? Number(product.finalPrice)
-        : hasDiscount
-            ? Number(product.price) * (1 - Number(product.discountPercent) / 100)
-            : Number(product?.price || 0);
+    const hasDiscountBase = Number(product?.discountPercent) > 0;
+    const priceBase = Number(product?.price || 0);
+    const discountBase = Number(product?.discountPercent || 0);
 
-    const priceOldTL = Number(product?.price || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
+    const priceVar = variant ? Number(variant.price) : null;
+    const discountVar = variant ? Number(variant.discountPercent || 0) : null;
+
+    const hasDiscount = variant ? discountVar > 0 : hasDiscountBase;
+    const finalNum = variant
+        ? (discountVar > 0 ? priceVar * (1 - discountVar / 100) : priceVar)
+        : product?.finalPrice != null
+            ? Number(product.finalPrice)
+            : hasDiscountBase
+                ? priceBase * (1 - discountBase / 100)
+                : priceBase;
+
+    const priceOldTL = Number(variant ? priceVar : priceBase).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
     const priceFinalTL = Number(finalNum).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
 
-    // 🔧 stok
-    const stockRaw = product?.stockQuantity ?? product?.StockQuantity;
+    const stockRaw = variant != null
+        ? variant.stockQuantity
+        : (product?.stockQuantity ?? product?.StockQuantity);
     const hasStockInfo = typeof stockRaw === "number" && !Number.isNaN(stockRaw);
     const stock = hasStockInfo ? Number(stockRaw) : null;
     const lowStock = hasStockInfo && stock > 0 && stock <= 5;
@@ -127,7 +166,20 @@ export default function ProductDetail({ onAdded }) {
     if (error) return <div className="pd-wrap"><div className="pd-error">{error}</div></div>;
     if (!product) return null;
 
-    const gallery = [product.imageUrl].filter(Boolean);
+    const imgSelected = variant?.imageUrl || product.imageUrl;
+    const gallery = [imgSelected].filter(Boolean);
+
+    // ⭐ Swatch seçildiğinde URL'yi güncelle (variantId paramı kalıcı olsun)
+    const handleSelectVariant = (v) => {
+        setVariant(v);
+        const params = new URLSearchParams(location.search);
+        if (v?.id) {
+            params.set("variantId", String(v.id));
+        } else {
+            params.delete("variantId");
+        }
+        navigate({ pathname: location.pathname, search: params.toString() }, { replace: false });
+    };
 
     return (
         <div className="pd-wrap">
@@ -170,7 +222,7 @@ export default function ProductDetail({ onAdded }) {
                 <section className="pd-info">
                     <h1 className="pd-title">{product.name}</h1>
                     <div className="pd-brand">{product.brand}</div>
-                    <div className="pd-color">{product.color}</div>
+                    {variant?.name && <div className="pd-color">{variant.name}</div>}
 
                     {/* ⭐ ortalama puan */}
                     <div className="pd-rating">
@@ -180,37 +232,69 @@ export default function ProductDetail({ onAdded }) {
                             ))}
                         </div>
                         <span className="pd-rating-text">
-              {ratingAvg.toFixed(1)} · {ratingCount} yorum
-            </span>
+                            {ratingAvg.toFixed(1)} · {ratingCount} yorum
+                        </span>
                     </div>
+
+                    {/* 🎨 Varyant swatch/ton seçimi */}
+                    {Array.isArray(product.variants) && product.variants.length > 0 && (
+                        <div className="pd-swatches" style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "8px 0 16px" }}>
+                            {product.variants.map((v) => {
+                                const active = variant?.id === v.id;
+                                const style = v.hexColor
+                                    ? { background: v.hexColor, border: active ? "2px solid #e91e63" : "1px solid #ccc" }
+                                    : { border: active ? "2px solid #e91e63" : "1px solid #ccc", background: "#fff" };
+                                return (
+                                    <button
+                                        key={v.id}
+                                        className="pd-swatch"
+                                        onClick={() => handleSelectVariant(v)}   // ⭐
+                                        disabled={!v.isActive}
+                                        title={v.name}
+                                        aria-label={`Ton: ${v.name}`}
+                                        style={{
+                                            width: 28, height: 28, borderRadius: "50%",
+                                            cursor: v.isActive ? "pointer" : "not-allowed",
+                                            opacity: v.isActive ? 1 : 0.5,
+                                            ...style,
+                                        }}
+                                    >
+                                        {!v.hexColor && v.swatchImageUrl && (
+                                            <img
+                                                src={`http://localhost:5011${v.swatchImageUrl}`}
+                                                alt={v.name}
+                                                style={{ width: "100%", height: "100%", borderRadius: "50%" }}
+                                            />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {/* 💰 Fiyat */}
                     <div className="pd-price">
                         {hasDiscount ? (
                             <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "1.8rem", fontWeight: 800, color: "#e91e63" }}>
-                  {priceFinalTL}
-                </span>
+                                <span style={{ fontSize: "1.8rem", fontWeight: 800, color: "#e91e63" }}>
+                                    {priceFinalTL}
+                                </span>
                                 <span style={{ textDecoration: "line-through", color: "#888" }}>
-                  {priceOldTL}
-                </span>
+                                    {priceOldTL}
+                                </span>
                                 <span
                                     style={{
-                                        background: "#ffe3f1",
-                                        color: "#b2206d",
-                                        fontWeight: 700,
-                                        padding: "4px 8px",
-                                        borderRadius: "999px",
-                                        fontSize: ".9rem",
+                                        background: "#ffe3f1", color: "#b2206d", fontWeight: 700,
+                                        padding: "4px 8px", borderRadius: "999px", fontSize: ".9rem",
                                     }}
                                 >
-                  %{Number(product.discountPercent)} indirim
-                </span>
+                                    %{Number(variant ? discountVar : product.discountPercent)} indirim
+                                </span>
                             </div>
                         ) : (
                             <span style={{ fontSize: "1.8rem", fontWeight: 800, color: "#e91e63" }}>
-                {priceOldTL}
-              </span>
+                                {priceOldTL}
+                            </span>
                         )}
                     </div>
 
@@ -241,7 +325,8 @@ export default function ProductDetail({ onAdded }) {
                 <button className="pd-tab active">Yorumlar & Değerlendirmeler</button>
             </div>
             <div className="pd-tabpanel">
-                <Reviews productId={product.id} />
+                {/* ⭐ Reviews'a variantId gönder */}
+                <Reviews productId={product.id} variantId={variant?.id ?? null} />
             </div>
         </div>
     );
@@ -250,9 +335,7 @@ export default function ProductDetail({ onAdded }) {
 function QtyStepper({ value, onChange }) {
     return (
         <div className="qty-stepper" role="group" aria-label="Adet">
-            <button className="qty-btn" onClick={() => onChange(Math.max(1, (Number(value) || 1) - 1))} aria-label="Azalt">
-                −
-            </button>
+            <button className="qty-btn" onClick={() => onChange(Math.max(1, (Number(value) || 1) - 1))} aria-label="Azalt">−</button>
             <input
                 className="qty-input"
                 type="number"
@@ -260,9 +343,7 @@ function QtyStepper({ value, onChange }) {
                 value={value}
                 onChange={(e) => onChange(Math.max(1, Number(e.target.value)))}
             />
-            <button className="qty-btn" onClick={() => onChange((Number(value) || 1) + 1)} aria-label="Arttır">
-                +
-            </button>
+            <button className="qty-btn" onClick={() => onChange((Number(value) || 1) + 1)} aria-label="Arttır">+</button>
         </div>
     );
 }

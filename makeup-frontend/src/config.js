@@ -24,6 +24,16 @@ export const API_ENDPOINTS = {
     ADMIN_UPLOAD_IMAGE: `${API_BASE_URL}/api/admin/products/upload-image`,
     NOTIFY_PRODUCT: (id) => `${API_BASE_URL}/api/notify/product/${id}`,
     RECOMMEND_ROUTINE: `${API_BASE_URL}/api/recommend/routine`,
+    ADMIN_PRODUCT_VARIANTS: (productId) =>
+        `${API_BASE_URL}/api/admin/products/${productId}/variants`,                  
+    ADMIN_PRODUCT_VARIANT: (productId, variantId) =>
+        `${API_BASE_URL}/api/admin/products/${productId}/variants/${variantId}`,
+    PRODUCTS_BROWSE_EXPANDED: `${API_BASE_URL}/api/product/browse-expanded`,
+    
+    PRODUCT_VARIANTS: (productId) =>
+        `${API_BASE_URL}/api/product/${productId}/variants`,                        
+    PRODUCT_VARIANT: (productId, variantId) =>
+        `${API_BASE_URL}/api/product/${productId}/variant/${variantId}`,
 };
 
 // App configuration

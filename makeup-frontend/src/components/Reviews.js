@@ -20,10 +20,10 @@ function Star({ filled, onClick }) {
     );
 }
 
-export default function Reviews({ productId }) {
+// ⭐ variantId prop'u eklendi
+export default function Reviews({ productId, variantId }) {
     const token = localStorage.getItem("token");
 
-    // Token’a bağlı auth header’ı stabil hale getir (eslint uyarısı olmasın)
     const auth = useMemo(
         () => (token ? { Authorization: `Bearer ${token}` } : undefined),
         [token]
@@ -36,55 +36,53 @@ export default function Reviews({ productId }) {
         items: [],
     });
 
-    // Kullanıcının bu ürün için yazdığı yorumun id’si (varsa)
     const [meReviewId, setMeReviewId] = useState(null);
 
-    // Yeni yorum (kullanıcı daha önce yorum bırakmadıysa)
     const [newRating, setNewRating] = useState(5);
     const [newComment, setNewComment] = useState("");
 
-    // Düzenleme modu
     const [editingId, setEditingId] = useState(null);
     const [editRating, setEditRating] = useState(5);
     const [editComment, setEditComment] = useState("");
 
-    // Listeyi yükle
+    // ⭐ Listeyi yükle (variantId varsa query param olarak ekle)
     const load = useCallback(() => {
+        const params = new URLSearchParams();
+        if (variantId) params.set("variantId", String(variantId)); // ⭐
         return axios
-            .get(`${API_ENDPOINTS.REVIEWS}/product/${productId}`)
+            .get(`${API_ENDPOINTS.REVIEWS}/product/${productId}?${params.toString()}`)
             .then((r) => setData(r.data))
             .catch(() => {});
-    }, [productId]);
+    }, [productId, variantId]); // ⭐
 
-    // “Benim yorumum var mı?” endpoint’i (yoksa sessizce geçer)
+    // ⭐ “Benim yorumum var mı?” (varyant bazlı tutacaksan query param ekle)
     const fetchMine = useCallback(async () => {
         if (!auth) {
             setMeReviewId(null);
             return;
         }
         try {
+            const params = new URLSearchParams();
+            if (variantId) params.set("variantId", String(variantId)); // ⭐
             const r = await axios.get(
-                `${API_ENDPOINTS.REVIEWS}/my/${productId}`,
+                `${API_ENDPOINTS.REVIEWS}/my/${productId}?${params.toString()}`, // ⭐
                 { headers: auth }
             );
-            // Beklenen payload: { id, rating, comment } — yoksa uyarlarsın
             setMeReviewId(r.data?.id ?? null);
         } catch {
             setMeReviewId(null);
         }
-    }, [auth, productId]);
+    }, [auth, productId, variantId]); // ⭐
 
-    // İlk yükleme
     useEffect(() => {
         load();
     }, [load]);
 
-    // Her yüklemeden sonra (veya token değişince) “benim yorumum”u kontrol et
     useEffect(() => {
         fetchMine();
     }, [fetchMine]);
 
-    // Yeni yorum gönder
+    // Yeni yorum gönder (body'ye variantId ekle)
     const submitNew = async () => {
         if (!auth) {
             alert("Yorum yapmak için giriş yapın.");
@@ -95,6 +93,7 @@ export default function Reviews({ productId }) {
                 `${API_ENDPOINTS.REVIEWS}`,
                 {
                     productId,
+                    variantId: variantId ?? null, // ⭐
                     rating: newRating,
                     comment: newComment.trim(),
                 },
@@ -113,21 +112,18 @@ export default function Reviews({ productId }) {
         }
     };
 
-    // Düzenlemeyi başlat
     const startEdit = (item) => {
         setEditingId(item.id);
         setEditRating(item.rating);
         setEditComment(item.comment ?? "");
     };
 
-    // Düzenlemeyi iptal
     const cancelEdit = () => {
         setEditingId(null);
         setEditRating(5);
         setEditComment("");
     };
 
-    // Yorum güncelle
     const updateReview = async () => {
         if (!auth || !editingId) return;
         try {
@@ -143,7 +139,6 @@ export default function Reviews({ productId }) {
         }
     };
 
-    // Yorum sil
     const deleteReview = async (id) => {
         if (!auth) return;
         if (!window.confirm("Yorumu silmek istediğinize emin misiniz?")) return;
@@ -180,7 +175,14 @@ export default function Reviews({ productId }) {
                             <Star key={i} filled={i <= Math.round(data.average || 0)} />
                         ))}
                     </div>
-                    <div style={{ color: "#666", fontSize: 14 }}>{data.count} yorum</div>
+                    <div style={{ color: "#666", fontSize: 14 }}>
+                        {data.count} yorum{" "}
+                        {variantId ? (
+                            <em style={{ marginLeft: 6 }}>(Bu varyant için)</em> // ⭐
+                        ) : (
+                            <em style={{ marginLeft: 6 }}>(Tüm ürün)</em>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -203,9 +205,7 @@ export default function Reviews({ productId }) {
                         >
                             <div
                                 style={{
-                                    width: data.count
-                                        ? `${(row.count / data.count) * 100}%`
-                                        : "0%",
+                                    width: data.count ? `${(row.count / data.count) * 100}%` : "0%",
                                     height: "100%",
                                     background: "#ff69b4",
                                 }}
@@ -228,11 +228,7 @@ export default function Reviews({ productId }) {
                     <div style={{ marginBottom: 8 }}>Puanınız:</div>
                     <div style={{ marginBottom: 8 }}>
                         {[1, 2, 3, 4, 5].map((i) => (
-                            <Star
-                                key={i}
-                                filled={i <= newRating}
-                                onClick={() => setNewRating(i)}
-                            />
+                            <Star key={i} filled={i <= newRating} onClick={() => setNewRating(i)} />
                         ))}
                     </div>
                     <textarea
@@ -247,11 +243,7 @@ export default function Reviews({ productId }) {
                             border: "1px solid #eee",
                         }}
                     />
-                    <button
-                        onClick={submitNew}
-                        className="btn"
-                        style={{ marginTop: 8 }}
-                    >
+                    <button onClick={submitNew} className="btn" style={{ marginTop: 8 }}>
                         Gönder
                     </button>
                 </div>
@@ -264,13 +256,8 @@ export default function Reviews({ productId }) {
                     const isEditing = editingId === it.id;
 
                     return (
-                        <li
-                            key={it.id}
-                            style={{ borderBottom: "1px solid #f3f3f3", padding: "10px 0" }}
-                        >
-                            <div
-                                style={{ display: "flex", alignItems: "center", gap: 8 }}
-                            >
+                        <li key={it.id} style={{ borderBottom: "1px solid #f3f3f3", padding: "10px 0" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                 <strong>{it.userDisplayName}</strong>
                                 <span style={{ color: "#999", fontSize: 12 }}>
                   {new Date(it.createdAt).toLocaleDateString("tr-TR")}
@@ -285,16 +272,10 @@ export default function Reviews({ productId }) {
                                             alignItems: "center",
                                         }}
                                     >
-                    <button
-                        onClick={() => startEdit(it)}
-                        className="btn-outline"
-                    >
+                    <button onClick={() => startEdit(it)} className="btn-outline">
                       Düzenle
                     </button>
-                    <button
-                        onClick={() => deleteReview(it.id)}
-                        className="btn-outline danger"
-                    >
+                    <button onClick={() => deleteReview(it.id)} className="btn-outline danger">
                       Sil
                     </button>
                   </span>
@@ -308,9 +289,7 @@ export default function Reviews({ productId }) {
                                             <Star key={i} filled={i <= it.rating} />
                                         ))}
                                     </div>
-                                    {it.comment && (
-                                        <div style={{ color: "#444" }}>{it.comment}</div>
-                                    )}
+                                    {it.comment && <div style={{ color: "#444" }}>{it.comment}</div>}
                                 </>
                             )}
 
@@ -326,11 +305,7 @@ export default function Reviews({ productId }) {
                                 >
                                     <div style={{ marginBottom: 8, display: "flex", gap: 4 }}>
                                         {[1, 2, 3, 4, 5].map((i) => (
-                                            <Star
-                                                key={i}
-                                                filled={i <= editRating}
-                                                onClick={() => setEditRating(i)}
-                                            />
+                                            <Star key={i} filled={i <= editRating} onClick={() => setEditRating(i)} />
                                         ))}
                                     </div>
                                     <textarea

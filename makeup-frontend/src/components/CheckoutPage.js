@@ -37,7 +37,10 @@ export default function CheckoutPage() {
         Number(n || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
 
     useEffect(() => {
-        if (!token) { nav("/login"); return; }
+        if (!token) {
+            nav("/login");
+            return;
+        }
         axios
             .get(API_ENDPOINTS.CART, { headers: { Authorization: `Bearer ${token}` } })
             .then((r) => setCart(r.data || []))
@@ -55,33 +58,44 @@ export default function CheckoutPage() {
 
     // Simple validation
     const validAddress = () =>
-        addr.fullName && addr.phone && addr.city && addr.district && addr.postalCode && addr.addressLine;
+        addr.fullName &&
+        addr.phone &&
+        addr.city &&
+        addr.district &&
+        addr.postalCode &&
+        addr.addressLine;
 
     // Pay + create order
     const pay = async () => {
-        if (!validAddress()) { alert("Lütfen tüm adres bilgilerini doldurun."); return; }
+        if (!validAddress()) {
+            alert("Lütfen tüm adres bilgilerini doldurun.");
+            return;
+        }
         const rawCard = (card.cardNumber || "").replace(/\s+/g, "");
         if (rawCard.length < 12 || !card.cvv || !card.nameOnCard) {
-            alert("Kart bilgilerini kontrol edin."); return;
+            alert("Kart bilgilerini kontrol edin.");
+            return;
         }
 
         setSubmitting(true);
         try {
-            // 1) Simulate payment (send shipping fee for realistic total on BE if used)
+            // 1) Simulate payment
             const payRes = await axios.post(
                 `${API_ENDPOINTS.PAYMENTS}/simulate`,
                 { ...card, cardNumber: rawCard, shippingFee },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            if (!payRes.data?.success) { alert(payRes.data?.message || "Ödeme reddedildi."); return; }
+            if (!payRes.data?.success) {
+                alert(payRes.data?.message || "Ödeme reddedildi.");
+                return;
+            }
 
-            // 2) Create order from cart — ✅ send shipping info so BE persists it
+            // 2) Create order from cart
             const orderRes = await axios.post(
                 `${API_ENDPOINTS.ORDERS}/checkout`,
                 {
                     shippingFee,
                     shippingMethod: shipping, // "standard" | "express"
-                    // Optional: you could also send address snapshot here later
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -214,23 +228,34 @@ export default function CheckoutPage() {
                 <aside style={cardBox}>
                     <h3 style={secTitle}>Sipariş Özeti</h3>
                     <div style={{ display: "grid", gap: 8 }}>
-                        {(cart || []).map((it, i) => (
-                            <div key={i} style={{ display: "grid", gridTemplateColumns: "56px 1fr auto", gap: 10, alignItems: "center" }}>
-                                <img
-                                    src={(it.imageUrl ?? it.ImageUrl)?.startsWith("http")
-                                        ? it.imageUrl ?? it.ImageUrl
-                                        : `http://localhost:5011${it.imageUrl ?? it.ImageUrl ?? ""}`}
-                                    alt=""
-                                    style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 10, border: "1px solid #f0d8e6" }}
-                                    onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/56"; }}
-                                />
-                                <div style={{ fontSize: 13, color: "#333" }}>
-                                    <div style={{ fontWeight: 600, marginBottom: 2 }}>{it.productName ?? it.ProductName}</div>
-                                    <div style={{ opacity: 0.7 }}>Adet: {it.quantity ?? it.Quantity}</div>
+                        {(cart || []).map((it, i) => {
+                            // ✅ Varyant görseli/adı öncelikli
+                            const imgRaw =
+                                it.variantImage ?? it.VariantImage ??
+                                it.imageUrl ?? it.ImageUrl ?? "";
+                            const imgSrc = imgRaw.startsWith("http")
+                                ? imgRaw
+                                : `http://localhost:5011${imgRaw}`;
+                            const title =
+                                (it.productName ?? it.ProductName) +
+                                ((it.variantName ?? it.VariantName) ? ` - ${(it.variantName ?? it.VariantName)}` : "");
+
+                            return (
+                                <div key={i} style={{ display: "grid", gridTemplateColumns: "56px 1fr auto", gap: 10, alignItems: "center" }}>
+                                    <img
+                                        src={imgSrc}
+                                        alt=""
+                                        style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 10, border: "1px solid #f0d8e6" }}
+                                        onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/56"; }}
+                                    />
+                                    <div style={{ fontSize: 13, color: "#333" }}>
+                                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{title}</div>
+                                        <div style={{ opacity: 0.7 }}>Adet: {it.quantity ?? it.Quantity}</div>
+                                    </div>
+                                    <div style={{ fontWeight: 700 }}>{tl(it.totalPrice ?? it.TotalPrice ?? 0)}</div>
                                 </div>
-                                <div style={{ fontWeight: 700 }}>{tl(it.totalPrice ?? it.TotalPrice ?? 0)}</div>
-                            </div>
-                        ))}
+                            );
+                        })}
 
                         <hr />
 

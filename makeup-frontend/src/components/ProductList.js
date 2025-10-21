@@ -24,21 +24,39 @@ function ProductList({ onAdded }) {
             location.pathname === "/sale" || params.get("discounted") === "true";
         const q = (params.get("q") || "").trim();
 
-        let url;
-        if (onlyDiscounted) {
-            url = `${API_ENDPOINTS.PRODUCTS}/discounted`;
-        } else if (q) {
-            url = `${API_ENDPOINTS.PRODUCTS}/search?q=${encodeURIComponent(q)}`;
-        } else if (categoryId) {
-            url = `${API_ENDPOINTS.PRODUCTS}/by-category/${categoryId}`;
-        } else {
-            url = API_ENDPOINTS.PRODUCTS;
-        }
+        // 🔁 ——— YENİ: expanded liste uçları ———
+        // Not: Her durumda expanded kullanıyoruz ki varyantlar ayrı kart çıksın.
+        const search = new URLSearchParams();
+        if (q) search.set("q", q);
+        if (categoryId) search.set("categoryId", categoryId);
+        if (onlyDiscounted) search.set("discounted", "true");
+
+        const url = `${API_ENDPOINTS.PRODUCTS}/browse-expanded${
+            search.toString() ? `?${search.toString()}` : ""
+        }`;
 
         axios
             .get(url)
             .then((res) => {
-                setProducts(res.data);
+                // DTO: ProductListItemDto -> mevcut render yapısına map
+                // id = productId, variantId opsiyonel
+                const mapped =
+                    (res.data || []).map((x) => ({
+                        id: x.productId, // ⚠️ favoriler ve sepete ekle product bazında
+                        variantId: x.variantId ?? null,
+                        name: x.name,
+                        brand: x.brand,
+                        imageUrl: x.imageUrl,
+                        price: x.price,
+                        discountPercent: x.discountPercent,
+                        finalPrice: x.finalPrice,
+                        isActive: x.isActive,
+                        // opsiyonel görselleştirmelerde lazım olursa:
+                        shadeFamily: x.shadeFamily,
+                        hexColor: x.hexColor,
+                    })) ?? [];
+
+                setProducts(mapped);
                 setError(null);
             })
             .catch(() => setError("Ürünler yüklenirken bir hata oluştu"))
@@ -58,7 +76,14 @@ function ProductList({ onAdded }) {
         }
     }, [categoryId, token, location]);
 
-    const goToDetail = (id) => navigate(`/product/${id}`);
+    // 🔁 ——— YENİ: varyantı da taşı ———
+    const goToDetail = (productId, variantId) => {
+        if (variantId) {
+            navigate(`/product/${productId}?variantId=${variantId}`);
+        } else {
+            navigate(`/product/${productId}`);
+        }
+    };
 
     const addToCart = async (productId) => {
         if (!token) return alert("Lütfen giriş yapın.");
@@ -124,12 +149,10 @@ function ProductList({ onAdded }) {
     if (loading) return <div>Yükleniyor...</div>;
     if (error) return <div>{error}</div>;
 
-    // 🔍 Arama sorgusunu yakala
     const q = new URLSearchParams(location.search).get("q");
 
     return (
         <div style={{ padding: "1rem" }}>
-            {/* 🔹 Arama bilgi şeridi */}
             {q && (
                 <div
                     style={{
@@ -143,15 +166,14 @@ function ProductList({ onAdded }) {
                     “{q}” için sonuçlar
                     {products.length === 0 && (
                         <span style={{ color: "#999", marginLeft: 8 }}>
-                            (Sonuç bulunamadı)
-                        </span>
+              (Sonuç bulunamadı)
+            </span>
                     )}
                 </div>
             )}
 
-            {/* 🔹 Ürün listesi */}
             <div style={{ display: "flex", flexWrap: "wrap" }}>
-                {products.map((p) => {
+                {products.map((p, idx) => {
                     const isFav = favIds.has(p.id);
                     const pulsing = pulseIds.has(p.id);
 
@@ -174,8 +196,8 @@ function ProductList({ onAdded }) {
 
                     return (
                         <div
-                            key={p.id}
-                            onClick={() => goToDetail(p.id)}
+                            key={`${p.id}-${p.variantId ?? "base"}-${idx}`}
+                            onClick={() => goToDetail(p.id, p.variantId)} // 🔁 varyant paramı
                             style={{
                                 position: "relative",
                                 border: "1px solid #eee",
@@ -221,7 +243,11 @@ function ProductList({ onAdded }) {
                             </button>
 
                             <img
-                                src={`http://localhost:5011${p.imageUrl}`}
+                                src={
+                                    p.imageUrl?.startsWith("http")
+                                        ? p.imageUrl
+                                        : `http://localhost:5011${p.imageUrl || ""}`
+                                }
                                 alt={p.name}
                                 style={{
                                     width: "100%",
@@ -243,9 +269,26 @@ function ProductList({ onAdded }) {
                             >
                                 {p.name}
                             </h4>
-                            <p style={{ margin: 0, color: "#777", fontSize: 13 }}>
-                                {p.brand}
-                            </p>
+                            <p style={{ margin: 0, color: "#777", fontSize: 13 }}>{p.brand}</p>
+
+                            {/* İsteyenler için varyant rengi/minibadge */}
+                            {p.hexColor && (
+                                <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                      style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: "50%",
+                          display: "inline-block",
+                          background: p.hexColor,
+                          border: "1px solid #ddd",
+                      }}
+                  />
+                                    {p.shadeFamily && (
+                                        <span style={{ fontSize: 12, color: "#666" }}>{p.shadeFamily}</span>
+                                    )}
+                                </div>
+                            )}
 
                             <div style={{ marginTop: 8 }}>
                                 {hasDisc ? (
@@ -285,7 +328,7 @@ function ProductList({ onAdded }) {
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    addToCart(p.id);
+                                    addToCart(p.id); // sepet ürün bazlı
                                 }}
                                 style={{
                                     backgroundColor: "#ff69b4",
