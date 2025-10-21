@@ -14,5 +14,6 @@ public interface IProductService
     Task<IEnumerable<ProductDto>> GetByCategoryTreeAsync(int categoryId);
     Task<IEnumerable<ProductDto>> SearchAsync(string? query);
     Task<PagedResult<ProductDto>> BrowseAsync(ProductBrowseQuery q);
+    Task<IEnumerable<ProductListItemDto>> BrowseExpandedAsync(ProductBrowseQuery q);
 
 }

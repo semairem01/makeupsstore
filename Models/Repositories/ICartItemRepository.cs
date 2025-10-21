@@ -9,5 +9,5 @@ public interface ICartItemRepository
     Task RemoveAsync(int id);
     Task ClearCartAsync(Guid userId); // tüm sepeti boşalt
     
-    Task<CartItem?> GetByUserAndProductAsync(Guid userId, int productId);
+    Task<CartItem?> GetByUserProductVariantAsync(Guid userId, int productId, int? variantId);
 }

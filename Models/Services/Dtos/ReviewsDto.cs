@@ -1,6 +1,6 @@
 ﻿namespace makeup.Models.Services.Dtos;
 
-public record ReviewCreateDto(int ProductId, int Rating, string? Comment);
+public record ReviewCreateDto(int ProductId,int? VariantId, int Rating, string? Comment);
 public record ReviewUpdateDto(int Rating, string? Comment);
 public record ReviewItemDto(
     int Id, int ProductId, int Rating, string? Comment,

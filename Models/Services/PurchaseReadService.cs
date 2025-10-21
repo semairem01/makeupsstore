@@ -18,4 +18,14 @@ public class PurchaseReadService : IPurchaseReadService
             .SelectMany(o => o.OrderItems)
             .AnyAsync(oi => oi.ProductId == productId);
     }
+    
+    public async Task<bool> HasPurchasedVariantAsync(Guid userId, int variantId)
+    {
+        var validStatuses = new[] { OrderStatus.TeslimEdildi };
+
+        return await _db.Orders
+            .Where(o => o.UserId == userId && validStatuses.Contains(o.Status))
+            .SelectMany(o => o.OrderItems)
+            .AnyAsync(oi => oi.VariantId == variantId);
+    }
 }

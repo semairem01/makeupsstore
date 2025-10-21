@@ -1,5 +1,42 @@
 ﻿namespace makeup.Models.Services.Dtos;
 
+public record ProductVariantDto(
+    int Id,
+    int ProductId,
+    string Sku,
+    string? Barcode,
+    string Name,
+    string? ShadeCode,
+    string? ShadeFamily,
+    string? HexColor,
+    string? SwatchImageUrl,
+    string ImageUrl,
+    decimal Price,
+    decimal? DiscountPercent,
+    int StockQuantity,
+    bool IsActive,
+    bool IsDefault
+);
+
+
+// Create/Update istekleri için tek DTO (Upsert)
+public record ProductVariantUpsertDto(
+    int? Id,                    // create'de null; update'de dolu gelir
+    string Sku,
+    string? Barcode,
+    string Name,
+    string? ShadeCode,
+    string? ShadeFamily,
+    string? HexColor,
+    string? SwatchImageUrl,
+    string ImageUrl,
+    decimal Price,
+    decimal? DiscountPercent,
+    int StockQuantity,
+    bool IsActive,
+    bool IsDefault
+);
+
 // Admin ürün ekleme/güncelleme için kullanılacak DTO
 public record ProductCreateDto(
     string Name,
@@ -24,7 +61,8 @@ public record ProductCreateDto(
     bool FragranceFree,
     bool NonComedogenic,
     string? ShadeFamily,
-    string? Tags
+    string? Tags,
+    List<ProductVariantUpsertDto>? Variants
 );
 
 public record ProductUpdateDto(
@@ -51,7 +89,8 @@ public record ProductUpdateDto(
     bool FragranceFree,
     bool NonComedogenic,
     string? ShadeFamily,
-    string? Tags
+    string? Tags,
+    List<ProductVariantUpsertDto>? Variants
 );
 
 public record AdminProductListDto(
@@ -79,7 +118,8 @@ public record AdminProductListDto(
     bool NonComedogenic,
     string? ShadeFamily,
     string? Tags,
-    decimal? DiscountPercent
+    decimal? DiscountPercent,
+    List<ProductVariantUpsertDto>? Variants
 );
 
 // Kullanıcıya ürün listesi/görünümü için DTO (stok bilgisini göstermiyoruz!)
@@ -111,8 +151,11 @@ public record ProductDto(
     
     double? RatingAverage,   // 0..5
     int RatingCount,
-    int StockQuantity
+    int StockQuantity,
+    List<ProductVariantDto>? Variants
+    
 )
+
 {
     public decimal FinalPrice =>
         DiscountPercent.HasValue && DiscountPercent > 0
@@ -120,5 +163,18 @@ public record ProductDto(
             : Price;
 }
 
+public record ProductListItemDto(
+    int ProductId,                 // ana ürün id
+    int? VariantId,                // varyant kartıysa dolu; ana ürün kartıysa null
+    string Name,                   // "Product - Variant" veya sadece "Product"
+    string Brand,
+    string ImageUrl,
+    decimal Price,
+    decimal? DiscountPercent,
+    decimal FinalPrice,
+    bool IsActive,
+    string? ShadeFamily,
+    string? HexColor
+);
 
     

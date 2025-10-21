@@ -11,6 +11,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
     }
 
     public DbSet<Product> Products { get; set; } = null!;
+    public DbSet<ProductVariant> ProductVariants { get; set; } = null!;
     public DbSet<Category> Categories { get; set; } = null!;
     public DbSet<Order> Orders { get; set; } = null!;
     public DbSet<OrderItem> OrderItems { get; set; } = null!;
@@ -40,7 +41,41 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                     .WithMany(c => c.Products)
                     .HasForeignKey(p => p.CategoryId)
                     .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasMany(p => p.Variants)
+                    .WithOne(v => v.Product)
+                    .HasForeignKey(v => v.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
+        
+        modelBuilder.Entity<ProductVariant>(v =>
+        {
+            v.HasKey(x => x.Id);
+
+            v.Property(x => x.Sku).HasMaxLength(64).IsRequired();
+            v.Property(x => x.Barcode).HasMaxLength(64);
+            v.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            v.Property(x => x.ShadeCode).HasMaxLength(32);
+            v.Property(x => x.ShadeFamily).HasMaxLength(64);
+            v.Property(x => x.HexColor).HasMaxLength(7); // "#RRGGBB"
+            v.Property(x => x.SwatchImageUrl).HasMaxLength(200);
+            v.Property(x => x.ImageUrl).HasMaxLength(200).IsRequired();
+
+            v.Property(x => x.Price).HasColumnType("decimal(18,2)");
+            v.Property(x => x.DiscountPercent).HasColumnType("decimal(5,2)").IsRequired(false);
+
+            v.Property(x => x.StockQuantity).HasDefaultValue(0);
+            v.Property(x => x.IsActive).HasDefaultValue(false);
+            v.Property(x => x.IsDefault).HasDefaultValue(false);
+
+            // Aynı ürün içinde SKU benzersiz
+            v.HasIndex(x => new { x.ProductId, x.Sku }).IsUnique();
+
+            // Her üründe en fazla 1 default varyant (SQL Server filtered unique index)
+            v.HasIndex(x => new { x.ProductId, x.IsDefault })
+                .IsUnique()
+                .HasFilter("[IsDefault] = 1");
+        });
 
         modelBuilder.Entity<Category>(entity =>
             {
@@ -85,6 +120,13 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 .WithMany()
                 .HasForeignKey(oi => oi.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
+            
+            entity.HasOne(oi => oi.Variant)
+                .WithMany()
+                .HasForeignKey(oi => oi.VariantId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+            
         });
         
         modelBuilder.Entity<FavoriteProduct>(e =>
@@ -107,6 +149,13 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 .WithMany()
                 .HasForeignKey(ci => ci.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(ci => ci.Variant)
+                .WithMany()
+                .HasForeignKey(ci => ci.VariantId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+            entity.HasIndex(ci => new { ci.UserId, ci.ProductId, ci.VariantId }).IsUnique();
         });
         modelBuilder.Entity<AppUser>(entity =>
         {

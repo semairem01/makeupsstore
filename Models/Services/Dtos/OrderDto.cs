@@ -7,7 +7,9 @@ public record OrderItemDto(
     string ProductImage,
     decimal UnitPrice,
     int Quantity,
-    decimal TotalPrice
+    decimal TotalPrice,
+    string? VariantName = null,     
+    string? VariantImage = null
 );
 
 public record OrderDto(

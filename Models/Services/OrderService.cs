@@ -28,15 +28,20 @@ public class OrderService : IOrderService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    private Guid CurrentUserId => Guid.Parse(_httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+    private Guid CurrentUserId =>
+        Guid.Parse(_httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                   ?? Guid.Empty.ToString());
 
-    // ✅ İndirimli fiyat hesaplama metodu
     private static decimal GetEffectivePrice(Product product)
     {
-        var discountRate = product?.DiscountPercent ?? 0m;
-        return (discountRate > 0m) 
-            ? product.Price * (1 - discountRate / 100m) 
-            : product.Price;
+        var rate = product?.DiscountPercent ?? 0m;
+        return rate > 0 ? product!.Price * (1 - rate / 100m) : product!.Price;
+    }
+
+    private static decimal GetEffectivePrice(ProductVariant variant)
+    {
+        var rate = variant?.DiscountPercent ?? 0m;
+        return rate > 0 ? variant!.Price * (1 - rate / 100m) : variant!.Price;
     }
 
     public async Task<IEnumerable<OrderDto>> GetAllAsync(Guid userId)
@@ -75,13 +80,12 @@ public class OrderService : IOrderService
             }
             await _productRepository.UpdateAsync(product);
 
-            // ✅ İndirimli fiyat kullan
             var effectivePrice = GetEffectivePrice(product);
             orderItems.Add(new OrderItem
             {
                 ProductId = product.Id,
                 Quantity = item.Quantity,
-                UnitPrice = effectivePrice  // ✅ İndirimli fiyat
+                UnitPrice = effectivePrice
             });
         }
 
@@ -115,13 +119,13 @@ public class OrderService : IOrderService
         if (userId == Guid.Empty)
             return ServiceResult<OrderDto>.Fail("Kullanıcı bulunamadı");
 
-        var normalizedMethod = string.IsNullOrWhiteSpace(shippingMethod) 
-            ? "standard" 
+        var normalizedMethod = string.IsNullOrWhiteSpace(shippingMethod)
+            ? "standard"
             : shippingMethod.Trim().ToLowerInvariant();
-        
+
         if (normalizedMethod != "standard" && normalizedMethod != "express")
             normalizedMethod = "standard";
-        
+
         if (shippingFee < 0) shippingFee = 0;
 
         await using var tx = await _context.Database.BeginTransactionAsync();
@@ -132,31 +136,61 @@ public class OrderService : IOrderService
                 return ServiceResult<OrderDto>.Fail("Sepetiniz boş");
 
             var orderItems = new List<OrderItem>();
+
             foreach (var ci in cartItems)
             {
                 var product = await _productRepository.GetByIdAsync(ci.ProductId);
                 if (product == null || !product.IsActive)
                     return ServiceResult<OrderDto>.Fail($"Ürün geçersiz: {ci.ProductId}");
 
-                if (product.StockQuantity < ci.Quantity)
-                    return ServiceResult<OrderDto>.Fail($"{product.Name} için yeterli stok yok.");
-
-                product.StockQuantity -= ci.Quantity;
-                if (product.StockQuantity <= 0)
+                if (ci.VariantId.HasValue && ci.VariantId > 0)
                 {
-                    product.StockQuantity = 0;
-                    product.IsActive = false;
+                    var variant = product.Variants?.FirstOrDefault(v => v.Id == ci.VariantId);
+                    if (variant == null || !variant.IsActive)
+                        return ServiceResult<OrderDto>.Fail("Varyant bulunamadı veya aktif değil.");
+
+                    if (variant.StockQuantity < ci.Quantity)
+                        return ServiceResult<OrderDto>.Fail($"{product.Name} / {variant.Name} için yeterli stok yok.");
+
+                    variant.StockQuantity -= ci.Quantity;
+                    if (variant.StockQuantity <= 0)
+                    {
+                        variant.StockQuantity = 0;
+                        variant.IsActive = false;
+                    }
+
+                    await _productRepository.UpdateAsync(product);
+
+                    var unitPrice = GetEffectivePrice(variant);
+                    orderItems.Add(new OrderItem
+                    {
+                        ProductId = ci.ProductId,
+                        VariantId = ci.VariantId,
+                        Quantity = ci.Quantity,
+                        UnitPrice = unitPrice
+                    });
                 }
-                await _productRepository.UpdateAsync(product);
-
-                // ✅ İndirimli fiyat kullan
-                var effectivePrice = GetEffectivePrice(product);
-                orderItems.Add(new OrderItem
+                else
                 {
-                    ProductId = ci.ProductId,
-                    Quantity = ci.Quantity,
-                    UnitPrice = effectivePrice  // ✅ İndirimli fiyat
-                });
+                    if (product.StockQuantity < ci.Quantity)
+                        return ServiceResult<OrderDto>.Fail($"{product.Name} için yeterli stok yok.");
+
+                    product.StockQuantity -= ci.Quantity;
+                    if (product.StockQuantity <= 0)
+                    {
+                        product.StockQuantity = 0;
+                        product.IsActive = false;
+                    }
+                    await _productRepository.UpdateAsync(product);
+
+                    var unitPrice = GetEffectivePrice(product);
+                    orderItems.Add(new OrderItem
+                    {
+                        ProductId = ci.ProductId,
+                        Quantity = ci.Quantity,
+                        UnitPrice = unitPrice
+                    });
+                }
             }
 
             var order = new Order
@@ -171,7 +205,7 @@ public class OrderService : IOrderService
 
             await _orderRepository.AddAsync(order);
             await _cartItemRepository.ClearCartAsync(userId);
-            
+
             var loaded = await _orderRepository.GetByIdAsync(order.Id);
             await tx.CommitAsync();
 
@@ -197,6 +231,7 @@ public class OrderService : IOrderService
         }
     }
 
+    // ✅ Minimal değişiklik: Varyant varsa onun adı/görseli de DTO'ya ekleniyor.
     private OrderDto MapToDto(Order order)
     {
         return new OrderDto(
@@ -204,20 +239,33 @@ public class OrderService : IOrderService
             order.UserId,
             order.OrderDate,
             order.Status.ToString(),
-            order.OrderItems.Select(oi => new OrderItemDto(
-                oi.ProductId,
-                oi.Product.Name,
-                oi.Product.ImageUrl,
-                oi.UnitPrice,  // ✅ Artık indirimli fiyat
-                oi.Quantity,
-                oi.UnitPrice * oi.Quantity
-            )).ToList(),
+            order.OrderItems.Select(oi =>
+            {
+                var hasVariant = oi.VariantId.HasValue && oi.Variant != null;
+
+                var productName  = oi.Product.Name;
+                var productImage = oi.Product.ImageUrl;
+
+                var variantName  = hasVariant ? oi.Variant!.Name     : null;
+                var variantImage = hasVariant ? oi.Variant!.ImageUrl : null;
+
+                return new OrderItemDto(
+                    oi.ProductId,
+                    productName,
+                    productImage,
+                    oi.UnitPrice,
+                    oi.Quantity,
+                    oi.UnitPrice * oi.Quantity, 
+                    variantName,         
+                    variantImage         
+                );
+            }).ToList(),
             order.ShippingFee,
             order.ShippingMethod,
             order.TrackingNumber
         );
     }
-    
+
     public async Task<IEnumerable<AdminOrderListItemDto>> AdminListAsync()
     {
         var all = await _orderRepository.GetAllAsync();
@@ -238,7 +286,6 @@ public class OrderService : IOrderService
         var order = await _orderRepository.GetByIdAsync(orderId);
         if (order == null) return ServiceResult<OrderDto>.Fail("Order not found.");
 
-        // validate & set status
         if (!Enum.TryParse<OrderStatus>(dto.Status, ignoreCase: true, out var newStatus))
             return ServiceResult<OrderDto>.Fail("Invalid status.");
 
@@ -250,5 +297,4 @@ public class OrderService : IOrderService
         var loaded = await _orderRepository.GetByIdAsync(order.Id);
         return ServiceResult<OrderDto>.Ok(MapToDto(loaded!), "Order updated.");
     }
-
 }

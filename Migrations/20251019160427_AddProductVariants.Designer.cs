@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using makeup.Models.Repositories;
 
@@ -11,9 +12,11 @@ using makeup.Models.Repositories;
 namespace makeup.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251019160427_AddProductVariants")]
+    partial class AddProductVariants
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -335,20 +338,12 @@ namespace makeup.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int?>("VariantId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("VariantId");
-
-                    b.HasIndex("ProductId", "VariantId", "UserId")
-                        .IsUnique()
-                        .HasFilter("[VariantId] IS NOT NULL");
+                    b.HasIndex("UserId", "ProductId")
+                        .IsUnique();
 
                     b.ToTable("ProductReviews");
                 });
@@ -754,15 +749,9 @@ namespace makeup.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("makeup.Models.Repositories.Entities.ProductVariant", "Variant")
-                        .WithMany()
-                        .HasForeignKey("VariantId");
-
                     b.Navigation("AppUser");
 
                     b.Navigation("Product");
-
-                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("makeup.Models.Repositories.Entities.ProductVariant", b =>

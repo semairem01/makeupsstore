@@ -1,10 +1,12 @@
-﻿namespace makeup.Controllers.Admin;
-
-using makeup.Models.Services;
-using makeup.Models.Services.Dtos;
+﻿using makeup.Models.Repositories;                 // AppDbContext / IProductRepository
+using makeup.Models.Repositories.Entities;       // Product, ProductVariant, ...
+using makeup.Models.Services;                    // IProductService
+using makeup.Models.Services.Dtos;               // DTO'lar
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using makeup.Models.Repositories;
+using Microsoft.EntityFrameworkCore;
+
+namespace makeup.Controllers.Admin;
 
 [ApiController]
 [Route("api/admin/[controller]")]
@@ -30,7 +32,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<AdminProductListDto>>> GetAll(
         [FromQuery] string? q, [FromQuery] int? categoryId)
     {
-        var all = await _productRepository.GetAllAsync(); // Category Include'lu olmalı
+        var all = await _productRepository.GetAllAsync(); // Category include'lu
         var list = all.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q))
@@ -58,8 +60,6 @@ public class ProductsController : ControllerBase
                 p.Size,
                 p.CategoryId,
                 p.Category != null ? p.Category.Name : string.Empty,
-
-                // 🔽 yeni alanlar
                 (int)p.SuitableForSkin,
                 p.Finish != null ? p.Finish.ToString() : null,
                 p.Coverage != null ? p.Coverage.ToString() : null,
@@ -71,7 +71,14 @@ public class ProductsController : ControllerBase
                 p.NonComedogenic,
                 p.ShadeFamily,
                 p.Tags,
-                p.DiscountPercent
+                p.DiscountPercent,
+                p.Variants != null
+                    ? p.Variants
+                        .OrderByDescending(v => v.IsDefault)
+                        .ThenBy(v => v.Name)
+                        .Select(ToVariantUpsertDto)
+                        .ToList()
+                    : new List<ProductVariantUpsertDto>()
             ))
             .OrderBy(p => p.Id)
             .ToList();
@@ -79,7 +86,7 @@ public class ProductsController : ControllerBase
         return Ok(result);
     }
 
-    // ✅ Admin detay (edit formu) – stok dâhil + yeni alanlar
+    // ✅ Admin detay (edit formu)
     [HttpGet("{id:int}")]
     public async Task<ActionResult<AdminProductListDto>> GetById(int id)
     {
@@ -99,8 +106,6 @@ public class ProductsController : ControllerBase
             p.Size,
             p.CategoryId,
             p.Category != null ? p.Category.Name : string.Empty,
-
-            // 🔽 yeni alanlar
             (int)p.SuitableForSkin,
             p.Finish != null ? p.Finish.ToString() : null,
             p.Coverage != null ? p.Coverage.ToString() : null,
@@ -112,13 +117,21 @@ public class ProductsController : ControllerBase
             p.NonComedogenic,
             p.ShadeFamily,
             p.Tags,
-            p.DiscountPercent
+            p.DiscountPercent,
+            p.Variants != null
+                ? p.Variants
+                    .OrderByDescending(v => v.IsDefault)
+                    .ThenBy(v => v.Name)
+                    .Select(ToVariantUpsertDto)
+                    .ToList()
+                : new List<ProductVariantUpsertDto>()
         );
 
         return Ok(dto);
     }
 
-    // ↓ Aşağıdakiler aynen kalsın (servis üzerinden çalışıyor)
+    // ---- ÜRÜN CRUD (servis üzerinden) ----
+
     [HttpPost]
     public async Task<ActionResult<ProductDto>> Create([FromBody] ProductCreateDto dto)
     {
@@ -143,6 +156,8 @@ public class ProductsController : ControllerBase
         if (!result.Success) return NotFound(result.Message);
         return NoContent();
     }
+
+    // ---- Görsel yükleme ----
 
     [HttpPost("upload-image")]
     [RequestSizeLimit(10_000_000)] // ~10MB
@@ -172,7 +187,162 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> NotifyWaiters(int id, [FromServices] INotifyRequestRepository notifyRepo)
     {
         var pending = await notifyRepo.GetPendingRequestsAsync(id);
-        // TODO: pending kullanıcılarına e-posta / push gönder ve gönderildiyse repo.RemoveAsync(...) ile temizle
+        // TODO: pending kullanıcılara e-posta / push gönder; başarılıysa repo.RemoveAsync(...)
         return Ok(new { notified = pending.Count() });
     }
+
+    // ---- VARYANT CRUD ----
+
+    [HttpGet("{productId:int}/variants")]
+    public async Task<IActionResult> AdminListVariants(int productId, [FromServices] AppDbContext db)
+    {
+        var exists = await db.Products.AnyAsync(p => p.Id == productId);
+        if (!exists) return NotFound("Product not found.");
+
+        var list = await db.ProductVariants
+            .Where(v => v.ProductId == productId)
+            .OrderByDescending(v => v.IsDefault)
+            .ThenBy(v => v.Name)
+            .Select(v => ToVariantDto(v))
+            .ToListAsync();
+
+        return Ok(list);
+    }
+
+    [HttpPost("{productId:int}/variants")]
+    public async Task<IActionResult> AdminCreateVariant(
+        int productId,
+        [FromBody] ProductVariantDto dto,
+        [FromServices] AppDbContext db)
+    {
+        var p = await db.Products.FindAsync(productId);
+        if (p is null) return NotFound("Product not found.");
+
+        // SKU benzersizliği (aynı ürün içinde) kontrolü (opsiyonel ama faydalı)
+        var skuExists = await db.ProductVariants
+            .AnyAsync(x => x.ProductId == productId && x.Sku == dto.Sku);
+        if (skuExists) return BadRequest("Aynı ürün için bu SKU zaten mevcut.");
+
+        var v = new ProductVariant
+        {
+            ProductId = productId,
+            Sku = dto.Sku,
+            Barcode = dto.Barcode,
+            Name = dto.Name,
+            ShadeCode = dto.ShadeCode,
+            ShadeFamily = dto.ShadeFamily,
+            HexColor = dto.HexColor,
+            SwatchImageUrl = dto.SwatchImageUrl,
+            ImageUrl = dto.ImageUrl,
+            Price = dto.Price,
+            DiscountPercent = dto.DiscountPercent,
+            StockQuantity = dto.StockQuantity,
+            IsActive = dto.StockQuantity > 0,
+            IsDefault = dto.IsDefault
+        };
+
+        if (v.IsDefault)
+        {
+            await db.ProductVariants
+                .Where(x => x.ProductId == productId && x.IsDefault)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsDefault, false));
+        }
+
+        db.ProductVariants.Add(v);
+        await db.SaveChangesAsync();
+
+        // CreatedAtAction (istenirse admin variant get ucu eklenip ona link verilebilir)
+        return Ok(ToVariantDto(v));
+    }
+
+    [HttpPut("{productId:int}/variants/{id:int}")]
+    public async Task<IActionResult> AdminUpdateVariant(
+        int productId,
+        int id,
+        [FromBody] ProductVariantDto dto,
+        [FromServices] AppDbContext db)
+    {
+        var v = await db.ProductVariants
+            .FirstOrDefaultAsync(x => x.Id == id && x.ProductId == productId);
+        if (v is null) return NotFound();
+
+        // SKU benzersizliği (kendi dışındakiler)
+        var skuExists = await db.ProductVariants.AnyAsync(x =>
+            x.ProductId == productId && x.Sku == dto.Sku && x.Id != id);
+        if (skuExists) return BadRequest("Aynı ürün için bu SKU zaten mevcut.");
+
+        v.Sku = dto.Sku;
+        v.Barcode = dto.Barcode;
+        v.Name = dto.Name;
+        v.ShadeCode = dto.ShadeCode;
+        v.ShadeFamily = dto.ShadeFamily;
+        v.HexColor = dto.HexColor;
+        v.SwatchImageUrl = dto.SwatchImageUrl;
+        v.ImageUrl = dto.ImageUrl;
+        v.Price = dto.Price;
+        v.DiscountPercent = dto.DiscountPercent;
+        v.StockQuantity = dto.StockQuantity;
+        v.IsActive = dto.StockQuantity > 0;
+
+        if (dto.IsDefault && !v.IsDefault)
+        {
+            await db.ProductVariants
+                .Where(x => x.ProductId == productId && x.IsDefault)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsDefault, false));
+            v.IsDefault = true;
+        }
+        else if (!dto.IsDefault && v.IsDefault)
+        {
+            v.IsDefault = false;
+        }
+
+        await db.SaveChangesAsync();
+        return Ok(ToVariantDto(v));
+    }
+
+    [HttpDelete("{productId:int}/variants/{id:int}")]
+    public async Task<IActionResult> AdminDeleteVariant(int productId, int id, [FromServices] AppDbContext db)
+    {
+        var v = await db.ProductVariants.FirstOrDefaultAsync(x => x.Id == id && x.ProductId == productId);
+        if (v is null) return NotFound();
+        db.ProductVariants.Remove(v);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // ---- Local helper: Entity -> DTO map ----
+    private static ProductVariantDto ToVariantDto(ProductVariant v) => new(
+        v.Id,
+        v.ProductId,
+        v.Sku,
+        v.Barcode,
+        v.Name,
+        v.ShadeCode,
+        v.ShadeFamily,
+        v.HexColor,
+        v.SwatchImageUrl,
+        v.ImageUrl,
+        v.Price,
+        v.DiscountPercent,
+        v.StockQuantity,
+        v.IsActive,
+        v.IsDefault
+    );
+    
+    private static ProductVariantUpsertDto ToVariantUpsertDto(ProductVariant v) => new(
+        v.Id,              // int? Id
+        v.Sku,
+        v.Barcode,
+        v.Name,
+        v.ShadeCode,
+        v.ShadeFamily,
+        v.HexColor,
+        v.SwatchImageUrl,
+        v.ImageUrl,
+        v.Price,
+        v.DiscountPercent,
+        v.StockQuantity,
+        v.IsActive,
+        v.IsDefault
+    );
 }

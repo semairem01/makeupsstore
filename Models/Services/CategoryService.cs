@@ -20,6 +20,7 @@ public class CategoryService : ICategoryService
             .Where(c => c.ParentCategoryId == null) // Ana kategoriler
             .Select(c => MapToDto(c))
             .ToList();
+           
     }
 
     public async Task<CategoryDto?> GetByIdAsync(int id)

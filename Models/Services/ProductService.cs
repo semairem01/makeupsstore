@@ -58,21 +58,28 @@ namespace makeup.Models.Services
                 .ToArray();
         }
 
-        // ✅ StockQuantity eklendi
-        private static ProductDto ToDto(Product p, double? ratingAvg = null, int ratingCount = 0)
+        private static ProductVariantDto ToVariantDto(ProductVariant v) => new(
+            v.Id, v.ProductId, v.Sku, v.Barcode, v.Name, v.ShadeCode, v.ShadeFamily,
+            v.HexColor, v.SwatchImageUrl, v.ImageUrl, v.Price, v.DiscountPercent,
+            v.StockQuantity, v.IsActive, v.IsDefault);
+
+        private static ProductDto ToDto(Product p, double? ratingAvg = null, int ratingCount = 0,
+            decimal? overridePrice = null,
+            string? overrideImage = null,
+            decimal? overrideDiscount = null)
             => new(
                 p.Id,
                 p.Name,
                 p.Brand,
                 p.Description,
-                p.Price,
+                overridePrice ?? p.Price,
                 p.IsActive,
-                p.ImageUrl,
+                overrideImage ?? p.ImageUrl,
                 p.Color,
                 p.Size,
                 p.CategoryId,
                 p.Category?.Name ?? "",
-                p.DiscountPercent,
+                overrideDiscount ?? p.DiscountPercent,
                 (int)p.SuitableForSkin,
                 p.Finish?.ToString(),
                 p.Coverage?.ToString(),
@@ -86,7 +93,9 @@ namespace makeup.Models.Services
                 p.Tags,
                 ratingAvg,
                 ratingCount,
-                p.StockQuantity  // ✅ EKLENDI
+                p.StockQuantity,
+                p.Variants?.OrderByDescending(v => v.IsDefault).ThenBy(v => v.Name)
+                    .Select(ToVariantDto).ToList()
             );
 
         private async Task<Dictionary<int, (double Avg, int Count)>> GetRatingsMapAsync(IEnumerable<int> productIds)
@@ -95,7 +104,9 @@ namespace makeup.Models.Services
             if (!ids.Any()) return new Dictionary<int, (double, int)>();
 
             var ratingAgg = await _db.ProductReviews
-                .Where(r => ids.Contains(r.ProductId) && r.Status == ProductReview.ReviewStatus.Approved)
+                .Where(r => ids.Contains(r.ProductId) &&
+                            r.Status == ProductReview.ReviewStatus.Approved &&
+                            r.VariantId == null)
                 .GroupBy(r => r.ProductId)
                 .Select(g => new
                 {
@@ -108,6 +119,7 @@ namespace makeup.Models.Services
             return ratingAgg.ToDictionary(x => x.ProductId, x => (x.Avg, x.Count));
         }
 
+        // ---------- CRUD & basit sorgular ----------
         public async Task<IEnumerable<ProductDto>> GetAllAsync()
         {
             var products = await _productRepository.GetAllAsync();
@@ -119,27 +131,6 @@ namespace makeup.Models.Services
                 ratings.TryGetValue(p.Id, out var rating);
                 return ToDto(p, rating.Avg, rating.Count);
             }).ToList();
-        }
-
-        public async Task<IEnumerable<ProductDto>> GetDiscountedAsync()
-        {
-            var all = await _productRepository.GetAllAsync();
-            var filtered = all.Where(p => p.IsActive && (p.DiscountPercent ?? 0) > 0).ToList();
-
-            var ids = filtered.Select(p => p.Id).ToList();
-            var ratings = await GetRatingsMapAsync(ids);
-
-            var discounted = filtered
-                .Select(p =>
-                {
-                    ratings.TryGetValue(p.Id, out var rating);
-                    return ToDto(p, rating.Avg, rating.Count);
-                })
-                .OrderByDescending(p => p.DiscountPercent)
-                .ThenBy(p => p.Name)
-                .ToList();
-
-            return discounted;
         }
 
         public async Task<ProductDto?> GetByIdAsync(int id)
@@ -174,7 +165,6 @@ namespace makeup.Models.Services
         public async Task<IEnumerable<ProductDto>> GetByCategoryTreeAsync(int categoryId)
         {
             var allCats = await _categoryRepository.GetAllAsync();
-
             var wanted = new HashSet<int> { categoryId };
             var q = new Queue<int>();
             q.Enqueue(categoryId);
@@ -202,6 +192,40 @@ namespace makeup.Models.Services
                 ratings.TryGetValue(p.Id, out var rating);
                 return ToDto(p, rating.Avg, rating.Count);
             }).ToList();
+        }
+
+        public async Task<IEnumerable<ProductDto>> GetDiscountedAsync()
+        {
+            var all = await _productRepository.GetAllAsync();
+            var filtered = all.Where(p => p.IsActive && (p.DiscountPercent ?? 0) > 0).ToList();
+
+            var ids = filtered.Select(p => p.Id).ToList();
+            var ratings = await GetRatingsMapAsync(ids);
+
+            var discounted = filtered
+                .Select(p =>
+                {
+                    ratings.TryGetValue(p.Id, out var rating);
+                    return ToDto(p, rating.Avg, rating.Count);
+                })
+                .OrderByDescending(p => p.DiscountPercent)
+                .ThenBy(p => p.Name)
+                .ToList();
+
+            return discounted;
+        }
+
+        public async Task<IEnumerable<ProductDto>> SearchAsync(string? query)
+        {
+            var list = await _productRepository.SearchAsync(query);
+            var ids = list.Select(p => p.Id).ToList();
+            var ratings = await GetRatingsMapAsync(ids);
+
+            return list.Select(p =>
+            {
+                ratings.TryGetValue(p.Id, out var rating);
+                return ToDto(p, rating.Avg, rating.Count);
+            });
         }
 
         public async Task<ServiceResult<ProductDto>> CreateAsync(ProductCreateDto dto)
@@ -237,7 +261,6 @@ namespace makeup.Models.Services
             };
 
             await _productRepository.AddAsync(product);
-
             var productDto = ToDto(product, null, 0);
             return ServiceResult<ProductDto>.Ok(productDto, "Product created successfully!");
         }
@@ -325,8 +348,8 @@ namespace makeup.Models.Services
             var ratings = await GetRatingsMapAsync(new[] { product.Id });
             ratings.TryGetValue(product.Id, out var rating);
 
-            var productDto = ToDto(product, rating.Avg, rating.Count);
-            return ServiceResult<ProductDto>.Ok(productDto, "Product updated successfully!");
+            var updated = ToDto(product, rating.Avg, rating.Count);
+            return ServiceResult<ProductDto>.Ok(updated, "Product updated successfully!");
         }
 
         public async Task<ServiceResult<bool>> DeleteAsync(int id)
@@ -339,80 +362,64 @@ namespace makeup.Models.Services
             return ServiceResult<bool>.Ok(true, "Product deleted successfully!");
         }
 
-        public async Task<IEnumerable<ProductDto>> SearchAsync(string? query)
-        {
-            var list = await _productRepository.SearchAsync(query);
-            var ids = list.Select(p => p.Id).ToList();
-            var ratings = await GetRatingsMapAsync(ids);
-
-            return list.Select(p =>
-            {
-                ratings.TryGetValue(p.Id, out var rating);
-                return ToDto(p, rating.Avg, rating.Count);
-            });
-        }
-
+        // ---------- Klasik browse (paged by product) ----------
         public async Task<PagedResult<ProductDto>> BrowseAsync(ProductBrowseQuery q)
         {
             q ??= new ProductBrowseQuery();
-
             var page = Math.Max(1, q.Page);
             var pageSize = Math.Clamp(q.PageSize, 6, 48);
 
-            // Rating aggregation
-            var reviewsAgg = _db.ProductReviews
-                .Where(r => r.Status == ProductReview.ReviewStatus.Approved)
-                .GroupBy(r => r.ProductId)
-                .Select(g => new
+            var reviewsAgg =
+                _db.ProductReviews
+                    .Where(r => r.Status == ProductReview.ReviewStatus.Approved)
+                    .GroupBy(r => r.ProductId)
+                    .Select(g => new
+                    {
+                        ProductId = g.Key,
+                        Avg = g.Average(x => (double)x.Rating),
+                        Cnt = g.Count()
+                    });
+
+            var defaultVariants = await _db.ProductVariants
+                .Where(v => v.IsDefault)
+                .Select(v => new
                 {
-                    ProductId = g.Key,
-                    Avg = g.Average(x => (double)x.Rating),
-                    Cnt = g.Count()
-                });
+                    v.ProductId,
+                    v.ImageUrl,
+                    v.Price,
+                    v.DiscountPercent,
+                    v.StockQuantity,
+                    v.Id
+                })
+                .ToListAsync();
+
+            var defaultVarMap = defaultVariants
+                .GroupBy(v => v.ProductId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(v => v.StockQuantity).ThenBy(v => v.Id).FirstOrDefault()
+                );
 
             var baseQuery =
-                from p in _db.Products.AsNoTracking()  // ✅ IsActive kontrolü kaldırıldı
-                join r in reviewsAgg on p.Id equals r.ProductId into gj
-                from r in gj.DefaultIfEmpty()
+                from p in _db.Products.AsNoTracking()
+                join r in reviewsAgg on p.Id equals r.ProductId into rj
+                from r in rj.DefaultIfEmpty()
+                join c in _db.Categories on p.CategoryId equals c.Id
                 select new
                 {
                     Product = p,
-                    Category = p.Category,
+                    CategoryName = c.Name,
                     RatingAverage = (double?)(r != null ? r.Avg : null),
                     RatingCount = (int?)(r != null ? r.Cnt : null)
                 };
 
-            // ✅ Stok filtresi (SADECE InStock parametresi true ise uygulanır)
+            // Filters
             if (q.InStock == true)
                 baseQuery = baseQuery.Where(x => x.Product.StockQuantity > 0);
 
-            // Kategori filtreleri
             if (q.CategoryId is int cid)
                 baseQuery = baseQuery.Where(x => x.Product.CategoryId == cid);
 
-            if (q.CategoryTreeId is int treeId)
-            {
-                var allCats = await _categoryRepository.GetAllAsync();
-                var wanted = new HashSet<int> { treeId };
-                var byParent = allCats
-                    .GroupBy(c => c.ParentCategoryId ?? 0)
-                    .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToList());
-
-                var bfs = new Queue<int>();
-                bfs.Enqueue(treeId);
-                while (bfs.Count > 0)
-                {
-                    var cur = bfs.Dequeue();
-                    if (byParent.TryGetValue(cur, out var kids))
-                        foreach (var k in kids)
-                            if (wanted.Add(k))
-                                bfs.Enqueue(k);
-                }
-
-                baseQuery = baseQuery.Where(x => wanted.Contains(x.Product.CategoryId));
-            }
-
-            // Arama
             if (!string.IsNullOrWhiteSpace(q.Q))
             {
                 var term = q.Q.Trim();
@@ -422,34 +429,33 @@ namespace makeup.Models.Services
                     EF.Functions.Like(x.Product.Description, $"%{term}%"));
             }
 
-            // Fiyat filtreleri
-            if (q.PriceMin is decimal pmin) baseQuery = baseQuery.Where(x => x.Product.Price >= pmin);
-            if (q.PriceMax is decimal pmax) baseQuery = baseQuery.Where(x => x.Product.Price <= pmax);
-            if (q.Discounted == true) baseQuery = baseQuery.Where(x => (x.Product.DiscountPercent ?? 0) > 0);
+            if (q.PriceMin is decimal pmin)
+                baseQuery = baseQuery.Where(x => x.Product.Price >= pmin);
+            if (q.PriceMax is decimal pmax)
+                baseQuery = baseQuery.Where(x => x.Product.Price <= pmax);
+            if (q.Discounted == true)
+                baseQuery = baseQuery.Where(x => (x.Product.DiscountPercent ?? 0) > 0);
 
-            // Marka filtresi
             var brands = SplitCsv(q.Brands);
             if (brands.Length > 0)
                 baseQuery = baseQuery.Where(x => brands.Contains(x.Product.Brand));
 
-            // Cilt tipi (bitmask)
             if (q.SuitableForSkin is int mask && mask > 0)
                 baseQuery = baseQuery.Where(x => ((int)x.Product.SuitableForSkin & mask) != 0);
 
-            // Rating - ÇOKLU SEÇIM
             if (!string.IsNullOrWhiteSpace(q.SelectedRatings))
             {
-                var ratings = q.SelectedRatings
+                var ratingsSel = q.SelectedRatings
                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Select(s => int.TryParse(s, out var num) ? num : -1)
                     .Where(n => n >= 1 && n <= 5)
                     .ToList();
 
-                if (ratings.Any())
+                if (ratingsSel.Any())
                 {
                     baseQuery = baseQuery.Where(x =>
                         x.RatingAverage != null &&
-                        ratings.Any(rating =>
+                        ratingsSel.Any(rating =>
                             x.RatingAverage >= rating - 0.5 &&
                             x.RatingAverage < rating + 0.5
                         )
@@ -457,26 +463,13 @@ namespace makeup.Models.Services
                 }
             }
 
-            // Özellik filtreleri
-            if (q.HasSpf == true)
-                baseQuery = baseQuery.Where(x => x.Product.HasSpf);
+            if (q.HasSpf == true) baseQuery = baseQuery.Where(x => x.Product.HasSpf);
+            if (q.FragranceFree == true) baseQuery = baseQuery.Where(x => x.Product.FragranceFree);
+            if (q.NonComedogenic == true) baseQuery = baseQuery.Where(x => x.Product.NonComedogenic);
+            if (q.Longwear == true) baseQuery = baseQuery.Where(x => x.Product.Longwear);
+            if (q.Waterproof == true) baseQuery = baseQuery.Where(x => x.Product.Waterproof);
+            if (q.PhotoFriendly == true) baseQuery = baseQuery.Where(x => x.Product.PhotoFriendly);
 
-            if (q.FragranceFree == true)
-                baseQuery = baseQuery.Where(x => x.Product.FragranceFree);
-
-            if (q.NonComedogenic == true)
-                baseQuery = baseQuery.Where(x => x.Product.NonComedogenic);
-
-            if (q.Longwear == true)
-                baseQuery = baseQuery.Where(x => x.Product.Longwear);
-
-            if (q.Waterproof == true)
-                baseQuery = baseQuery.Where(x => x.Product.Waterproof);
-
-            if (q.PhotoFriendly == true)
-                baseQuery = baseQuery.Where(x => x.Product.PhotoFriendly);
-
-            // Finish filtresi
             if (!string.IsNullOrWhiteSpace(q.Finish))
             {
                 var finishEnum = ParseFinish(q.Finish);
@@ -484,7 +477,6 @@ namespace makeup.Models.Services
                     baseQuery = baseQuery.Where(x => x.Product.Finish == finishEnum.Value);
             }
 
-            // Coverage filtresi
             if (!string.IsNullOrWhiteSpace(q.Coverage))
             {
                 var coverageEnum = ParseCoverage(q.Coverage);
@@ -492,15 +484,12 @@ namespace makeup.Models.Services
                     baseQuery = baseQuery.Where(x => x.Product.Coverage == coverageEnum.Value);
             }
 
-            // Sıralama
             var sort = string.IsNullOrWhiteSpace(q.Sort) ? "best" : q.Sort;
-
             var orderedQuery = sort switch
             {
                 "price_asc" => baseQuery.OrderBy(x => x.Product.Price).ThenBy(x => x.Product.Name),
                 "price_desc" => baseQuery.OrderByDescending(x => x.Product.Price).ThenBy(x => x.Product.Name),
-                "discount" => baseQuery.OrderByDescending(x => x.Product.DiscountPercent ?? 0)
-                    .ThenBy(x => x.Product.Price),
+                "discount" => baseQuery.OrderByDescending(x => x.Product.DiscountPercent ?? 0).ThenBy(x => x.Product.Price),
                 "new" => baseQuery.OrderByDescending(x => x.Product.Id),
                 "best" => baseQuery.OrderByDescending(x => x.RatingAverage ?? 0)
                     .ThenByDescending(x => x.RatingCount ?? 0)
@@ -508,18 +497,32 @@ namespace makeup.Models.Services
                 _ => baseQuery.OrderBy(x => x.Product.Brand).ThenBy(x => x.Product.Name)
             };
 
-            var total = await orderedQuery.CountAsync();
+            var totalList = await orderedQuery.Select(x => x.Product.Id).ToListAsync();
+            var total = totalList.Count;
 
-            var paged = await orderedQuery
+            var tempList = await orderedQuery
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            var items = paged.Select(x =>
+            var items = new List<ProductDto>();
+
+            foreach (var x in tempList)
             {
-                x.Product.Category = x.Category;
-                return ToDto(x.Product, x.RatingAverage, x.RatingCount ?? 0);
-            }).ToList();
+                var overrideData = await _db.ProductVariants
+                    .Where(v => v.ProductId == x.Product.Id && v.IsDefault)
+                    .OrderByDescending(v => v.StockQuantity).ThenBy(v => v.Id)
+                    .FirstOrDefaultAsync();
+
+                items.Add(ToDto(
+                    x.Product,
+                    x.RatingAverage,
+                    x.RatingCount ?? 0,
+                    overrideData?.Price,
+                    overrideData?.ImageUrl,
+                    overrideData?.DiscountPercent
+                ));
+            }
 
             return new PagedResult<ProductDto>
             {
@@ -529,6 +532,138 @@ namespace makeup.Models.Services
                 TotalItems = total,
                 TotalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize))
             };
+        }
+
+        // ---------- Genişletilmiş liste (varyantlar ayrı satır) ----------
+        public async Task<IEnumerable<ProductListItemDto>> BrowseExpandedAsync(ProductBrowseQuery q)
+        {
+            q ??= new ProductBrowseQuery();
+
+            var baseQ = _db.Products
+                .AsNoTracking()
+                .Include(p => p.Variants)
+                .Where(p => p.IsActive);
+
+            if (q.InStock == true)
+                baseQ = baseQ.Where(p => p.StockQuantity > 0);
+
+            if (q.CategoryId is int cid)
+                baseQ = baseQ.Where(p => p.CategoryId == cid);
+
+            if (!string.IsNullOrWhiteSpace(q.Q))
+            {
+                var term = q.Q.Trim();
+                baseQ = baseQ.Where(p =>
+                    EF.Functions.Like(p.Name, $"%{term}%") ||
+                    EF.Functions.Like(p.Brand, $"%{term}%") ||
+                    EF.Functions.Like(p.Description, $"%{term}%"));
+            }
+
+            if (q.PriceMin is decimal pmin) baseQ = baseQ.Where(p => p.Price >= pmin);
+            if (q.PriceMax is decimal pmax) baseQ = baseQ.Where(p => p.Price <= pmax);
+            if (q.Discounted == true) baseQ = baseQ.Where(p => (p.DiscountPercent ?? 0) > 0);
+
+            var brands = SplitCsv(q.Brands);
+            if (brands.Length > 0) baseQ = baseQ.Where(p => brands.Contains(p.Brand));
+
+            if (q.SuitableForSkin is int mask && mask > 0)
+                baseQ = baseQ.Where(p => ((int)p.SuitableForSkin & mask) != 0);
+
+            if (!string.IsNullOrWhiteSpace(q.Finish))
+            {
+                var finishEnum = ParseFinish(q.Finish);
+                if (finishEnum.HasValue) baseQ = baseQ.Where(p => p.Finish == finishEnum.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(q.Coverage))
+            {
+                var coverageEnum = ParseCoverage(q.Coverage);
+                if (coverageEnum.HasValue) baseQ = baseQ.Where(p => p.Coverage == coverageEnum.Value);
+            }
+
+            if (q.HasSpf == true) baseQ = baseQ.Where(p => p.HasSpf);
+            if (q.FragranceFree == true) baseQ = baseQ.Where(p => p.FragranceFree);
+            if (q.NonComedogenic == true) baseQ = baseQ.Where(p => p.NonComedogenic);
+            if (q.Longwear == true) baseQ = baseQ.Where(p => p.Longwear);
+            if (q.Waterproof == true) baseQ = baseQ.Where(p => p.Waterproof);
+            if (q.PhotoFriendly == true) baseQ = baseQ.Where(p => p.PhotoFriendly);
+
+            var products = await baseQ.ToListAsync();
+
+            if (!string.IsNullOrWhiteSpace(q.SelectedRatings))
+            {
+                var ratingsSel = q.SelectedRatings
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(s => int.TryParse(s, out var n) ? n : -1)
+                    .Where(n => n >= 1 && n <= 5)
+                    .ToList();
+                
+                if (ratingsSel.Any())
+                {
+                    // Avg & Count haritasını çek (ProductService’te zaten var)
+                    var ratingMap = await GetRatingsMapAsync(products.Select(p => p.Id));
+                    
+                    products = products
+                        .Where(p =>
+                            ratingMap.TryGetValue(p.Id, out var r) &&
+                            ratingsSel.Any(star => r.Avg >= star - 0.5 && r.Avg < star + 0.5)
+                            )
+                        .ToList();
+                }
+            }
+            
+            // Varyantları ayrı satıra yay
+            var items = new List<ProductListItemDto>();
+
+            foreach (var p in products)
+            {
+                var variants = p.Variants?.Where(v => v.IsActive).ToList() ?? new List<ProductVariant>();
+
+                if (variants.Count == 0)
+                {
+                    items.Add(new ProductListItemDto(
+                        p.Id, null, p.Name, p.Brand, p.ImageUrl,
+                        p.Price, p.DiscountPercent,
+                        p.DiscountPercent.HasValue && p.DiscountPercent > 0
+                            ? p.Price * (1 - p.DiscountPercent.Value / 100m)
+                            : p.Price,
+                        p.IsActive && p.StockQuantity > 0,
+                        p.ShadeFamily, null
+                    ));
+                }
+                else
+                {
+                    foreach (var v in variants.OrderByDescending(x => x.IsDefault).ThenBy(x => x.Name))
+                    {
+                        items.Add(new ProductListItemDto(
+                            p.Id, v.Id,
+                            $"{p.Name} - {v.Name}",
+                            p.Brand,
+                            v.ImageUrl,
+                            v.Price,
+                            v.DiscountPercent,
+                            v.DiscountPercent.HasValue && v.DiscountPercent > 0
+                                ? v.Price * (1 - v.DiscountPercent.Value / 100m)
+                                : v.Price,
+                            v.IsActive && v.StockQuantity > 0,
+                            v.ShadeFamily,
+                            v.HexColor
+                        ));
+                    }
+                }
+            }
+
+            var sort = string.IsNullOrWhiteSpace(q.Sort) ? "best" : q.Sort;
+            var sorted = sort switch
+            {
+                "price_asc" => items.OrderBy(x => x.FinalPrice).ThenBy(x => x.Name).ToList(),
+                "price_desc" => items.OrderByDescending(x => x.FinalPrice).ThenBy(x => x.Name).ToList(),
+                "discount" => items.OrderByDescending(x => x.DiscountPercent ?? 0).ThenBy(x => x.FinalPrice).ToList(),
+                "new" => items.OrderByDescending(x => x.ProductId).ToList(),
+                _ => items.OrderByDescending(x => x.IsActive).ThenBy(x => x.Brand).ThenBy(x => x.Name).ToList()
+            };
+
+            return sorted;
         }
     }
 }

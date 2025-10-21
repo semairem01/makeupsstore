@@ -1,4 +1,6 @@
-﻿namespace makeup.Models.Repositories;
+﻿using makeup.Models.Repositories.Entities;
+
+namespace makeup.Models.Repositories;
 
 public class OrderItem
 {
@@ -13,4 +15,7 @@ public class OrderItem
     public int Quantity { get; set; }
     
     public decimal UnitPrice { get; set; } // Sipariş anındaki fiyat
+    
+    public int? VariantId { get; set; }
+    public ProductVariant? Variant { get; set; }
 }

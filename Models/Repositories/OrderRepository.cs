@@ -16,7 +16,9 @@ public class OrderRepository : IOrderRepository
     {
         return await _context.Orders
             .Include(o => o.OrderItems)
-            .ThenInclude(oi => oi.Product)
+                .ThenInclude(oi => oi.Product)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Variant)   // ✅ varyant da yüklensin
             .FirstOrDefaultAsync(o => o.Id == orderId);
     }
 
@@ -25,7 +27,9 @@ public class OrderRepository : IOrderRepository
         return await _context.Orders
             .Where(o => o.UserId == userId)
             .Include(o => o.OrderItems)
-            .ThenInclude(oi => oi.Product)
+                .ThenInclude(oi => oi.Product)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Variant)   // ✅ liste sorgusunda da varyant
             .ToListAsync();
     }
 
@@ -33,7 +37,9 @@ public class OrderRepository : IOrderRepository
     {
         return await _context.Orders
             .Include(o => o.OrderItems)
-            .ThenInclude(oi => oi.Product)
+                .ThenInclude(oi => oi.Product)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Variant)   // ✅ admin listesi için de
             .ToListAsync();
     }
 
@@ -58,32 +64,44 @@ public class OrderRepository : IOrderRepository
             await _context.SaveChangesAsync();
         }
     }
-    
-    // kullanıcı sadece sipariş alındı veya hazırlanıyor aşamasında siparişi iptal edebilir
 
+    // kullanıcı sadece sipariş alındı veya hazırlanıyor aşamasında siparişi iptal edebilir
     public async Task CancelOrderAsync(int orderId, Guid userId)
     {
         var order = await _context.Orders
             .Include(o => o.OrderItems)
-            .ThenInclude(oi => oi.Product)
+                .ThenInclude(oi => oi.Product)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Variant)   // ✅ stok iadesinde varyant lazım
             .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
-        
-        if(order == null)
+
+        if (order == null)
             throw new Exception("Sipariş bulunamadı.");
-        
+
         if (order.Status == OrderStatus.IptalEdildi)
             throw new Exception("Sipariş zaten iptal edilmiş.");
-        
+
         if (order.Status == OrderStatus.Kargoda || order.Status == OrderStatus.TeslimEdildi)
             throw new Exception("Sipariş kargoya verildikten sonra iptal edilemez.");
 
         order.Status = OrderStatus.IptalEdildi;
-        
+
         foreach (var item in order.OrderItems)
         {
-            item.Product.StockQuantity += item.Quantity;
+            // ✅ Varyant varsa varyant stoğunu iade et; yoksa ürün stoğunu iade et
+            if (item.VariantId.HasValue && item.Variant != null)
+            {
+                item.Variant.StockQuantity += item.Quantity;
+                // İstersen stok 0 üstüne çıktıysa tekrar aktif et:
+                // item.Variant.IsActive = true;
+            }
+            else if (item.Product != null)
+            {
+                item.Product.StockQuantity += item.Quantity;
+                // item.Product.IsActive = true;
+            }
         }
-        
+
         await _context.SaveChangesAsync();
     }
 }

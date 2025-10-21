@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using makeup.Models.Repositories.Entities;
 
 namespace makeup.Models.Repositories;
 
@@ -78,4 +79,6 @@ public class Product
 
     // Anahtar kelime/tags (örn: “glitter,shimmer,matte,longwear”)
     public string? Tags { get; set; }
+    public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
+    
 }

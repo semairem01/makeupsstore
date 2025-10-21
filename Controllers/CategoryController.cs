@@ -11,10 +11,11 @@ namespace makeup.Controllers;
 public class CategoryController : ControllerBase
 {
     private readonly ICategoryService _categoryService;
-
-    public CategoryController(ICategoryService categoryService)
+    private readonly ICategoryRepository _categoryRepository;
+    public CategoryController(ICategoryService categoryService, ICategoryRepository categoryRepository)
     {
         _categoryService = categoryService;
+        _categoryRepository = categoryRepository;
     }
 
     [HttpGet]
@@ -23,7 +24,7 @@ public class CategoryController : ControllerBase
         var categories = await _categoryService.GetAllAsync();
         return Ok(categories);
     }
-
+    
     [HttpGet("{id}")]
     public async Task<ActionResult<CategoryDto>> GetById(int id)
     {
