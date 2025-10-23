@@ -21,6 +21,7 @@ public class RegisterDto
 {
     [Required(ErrorMessage = "Kullanıcı adı gereklidir")]
     [StringLength(50, ErrorMessage = "Kullanıcı adı en fazla 50 karakter olabilir")]
+    [RegularExpression(@"^[a-zA-Z0-9._-]{3,30}$", ErrorMessage = "Geçersiz kullanıcı adı")]
     public string UserName { get; set; } = string.Empty;
     
     [Required(ErrorMessage = "Email gereklidir")]
@@ -29,7 +30,7 @@ public class RegisterDto
     
     [Required(ErrorMessage = "Şifre gereklidir")]
     [MinLength(6, ErrorMessage = "Şifre en az 6 karakter olmalıdır")]
-    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{6,}$", 
+    [RegularExpression(@"^(?=.*\p{Ll})(?=.*\p{Lu})(?=.*\d)[\p{L}\d@$!%*?&]{6,}$",
         ErrorMessage = "Şifre en az 1 büyük harf, 1 küçük harf ve 1 rakam içermelidir")]
     public string Password { get; set; } = string.Empty;
     
@@ -71,6 +72,7 @@ public class UpdateProfileDto
 {
     [Required(ErrorMessage = "Kullanıcı adı gereklidir")]
     [StringLength(50)]
+    [RegularExpression(@"^[a-zA-Z0-9._-]{3,30}$", ErrorMessage = "Geçersiz kullanıcı adı")]
     public string UserName { get; set; } = string.Empty;
     
     [Required(ErrorMessage = "Email gereklidir")]
@@ -89,7 +91,7 @@ public class ChangePasswordDto
     
     [Required(ErrorMessage = "Yeni şifre gereklidir")]
     [MinLength(6, ErrorMessage = "Şifre en az 6 karakter olmalıdır")]
-    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{6,}$", 
+    [RegularExpression(@"^(?=.*\p{Ll})(?=.*\p{Lu})(?=.*\d)[\p{L}\d@$!%*?&]{6,}$",
         ErrorMessage = "Şifre en az 1 büyük harf, 1 küçük harf ve 1 rakam içermelidir")]
     public string NewPassword { get; set; } = string.Empty;
     

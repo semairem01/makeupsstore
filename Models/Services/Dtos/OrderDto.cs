@@ -41,5 +41,14 @@ public record OrderItemUpdateDto(
 
 public record CheckoutRequestDto(
     string ShippingMethod,         // "standard" | "express"
-    decimal ShippingFee            // 0 if free shipping
+    decimal ShippingFee,
+    int? AddressId = null,// 0 if free shipping
+    string? ShipFullName = null,
+    string? ShipPhone = null,
+    string? ShipCity = null,
+    string? ShipDistrict = null,
+    string? ShipNeighborhood = null,
+    string? ShipLine = null,
+    string? ShipPostalCode = null,
+    string? ShipNotes = null
 );

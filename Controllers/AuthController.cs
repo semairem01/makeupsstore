@@ -3,6 +3,8 @@ using makeup.Models.Services.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using makeup.Models.Repositories.Entities;
+using Microsoft.AspNetCore.Identity;
 
 namespace makeup.Controllers;
 
@@ -11,12 +13,25 @@ namespace makeup.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthenticationService _authenticationService;
+    private readonly UserManager<AppUser> _userManager;
 
-    public AuthController(IAuthenticationService authService)
+    public AuthController(IAuthenticationService authService, UserManager<AppUser> userManager)
     {
         _authenticationService = authService;
+        _userManager = userManager;
     }
 
+    [HttpGet("check-username")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CheckUsername([FromQuery] string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return BadRequest(new { available = false, message = "Username boş olamaz" });
+
+        var exists = await _userManager.FindByNameAsync(username);
+        return Ok(new { available = exists == null });
+    }
+    
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
     {

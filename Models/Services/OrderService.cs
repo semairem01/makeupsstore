@@ -114,7 +114,7 @@ public class OrderService : IOrderService
         return ServiceResult<bool>.Ok(true, "Order deleted successfully!");
     }
 
-    public async Task<ServiceResult<OrderDto>> CheckoutAsync(Guid userId, decimal shippingFee, string shippingMethod)
+    public async Task<ServiceResult<OrderDto>> CheckoutAsync(Guid userId, decimal shippingFee, string shippingMethod,ShippingSnapshotDto? shippingSnapshot = null)
     {
         if (userId == Guid.Empty)
             return ServiceResult<OrderDto>.Fail("Kullanıcı bulunamadı");
@@ -203,6 +203,16 @@ public class OrderService : IOrderService
                 ShippingMethod = normalizedMethod
             };
 
+            if (shippingSnapshot != null)
+            {
+                order.ShipFullName     = shippingSnapshot.ShipFullName ?? "";
+                order.ShipPhone        = shippingSnapshot.ShipPhone ?? "";
+                order.ShipCity         = shippingSnapshot.ShipCity ?? "";
+                order.ShipDistrict     = shippingSnapshot.ShipDistrict ?? "";
+                order.ShipNeighborhood = shippingSnapshot.ShipNeighborhood ?? "";
+                order.ShipLine         = shippingSnapshot.ShipLine ?? "";
+                order.ShipPostalCode   = shippingSnapshot.ShipPostalCode ?? "";
+            }
             await _orderRepository.AddAsync(order);
             await _cartItemRepository.ClearCartAsync(userId);
 

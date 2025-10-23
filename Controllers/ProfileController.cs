@@ -1,12 +1,13 @@
 ﻿using System.Security.Claims;
+using makeup.Models.Repositories;
 using makeup.Models.Repositories.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace makeup.Controllers;
 
-// Controllers/ProfileController.cs
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -14,29 +15,42 @@ public class ProfileController : ControllerBase
 {
     private readonly UserManager<AppUser> _users;
     private readonly IWebHostEnvironment _env;
+    private readonly AppDbContext _db;
 
-    public ProfileController(UserManager<AppUser> users, IWebHostEnvironment env)
+    public ProfileController(UserManager<AppUser> users, IWebHostEnvironment env, AppDbContext db)
     {
-        _users = users; _env = env;
+        _users = users; _env = env; _db = db;
     }
 
     private async Task<AppUser?> Me() =>
         await _users.FindByIdAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    public record ProfileDto(string Email, string? FirstName, string? LastName, string? Phone, string? AvatarUrl);
-    public record UpdateDto(string? FirstName, string? LastName, string? Phone);
+    public record ProfileDto(string Email, string? Username, string? FirstName, string? LastName, string? Phone, string? AvatarUrl);
+    public record UpdateDto(string? Username, string? FirstName, string? LastName, string? Phone);
+    public record PasswordChangeDto(string OldPassword, string NewPassword);
+    public record StatsDto(int Favorites, int Orders);
 
     [HttpGet]
     public async Task<ActionResult<ProfileDto>> Get()
     {
         var u = await Me(); if (u is null) return Unauthorized();
-        return Ok(new ProfileDto(u.Email!, u.FirstName, u.LastName, u.Phone, u.AvatarUrl));
+        return Ok(new ProfileDto(u.Email!, u.UserName, u.FirstName, u.LastName, u.Phone, u.AvatarUrl));
     }
 
     [HttpPut]
     public async Task<ActionResult> Update([FromBody] UpdateDto dto)
     {
         var u = await Me(); if (u is null) return Unauthorized();
+        
+        // Username kontrolü ve güncelleme
+        if (!string.IsNullOrWhiteSpace(dto.Username) && dto.Username != u.UserName)
+        {
+            var existing = await _users.FindByNameAsync(dto.Username);
+            if (existing != null && existing.Id != u.Id)
+                return BadRequest("Bu kullanıcı adı zaten kullanılıyor.");
+            u.UserName = dto.Username;
+        }
+        
         u.FirstName = dto.FirstName; u.LastName = dto.LastName; u.Phone = dto.Phone;
         var res = await _users.UpdateAsync(u);
         return res.Succeeded ? Ok() : BadRequest(string.Join("; ", res.Errors.Select(e => e.Description)));
@@ -62,5 +76,22 @@ public class ProfileController : ControllerBase
         u.AvatarUrl = $"/images/avatars/{fname}";
         await _users.UpdateAsync(u);
         return Ok(new { avatarUrl = u.AvatarUrl });
+    }
+
+    [HttpPost("change-password")]
+    public async Task<ActionResult> ChangePassword([FromBody] PasswordChangeDto dto)
+    {
+        var u = await Me(); if (u is null) return Unauthorized();
+        var result = await _users.ChangePasswordAsync(u, dto.OldPassword, dto.NewPassword);
+        return result.Succeeded ? Ok() : BadRequest(string.Join("; ", result.Errors.Select(e => e.Description)));
+    }
+
+    [HttpGet("stats")]
+    public async Task<ActionResult<StatsDto>> GetStats()
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var favCount = await _db.FavoriteProducts.CountAsync(f => f.UserId == userId);
+        var orderCount = await _db.Orders.CountAsync(o => o.UserId == userId);
+        return Ok(new StatsDto(favCount, orderCount));
     }
 }

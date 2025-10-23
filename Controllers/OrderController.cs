@@ -1,8 +1,16 @@
 ﻿using System.Security.Claims;
+using System.Linq; // ⬅️ eklendi
 using makeup.Models.Services;
 using makeup.Models.Services.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
+// ⬇️ EK: adresi DB'den okuyacağız
+using Microsoft.EntityFrameworkCore;
+using makeup.Models.Repositories;
+
+// ⬇️ EK: şehir/ilçe/mahalle isimlerini verisetinden çözeceğiz
+using makeup.Infrastructure; // GeoFileStore'ı nereye koyduysan o namespace
 
 namespace makeup.Controllers;
 
@@ -13,17 +21,20 @@ public class OrderController : ControllerBase
 {
     private readonly IOrderService _orderService;
 
-    public OrderController(IOrderService orderService)
+    // ⬇️ EK: minimum ek bağımlılıklar
+    private readonly AppDbContext _db;
+    private readonly GeoFileStore _geo;
+
+    public OrderController(IOrderService orderService, AppDbContext db, GeoFileStore geo)
     {
         _orderService = orderService;
+        _db = db;
+        _geo = geo;
     }
 
     // Current authenticated user id
     private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-    /// <summary>
-    /// Returns all orders of the current user.
-    /// </summary>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<OrderDto>>> GetAll()
     {
@@ -31,9 +42,6 @@ public class OrderController : ControllerBase
         return Ok(orders);
     }
 
-    /// <summary>
-    /// Returns a single order if it belongs to the current user.
-    /// </summary>
     [HttpGet("{id}")]
     public async Task<ActionResult<OrderDto>> GetById(int id)
     {
@@ -44,16 +52,71 @@ public class OrderController : ControllerBase
 
     /// <summary>
     /// Creates an order from the user's cart.
-    /// Accepts shipping information to be persisted with the order.
+    /// Accepts shipping information and optional addressId to snapshot.
     /// </summary>
     [HttpPost("checkout")]
     public async Task<ActionResult<OrderDto>> Checkout([FromBody] CheckoutRequestDto? dto)
     {
-        // Defensive defaults if body is null or fields are missing
+        // Defensive defaults
         var shippingFee = dto?.ShippingFee ?? 0m;
         var shippingMethod = string.IsNullOrWhiteSpace(dto?.ShippingMethod) ? "standard" : dto!.ShippingMethod;
 
-        var result = await _orderService.CheckoutAsync(CurrentUserId, shippingFee, shippingMethod);
+        // ⬇️ addressId gönderildiyse snapshot hazırla; yoksa dto'dan doldur
+        ShippingSnapshotDto? snapshot = null;
+
+        if (dto?.AddressId is int addrId && addrId > 0)
+        {
+            var addr = await _db.Addresses
+                .FirstOrDefaultAsync(a => a.Id == addrId && a.UserId == CurrentUserId);
+
+            if (addr is null)
+                return BadRequest("Adres bulunamadı veya size ait değil.");
+
+            // İsimleri verisetinden çöz (bulunamazsa fallback boş bırakma)
+            var cities = await _geo.GetCitiesAsync();
+            var cityName = cities.FirstOrDefault(c => c.sehir_id == addr.CityId.ToString())?.sehir_adi ?? "";
+            var dists = await _geo.GetDistrictsAsync();
+            var distName = dists.FirstOrDefault(d => d.ilce_id == addr.DistrictId.ToString())?.ilce_adi ?? "";
+            var nbList = await _geo.GetNeighborhoodsByDistrictAsync(addr.DistrictId.ToString());
+            var nbName = nbList.FirstOrDefault(n => n.mahalle_id == addr.NeighborhoodId.ToString())?.mahalle_adi ?? "";
+
+            var lineParts = new[]
+            {
+                addr.Street,
+                string.IsNullOrWhiteSpace(addr.BuildingNo) ? null : $"No:{addr.BuildingNo}",
+                string.IsNullOrWhiteSpace(addr.ApartmentNo) ? null : $"D:{addr.ApartmentNo}"
+            }.Where(s => !string.IsNullOrWhiteSpace(s));
+
+            snapshot = new ShippingSnapshotDto
+            {
+                ShipFullName     = addr.FullName,
+                ShipPhone        = addr.Phone,
+                ShipCity         = ToTitle(cityName),
+                ShipDistrict     = ToTitle(distName),
+                ShipNeighborhood = ToTitle(nbName),
+                ShipLine         = string.Join(" ", lineParts),
+                ShipPostalCode   = addr.PostalCode ?? "",
+                ShipNotes        = addr.Notes
+            };
+        }
+        else
+        {
+            // Elle girilen adres bilgileri (opsiyonel alanlar boş gelebilir)
+            snapshot = new ShippingSnapshotDto
+            {
+                ShipFullName     = dto?.ShipFullName     ?? "",
+                ShipPhone        = dto?.ShipPhone        ?? "",
+                ShipCity         = dto?.ShipCity         ?? "",
+                ShipDistrict     = dto?.ShipDistrict     ?? "",
+                ShipNeighborhood = dto?.ShipNeighborhood ?? "",
+                ShipLine         = dto?.ShipLine         ?? "",
+                ShipPostalCode   = dto?.ShipPostalCode   ?? "",
+                ShipNotes        = dto?.ShipNotes
+            };
+        }
+
+        // ⬇️ Servise opsiyonel snapshot ilet (mevcut imzayı bozmayalım)
+        var result = await _orderService.CheckoutAsync(CurrentUserId, shippingFee, shippingMethod, snapshot);
 
         if (!result.Success)
             return BadRequest(result.Message);
@@ -61,9 +124,6 @@ public class OrderController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Creates an order directly from a provided item list (bypasses cart).
-    /// </summary>
     [HttpPost]
     public async Task<ActionResult<OrderDto>> Create([FromBody] OrderCreateDto dto)
     {
@@ -73,9 +133,6 @@ public class OrderController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Data.Id }, result.Data);
     }
 
-    /// <summary>
-    /// Deletes an order if it belongs to the current user.
-    /// </summary>
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
@@ -85,9 +142,6 @@ public class OrderController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>
-    /// Cancels an order if status allows (e.g., Received/Preparing).
-    /// </summary>
     [HttpPost("{id:int}/cancel")]
     public async Task<IActionResult> Cancel(int id)
     {
@@ -96,5 +150,14 @@ public class OrderController : ControllerBase
             return BadRequest(result.Message);
 
         return Ok(new { success = true, message = result.Message });
+    }
+
+    // Türkçe baş harf düzenleme (tam büyük gelen veriler için)
+    private static string ToTitle(string s)
+    {
+        var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+        var t = s?.Trim() ?? "";
+        if (t.Length > 0 && t.All(ch => !char.IsLower(ch))) t = tr.TextInfo.ToTitleCase(t.ToLower(tr));
+        return t;
     }
 }

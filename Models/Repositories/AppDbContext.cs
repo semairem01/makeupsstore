@@ -19,6 +19,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
     public DbSet<FavoriteProduct> FavoriteProducts { get; set; } = null!;
     public DbSet<ProductReview> ProductReviews { get; set; } = null!;
     public DbSet<NotifyRequest> NotifyRequests => Set<NotifyRequest>();
+    public DbSet<Address> Addresses { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -98,6 +99,14 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 
                 entity.Property(o => o.ShippingFee).HasColumnType("decimal(18,2)").HasDefaultValue(0);
                 entity.Property(o => o.ShippingMethod).HasMaxLength(20).HasDefaultValue("standard");
+                
+                entity.Property(o => o.ShipFullName).HasMaxLength(100).HasDefaultValue("");
+                entity.Property(o => o.ShipPhone).HasMaxLength(20).HasDefaultValue("");
+                entity.Property(o => o.ShipCity).HasMaxLength(64).HasDefaultValue("");
+                entity.Property(o => o.ShipDistrict).HasMaxLength(64).HasDefaultValue("");
+                entity.Property(o => o.ShipNeighborhood).HasMaxLength(64).HasDefaultValue("");
+                entity.Property(o => o.ShipLine).HasMaxLength(240).HasDefaultValue("");
+                entity.Property(o => o.ShipPostalCode).HasMaxLength(10).HasDefaultValue("");
                     
                 entity.HasOne(o => o.AppUser)
                     .WithMany()
@@ -188,6 +197,34 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<Address>(e =>
+        {
+            e.HasKey(a => a.Id);
+    
+            e.Property(a => a.Title).HasMaxLength(50).HasDefaultValue("Ev");
+            e.Property(a => a.FullName).HasMaxLength(100).IsRequired();
+            e.Property(a => a.Phone).HasMaxLength(20).IsRequired();
+            e.Property(a => a.Street).HasMaxLength(120).IsRequired();
+            e.Property(a => a.BuildingNo).HasMaxLength(20);
+            e.Property(a => a.ApartmentNo).HasMaxLength(20);
+            e.Property(a => a.PostalCode).HasMaxLength(10).IsRequired();
+            e.Property(a => a.Notes).HasMaxLength(200);
+    
+            e.Property(a => a.CityId).IsRequired();
+            e.Property(a => a.DistrictId).IsRequired();
+            e.Property(a => a.NeighborhoodId).IsRequired();
+            e.Property(a => a.IsDefault).HasDefaultValue(false);
+            
+            e.HasOne(a => a.AppUser)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Her kullanıcıda en fazla 1 default adres
+            e.HasIndex(a => new { a.UserId, a.IsDefault })
+                .HasFilter("[IsDefault] = 1")
+                .IsUnique();
         });
     }
 }

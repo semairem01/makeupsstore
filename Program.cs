@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using makeup.Infrastructure.Email;
+using makeup.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -136,6 +137,8 @@ builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<ICartItemService, CartItemService>();
 builder.Services.AddScoped<IRecommendService, RecommendService>();
 builder.Services.AddScoped<IPurchaseReadService, PurchaseReadService>();
+
+builder.Services.AddSingleton<GeoFileStore>();
 
 builder.Services.AddHttpContextAccessor();
 
