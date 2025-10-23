@@ -34,6 +34,13 @@ export const API_ENDPOINTS = {
         `${API_BASE_URL}/api/product/${productId}/variants`,                        
     PRODUCT_VARIANT: (productId, variantId) =>
         `${API_BASE_URL}/api/product/${productId}/variant/${variantId}`,
+    ADDRESSES: `${API_BASE_URL}/api/address`,
+    ADDRESS_BY_ID: (id) => `${API_BASE_URL}/api/address/${id}`,
+    ADDRESS_SET_DEFAULT: (id) => `${API_BASE_URL}/api/address/${id}/default`,
+    
+    GEO_CITIES: "http://localhost:5011/api/geo/cities",
+    GEO_DISTRICTS: (cityId) => `http://localhost:5011/api/geo/districts?cityId=${cityId}`,
+    GEO_NBHDS: (distId) => `http://localhost:5011/api/geo/neighborhoods?districtId=${distId}`,
 };
 
 // App configuration

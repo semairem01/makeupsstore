@@ -2,6 +2,8 @@
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../config";
+import { Heart } from "lucide-react";
+import "./ProductCard.css";
 
 function Stars({ value }) {
     const rounded = Math.round(Number(value || 0));
@@ -19,8 +21,9 @@ export default function ProductCard({ product, onAdded }) {
     const [avg, setAvg] = useState(0);
     const [count, setCount] = useState(0);
     const [adding, setAdding] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-    // ✅ DÜZELTME: productId ve variantId'yi ayır
     const productId = product?.productId ?? product?.ProductId ?? product?.id ?? product?.Id;
     const variantId = product?.variantId ?? product?.VariantId ?? null;
     const variantName = product?.variantName ?? product?.VariantName ?? "";
@@ -28,6 +31,7 @@ export default function ProductCard({ product, onAdded }) {
     const imgRaw = product?.imageUrl ?? product?.ImageUrl ?? "";
     const imgSrc = String(imgRaw).startsWith("http") ? imgRaw : `http://localhost:5011${imgRaw}`;
 
+    // Rating bilgisi
     useEffect(() => {
         let ignore = false;
         axios
@@ -41,11 +45,30 @@ export default function ProductCard({ product, onAdded }) {
         return () => { ignore = true; };
     }, [productId]);
 
-    // ✅ DÜZELTME: Varyant varsa onun stok bilgisini kullan
+    // Favori durumu kontrolü
+    useEffect(() => {
+        if (!token) return;
+        let ignore = false;
+
+        axios
+            .get(`${API_ENDPOINTS.FAVORITES}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((res) => {
+                if (ignore) return;
+                const favorites = res.data || [];
+                const isFav = favorites.some((f) =>
+                    (f.productId === productId || f.ProductId === productId)
+                );
+                setIsFavorite(isFav);
+            })
+            .catch(() => {});
+
+        return () => { ignore = true; };
+    }, [productId, token]);
+
     const stockRaw = product?.stockQuantity ?? product?.StockQuantity ?? 0;
     const isActiveRaw = product?.isActive ?? product?.IsActive ?? true;
-
-// ✅ Backend'den gelen isActive zaten v.StockQuantity > 0 kontrolünü içeriyor
     const isOut = !isActiveRaw;
 
     const hasDiscount = Number(product?.discountPercent ?? product?.DiscountPercent) > 0;
@@ -89,6 +112,40 @@ export default function ProductCard({ product, onAdded }) {
         }
     };
 
+    const toggleFavorite = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!token) {
+            alert("Please sign in to add favorites.");
+            return;
+        }
+
+        try {
+            setFavoriteLoading(true);
+
+            if (isFavorite) {
+                // Favorilerden çıkar
+                await axios.delete(`${API_ENDPOINTS.FAVORITES}/${productId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setIsFavorite(false);
+            } else {
+                // Favorilere ekle
+                await axios.post(
+                    `${API_ENDPOINTS.FAVORITES}/${productId}`,
+                    {},
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                setIsFavorite(true);
+            }
+        } catch (error) {
+            alert(error?.response?.data || "Could not update favorites.");
+        } finally {
+            setFavoriteLoading(false);
+        }
+    };
+
     const requestNotify = async () => {
         if (!token) return alert("Please log in.");
         try {
@@ -103,7 +160,7 @@ export default function ProductCard({ product, onAdded }) {
         }
     };
 
-    const cardStyle = { display: "flex", flexDirection: "column", height: "100%" };
+    const cardStyle = { display: "flex", flexDirection: "column", height: "100%", position: "relative" };
     const metaStyle = { display: "flex", flexDirection: "column", gap: 6, flex: "1 1 auto" };
     const nameStyle = {
         display: "-webkit-box",
@@ -115,11 +172,53 @@ export default function ProductCard({ product, onAdded }) {
     };
     const addBtnStyle = { marginTop: "auto", alignSelf: "stretch" };
 
-    // ✅ DÜZELTME: Detay sayfasına giderken doğru productId ve variantId'yi kullan
     const detailHref = `/product/${productId}${variantId ? `?variantId=${variantId}` : ""}`;
 
     return (
         <article className="p-card" style={cardStyle}>
+            {/* Favori Butonu */}
+            <button
+                onClick={toggleFavorite}
+                disabled={favoriteLoading}
+                className="favorite-btn"
+                style={{
+                    position: "absolute",
+                    top: "12px",
+                    right: "12px",
+                    width: "40px",
+                    height: "40px",
+                    background: "rgba(255, 255, 255, 0.95)",
+                    border: "none",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: favoriteLoading ? "not-allowed" : "pointer",
+                    zIndex: 10,
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                    transition: "all 0.3s ease",
+                    opacity: favoriteLoading ? 0.6 : 1,
+                }}
+                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                onMouseEnter={(e) => {
+                    if (!favoriteLoading) {
+                        e.currentTarget.style.transform = "scale(1.1)";
+                        e.currentTarget.style.boxShadow = "0 6px 16px rgba(255, 111, 168, 0.3)";
+                    }
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)";
+                }}
+            >
+                <Heart
+                    size={20}
+                    fill={isFavorite ? "#ff6fa8" : "none"}
+                    color={isFavorite ? "#ff6fa8" : "#666"}
+                    style={{ transition: "all 0.3s ease" }}
+                />
+            </button>
+
             <Link to={detailHref} className="thumb" style={{ position: "relative", display: "block" }}>
                 {hasDiscount && (
                     <span
@@ -128,6 +227,7 @@ export default function ProductCard({ product, onAdded }) {
                             background: "#ff2e72", color: "#fff",
                             padding: "4px 8px", borderRadius: "999px",
                             fontWeight: 700, fontSize: "0.8rem",
+                            zIndex: 5,
                         }}
                     >
                         -%{Number(product.discountPercent ?? product.DiscountPercent)}
@@ -164,26 +264,32 @@ export default function ProductCard({ product, onAdded }) {
                 </div>
             </div>
 
-            {isOut ? (
-                <button className="btn-add btn-outline" onClick={requestNotify} style={addBtnStyle}>
-                    Notify me
-                </button>
-            ) : (
-                <button
-                    className="btn-add"
-                    onClick={addToCart}
-                    disabled={adding}
-                    style={{
-                        marginTop: "auto",
-                        alignSelf: "stretch",
-                        background: "#f1798a",
-                        color: "#fff",
-                        border: "none",
-                    }}
-                >
-                    {adding ? "Adding…" : "Add to Cart"}
-                </button>
-            )}
+            {/* Alt Butonlar */}
+            <div style={{ display: "flex", gap: "8px", marginTop: "auto" }}>
+                {isOut ? (
+                    <button
+                        className="btn-add btn-outline"
+                        onClick={requestNotify}
+                        style={{ flex: 1 }}
+                    >
+                        Notify me
+                    </button>
+                ) : (
+                    <button
+                        className="btn-add"
+                        onClick={addToCart}
+                        disabled={adding}
+                        style={{
+                            flex: 1,
+                            background: "#f1798a",
+                            color: "#fff",
+                            border: "none",
+                        }}
+                    >
+                        {adding ? "Adding…" : "Add to Cart"}
+                    </button>
+                )}
+            </div>
         </article>
     );
 }

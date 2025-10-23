@@ -37,7 +37,7 @@ export default function FeaturedShelf({ onAdded }) {
     const [cats, setCats] = useState([{ id: 0, name: "All", parentId: 0 }]);
     const [filters, setFilters] = useState(initialFilters);
     const [page, setPage] = useState(1);
-    const [pageSize] = useState(12);
+    const [pageSize] = useState(12); // 4 sütun x 3 satır
 
     const [data, setData] = useState({ items: [], totalPages: 1, totalItems: 0 });
     const [loading, setLoading] = useState(true);
@@ -59,7 +59,7 @@ export default function FeaturedShelf({ onAdded }) {
     const topRef = useRef(null);
 
     const goPage = (n) => {
-        setPage(n);
+        setPage((prev) => Math.max(1, Math.min(n, data.totalPages || 1)));
         topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
@@ -77,21 +77,19 @@ export default function FeaturedShelf({ onAdded }) {
             }));
             setCats([{ id: 0, name: "All", parentId: 0 }, ...list]);
         });
-    }, []); 
-    
+    }, []);
 
-    // Ürünler (+ varyantları düzle / normalize et)
+    // Ürünler (+ varyantları normalize et)
     useEffect(() => {
-        //YENİİİİ
         let cancelled = false;
         const controller = new AbortController();
 
         const params = new URLSearchParams();
+        // FE’de sayfalanıyoruz ama bunlar BE’ye gitse de sorun değil
         params.set("page", String(page));
         params.set("pageSize", String(pageSize));
         params.set("expandVariants", "true");
 
-        // ÖNEMLİ: BE categoryId bekliyor
         if (filters.categoryTreeId) params.set("categoryId", String(filters.categoryTreeId));
         if (filters.sort) params.set("sort", filters.sort);
         if (filters.priceMin) params.set("priceMin", String(filters.priceMin));
@@ -112,42 +110,38 @@ export default function FeaturedShelf({ onAdded }) {
 
         setLoading(true);
         axios
-            //.get(`${API_ENDPOINTS.PRODUCTS}/browse-expanded?${params.toString()}`)
             .get(`${API_ENDPOINTS.PRODUCTS}/browse-expanded?${params.toString()}`, {
-                signal: controller.signal
+                signal: controller.signal,
             })
             .then((r) => {
                 if (cancelled) return;
-                // Hem paged obje hem düz array desteklenir
+
                 const isArray = Array.isArray(r.data);
                 const raw = isArray ? r.data : (r.data?.items ?? r.data?.Items ?? []);
-                const totalPages = isArray ? 1 : (r.data?.totalPages ?? r.data?.TotalPages ?? 1);
-                const totalItems = isArray ? raw.length : (r.data?.totalItems ?? r.data?.TotalItems ?? 0);
+                // totalPages/totalItems BE’den gelse de FE’de yeniden hesaplayacağız
+                // çünkü 12’lik kesiti burada alıyoruz.
 
-                // BE 'expanded' (ProductId/VariantId) döndürüyor mu?
-                //const looksExpanded = raw.some((p) => p.variantId != null || p.VariantId != null);
+                // Expanded format mı?
                 const looksExpanded = raw.some(
                     (p) =>
                         "productId" in p || "ProductId" in p || "variantId" in p || "VariantId" in p
                 );
+
                 let items = raw;
 
                 if (looksExpanded) {
-                    // ✅ DÜZELTME: id'yi unique tut ama productId'yi de ayrı sakla
                     items = raw.map((it) => {
                         const productId = it.productId ?? it.ProductId;
                         const variantId = it.variantId ?? it.VariantId ?? null;
                         const price = Number(it.price ?? it.Price ?? 0);
                         const disc = Number(it.discountPercent ?? it.DiscountPercent ?? 0);
-                        const final = Number(it.finalPrice ?? it.FinalPrice ?? (disc > 0 ? price * (1 - disc / 100) : price));
+                        const final = Number(
+                            it.finalPrice ?? it.FinalPrice ?? (disc > 0 ? price * (1 - disc / 100) : price)
+                        );
                         const isActive = (it.isActive ?? it.IsActive) ?? true;
 
-                        // return {
-                        // ✅ Unique id kartlar için (React key)
-                        // id: `${productId}-v${variantId ?? "base"}`,
                         return {
                             reactKey: `${productId}-v${variantId ?? "base"}`,
-                            // ✅ AMA: productId ve variantId ayrı olarak sakla
                             productId,
                             variantId,
                             name: it.name ?? it.Name,
@@ -162,32 +156,33 @@ export default function FeaturedShelf({ onAdded }) {
                         };
                     });
                 } else {
-                    // Expanded değilse FE'de varyantlara yay
+                    // Expanded değilse varyantlara yay
                     items = raw.flatMap((p) => {
                         const variants = p.variants ?? p.Variants ?? [];
                         if (!Array.isArray(variants) || variants.length === 0) {
                             const baseId = p.id ?? p.Id;
                             const price = Number(p.price ?? p.Price ?? 0);
                             const disc = Number(p.discountPercent ?? p.DiscountPercent ?? 0);
-                            const final = Number(p.finalPrice ?? p.FinalPrice ?? (disc > 0 ? price * (1 - disc / 100) : price));
-                            //return [{
-                            // id: `${baseId}-vbase`,
-                            return [{
-                                reactKey: `${baseId}-vbase`,
-                                productId: baseId,  // ✅ productId ayrı
-                                variantId: null,
-                                name: p.name ?? p.Name ?? "",
-                                brand: p.brand ?? p.Brand ?? "",
-                                imageUrl: p.imageUrl ?? p.ImageUrl ?? "",
-                                price,
-                                discountPercent: disc,
-                                finalPrice: final,
-                                isActive: (p.isActive ?? p.IsActive) ?? true,
-                                stockQuantity: p.stockQuantity ?? p.StockQuantity ?? 0,
-                            }];
+                            const final = Number(
+                                p.finalPrice ?? p.FinalPrice ?? (disc > 0 ? price * (1 - disc / 100) : price)
+                            );
+                            return [
+                                {
+                                    reactKey: `${baseId}-vbase`,
+                                    productId: baseId,
+                                    variantId: null,
+                                    name: p.name ?? p.Name ?? "",
+                                    brand: p.brand ?? p.Brand ?? "",
+                                    imageUrl: p.imageUrl ?? p.ImageUrl ?? "",
+                                    price,
+                                    discountPercent: disc,
+                                    finalPrice: final,
+                                    isActive: (p.isActive ?? p.IsActive) ?? true,
+                                    stockQuantity: p.stockQuantity ?? p.StockQuantity ?? 0,
+                                },
+                            ];
                         }
 
-                        //const baseId = p.id ?? p.Id;
                         const baseId = p.productId ?? p.ProductId ?? p.id ?? p.Id;
                         const pName = p.name ?? p.Name ?? "";
                         const brand = p.brand ?? p.Brand ?? "";
@@ -196,12 +191,16 @@ export default function FeaturedShelf({ onAdded }) {
                             const vId = v.id ?? v.Id;
                             const vName = v.name ?? v.Name ?? "";
                             const vPrice = Number(v.price ?? v.Price ?? p.price ?? p.Price ?? 0);
-                            const vDisc = Number(v.discountPercent ?? v.DiscountPercent ?? p.discountPercent ?? p.DiscountPercent ?? 0);
-                            const final = Number(v.finalPrice ?? v.FinalPrice ?? (vDisc > 0 ? vPrice * (1 - vDisc / 100) : vPrice));
+                            const vDisc = Number(
+                                v.discountPercent ?? v.DiscountPercent ?? p.discountPercent ?? p.DiscountPercent ?? 0
+                            );
+                            const final = Number(
+                                v.finalPrice ?? v.FinalPrice ?? (vDisc > 0 ? vPrice * (1 - vDisc / 100) : vPrice)
+                            );
 
                             return {
-                                id: `${baseId}-v${vId}`,
-                                productId: baseId,  // ✅ productId ayrı
+                                reactKey: `${baseId}-v${vId}`, // 🔧 ÖNEMLİ: reactKey eklendi
+                                productId: baseId,
                                 variantId: vId,
                                 name: vName ? `${pName} — ${vName}` : pName,
                                 brand,
@@ -210,42 +209,63 @@ export default function FeaturedShelf({ onAdded }) {
                                 discountPercent: vDisc,
                                 finalPrice: final,
                                 isActive: (v.isActive ?? v.IsActive) ?? (p.isActive ?? p.IsActive),
-                                stockQuantity: v.stockQuantity ?? v.StockQuantity ?? p.stockQuantity ?? p.StockQuantity ?? 0,
+                                stockQuantity:
+                                    v.stockQuantity ?? v.StockQuantity ?? p.stockQuantity ?? p.StockQuantity ?? 0,
                             };
                         });
                     });
                 }
 
-                //setData({ items, totalPages, totalItems });
+                // Tekilleştir
                 const seen = new Set();
                 const uniq = [];
                 for (const it of items) {
-                    const key = `${it.productId}|${it.variantId ?? 'base'}`;
+                    const key = `${it.productId}|${it.variantId ?? "base"}`;
                     if (!seen.has(key)) {
                         seen.add(key);
                         uniq.push(it);
                     }
                 }
-                setData({items: uniq, totalPages, totalItems: uniq.length});
 
+                // 🔢 FE sayfalama: 12’lik dilim
+                const totalPages = Math.max(1, Math.ceil(uniq.length / pageSize));
+                const safePage = Math.min(page, totalPages);
+                const start = (safePage - 1) * pageSize;
+                const paged = uniq.slice(start, start + pageSize);
 
-                const brands = items.map((x) => x.brand ?? "").filter(Boolean);
+                if (safePage !== page) setPage(safePage);
+
+                setData({
+                    items: paged,
+                    totalPages,
+                    totalItems: uniq.length,
+                });
+
+                // Marka listesi (tekil)
+                const brands = uniq.map((x) => x.brand ?? "").filter(Boolean);
                 setAllBrands((prev) => Array.from(new Set([...prev, ...brands])));
             })
             .catch((err) => {
-                if (axios.isCancel?.(err) || err.name === 'CanceledError') return;
+                if (axios.isCancel?.(err) || err.name === "CanceledError") return;
             })
             .finally(() => {
                 if (!cancelled) setLoading(false);
             });
+
         return () => {
             cancelled = true;
             controller.abort();
         };
-    },[filters, page, pageSize]);
+    }, [filters, page, pageSize]); // page burada kalabilir; safe clamp ile döngü olmaz
 
-    const changeCat = (id) => { setFilters((f) => ({ ...f, categoryTreeId: id })); goPage(1); };
-    const updateFilter = (key, value) => { setFilters((f) => ({ ...f, [key]: value })); goPage(1); };
+    const changeCat = (id) => {
+        setFilters((f) => ({ ...f, categoryTreeId: id }));
+        goPage(1);
+    };
+    const updateFilter = (key, value) => {
+        setFilters((f) => ({ ...f, [key]: value }));
+        goPage(1);
+    };
 
     const toggleArray = (key, val) => {
         setFilters((f) => {
@@ -285,10 +305,14 @@ export default function FeaturedShelf({ onAdded }) {
         updateFilter(type, current.filter((v) => v !== value));
     };
 
-    const clearAllFilters = () => { setFilters(initialFilters); goPage(1); };
+    const clearAllFilters = () => {
+        setFilters(initialFilters);
+        goPage(1);
+    };
 
-    const skinTypes = ["Dry", "Oily", "Combination", "Sensitive", "Normal"];
-    const filteredBrands = allBrands.filter((b) => b.toLowerCase().includes(brandSearch.toLowerCase()));
+    const filteredBrands = allBrands.filter((b) =>
+        b.toLowerCase().includes(brandSearch.toLowerCase())
+    );
 
     const activeFilterCount =
         (filters.brands?.length || 0) +
@@ -374,7 +398,10 @@ export default function FeaturedShelf({ onAdded }) {
                 </span>
                             )}
                             {filters.brands?.slice(0, 2).map((b) => (
-                                <span key={b} className="inline-flex items-center gap-2 bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-xs font-medium">
+                                <span
+                                    key={b}
+                                    className="inline-flex items-center gap-2 bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-xs font-medium"
+                                >
                   {b}
                                     <button onClick={() => removeBadge("brands", b)} className="hover:opacity-70">
                     <X size={14} />
@@ -391,7 +418,10 @@ export default function FeaturedShelf({ onAdded }) {
 
                     {/* SORT */}
                     <div className="border-b border-pink-200/50">
-                        <button onClick={() => toggleSection("sort")} className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition">
+                        <button
+                            onClick={() => toggleSection("sort")}
+                            className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition"
+                        >
                             Sort
                             <ChevronDown size={18} className={`transition-transform ${openSections.sort ? "rotate-180" : ""}`} />
                         </button>
@@ -414,7 +444,10 @@ export default function FeaturedShelf({ onAdded }) {
 
                     {/* PRICE */}
                     <div className="border-b border-pink-300/60">
-                        <button onClick={() => toggleSection("price")} className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition">
+                        <button
+                            onClick={() => toggleSection("price")}
+                            className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition"
+                        >
                             Price
                             <ChevronDown size={18} className={`transition-transform ${openSections.price ? "rotate-180" : ""}`} />
                         </button>
@@ -425,11 +458,17 @@ export default function FeaturedShelf({ onAdded }) {
                                     <div>
                                         <label className="text-xs font-medium text-gray-600">Min Price</label>
                                         <input
-                                            type="range" min={0} max={10000} step={50}
+                                            type="range"
+                                            min={0}
+                                            max={10000}
+                                            step={50}
                                             value={filters.priceMin === "" ? 0 : Number(filters.priceMin)}
                                             onChange={(e) => {
                                                 const v = Number(e.target.value);
-                                                setFilters((f) => ({ ...f, priceMin: String(Math.min(v, f.priceMax === "" ? 10000 : Number(f.priceMax))) }));
+                                                setFilters((f) => ({
+                                                    ...f,
+                                                    priceMin: String(Math.min(v, f.priceMax === "" ? 10000 : Number(f.priceMax))),
+                                                }));
                                             }}
                                             className="w-full h-2 rounded-lg appearance-none cursor-pointer price-range range-min"
                                         />
@@ -437,11 +476,17 @@ export default function FeaturedShelf({ onAdded }) {
                                     <div>
                                         <label className="text-xs font-medium text-gray-600">Max Price</label>
                                         <input
-                                            type="range" min={0} max={10000} step={50}
+                                            type="range"
+                                            min={0}
+                                            max={10000}
+                                            step={50}
                                             value={filters.priceMax === "" ? 10000 : Number(filters.priceMax)}
                                             onChange={(e) => {
                                                 const v = Number(e.target.value);
-                                                setFilters((f) => ({ ...f, priceMax: String(Math.max(v, f.priceMin === "" ? 0 : Number(f.priceMin))) }));
+                                                setFilters((f) => ({
+                                                    ...f,
+                                                    priceMax: String(Math.max(v, f.priceMin === "" ? 0 : Number(f.priceMin))),
+                                                }));
                                             }}
                                             className="w-full h-2 rounded-lg appearance-none cursor-pointer price-range range-max"
                                         />
@@ -451,7 +496,11 @@ export default function FeaturedShelf({ onAdded }) {
                                 <div className="flex gap-2">
                                     <div className="flex-1">
                                         <input
-                                            type="number" placeholder="Min" inputMode="numeric" min={0} max={10000}
+                                            type="number"
+                                            placeholder="Min"
+                                            inputMode="numeric"
+                                            min={0}
+                                            max={10000}
                                             value={filters.priceMin}
                                             onChange={(e) => setFilters((f) => ({ ...f, priceMin: e.target.value }))}
                                             onBlur={(e) => {
@@ -472,7 +521,11 @@ export default function FeaturedShelf({ onAdded }) {
 
                                     <div className="flex-1">
                                         <input
-                                            type="number" placeholder="Max" inputMode="numeric" min={0} max={10000}
+                                            type="number"
+                                            placeholder="Max"
+                                            inputMode="numeric"
+                                            min={0}
+                                            max={10000}
                                             value={filters.priceMax}
                                             onChange={(e) => setFilters((f) => ({ ...f, priceMax: e.target.value }))}
                                             onBlur={(e) => {
@@ -492,7 +545,8 @@ export default function FeaturedShelf({ onAdded }) {
 
                                 <div className="bg-pink-50/80 rounded-lg p-2 text-center">
                                     <p className="text-sm font-semibold text-pink-700">
-                                        {filters.priceMin === "" ? "₺0" : `₺${filters.priceMin}`} - {filters.priceMax === "" ? "₺10000" : `₺${filters.priceMax}`}
+                                        {filters.priceMin === "" ? "₺0" : `₺${filters.priceMin}`} -{" "}
+                                        {filters.priceMax === "" ? "₺10000" : `₺${filters.priceMax}`}
                                     </p>
                                 </div>
                             </div>
@@ -501,18 +555,31 @@ export default function FeaturedShelf({ onAdded }) {
 
                     {/* AVAILABILITY */}
                     <div className="border-b border-pink-200/50">
-                        <button onClick={() => toggleSection("availability")} className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition">
+                        <button
+                            onClick={() => toggleSection("availability")}
+                            className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition"
+                        >
                             Availability
                             <ChevronDown size={18} className={`transition-transform ${openSections.availability ? "rotate-180" : ""}`} />
                         </button>
                         {openSections.availability && (
                             <div className="pb-3 px-1 space-y-2">
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" checked={filters.inStock} onChange={(e) => updateFilter("inStock", e.target.checked)} className="w-4 h-4 rounded accent-pink-500" />
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.inStock}
+                                        onChange={(e) => updateFilter("inStock", e.target.checked)}
+                                        className="w-4 h-4 rounded accent-pink-500"
+                                    />
                                     <span className="text-sm text-gray-700">In stock</span>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" checked={filters.discounted} onChange={(e) => updateFilter("discounted", e.target.checked)} className="w-4 h-4 rounded accent-pink-500" />
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.discounted}
+                                        onChange={(e) => updateFilter("discounted", e.target.checked)}
+                                        className="w-4 h-4 rounded accent-pink-500"
+                                    />
                                     <span className="text-sm text-gray-700">On sale</span>
                                 </label>
                             </div>
@@ -521,7 +588,10 @@ export default function FeaturedShelf({ onAdded }) {
 
                     {/* BRAND */}
                     <div className="border-b border-pink-200/50">
-                        <button onClick={() => toggleSection("brand")} className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition">
+                        <button
+                            onClick={() => toggleSection("brand")}
+                            className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition"
+                        >
                             Brand
                             <ChevronDown size={18} className={`transition-transform ${openSections.brand ? "rotate-180" : ""}`} />
                         </button>
@@ -543,7 +613,9 @@ export default function FeaturedShelf({ onAdded }) {
                                             key={brand}
                                             onClick={() => toggleArray("brands", brand)}
                                             className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                                                filters.brands.includes(brand) ? "bg-pink-500 text-white shadow-md" : "bg-white border border-pink-200 text-gray-700 hover:border-pink-400"
+                                                filters.brands.includes(brand)
+                                                    ? "bg-pink-500 text-white shadow-md"
+                                                    : "bg-white border border-pink-200 text-gray-700 hover:border-pink-400"
                                             }`}
                                         >
                                             {brand}
@@ -556,7 +628,10 @@ export default function FeaturedShelf({ onAdded }) {
 
                     {/* SKIN TYPE */}
                     <div className="border-b border-pink-200/50">
-                        <button onClick={() => toggleSection("skin")} className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition">
+                        <button
+                            onClick={() => toggleSection("skin")}
+                            className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition"
+                        >
                             Skin Type
                             <ChevronDown size={18} className={`transition-transform ${openSections.skin ? "rotate-180" : ""}`} />
                         </button>
@@ -579,7 +654,10 @@ export default function FeaturedShelf({ onAdded }) {
 
                     {/* RATING */}
                     <div className="border-b border-pink-200/50">
-                        <button onClick={() => toggleSection("rating")} className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition">
+                        <button
+                            onClick={() => toggleSection("rating")}
+                            className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition"
+                        >
                             Rating
                             <ChevronDown size={18} className={`transition-transform ${openSections.rating ? "rotate-180" : ""}`} />
                         </button>
@@ -603,7 +681,10 @@ export default function FeaturedShelf({ onAdded }) {
 
                     {/* FINISH */}
                     <div className="border-b border-pink-200/50">
-                        <button onClick={() => toggleSection("finish")} className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition">
+                        <button
+                            onClick={() => toggleSection("finish")}
+                            className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition"
+                        >
                             Finish
                             <ChevronDown size={18} className={`transition-transform ${openSections.finish ? "rotate-180" : ""}`} />
                         </button>
@@ -626,7 +707,10 @@ export default function FeaturedShelf({ onAdded }) {
 
                     {/* COVERAGE */}
                     <div className="border-b border-pink-200/50">
-                        <button onClick={() => toggleSection("coverage")} className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition">
+                        <button
+                            onClick={() => toggleSection("coverage")}
+                            className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition"
+                        >
                             Coverage
                             <ChevronDown size={18} className={`transition-transform ${openSections.coverage ? "rotate-180" : ""}`} />
                         </button>
@@ -649,34 +733,67 @@ export default function FeaturedShelf({ onAdded }) {
 
                     {/* FEATURES */}
                     <div>
-                        <button onClick={() => toggleSection("features")} className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition">
+                        <button
+                            onClick={() => toggleSection("features")}
+                            className="w-full flex items-center justify-between py-3 font-semibold text-gray-900 hover:text-pink-600 transition"
+                        >
                             Features
                             <ChevronDown size={18} className={`transition-transform ${openSections.features ? "rotate-180" : ""}`} />
                         </button>
                         {openSections.features && (
                             <div className="pb-3 px-1 space-y-2">
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" checked={filters.hasSpf} onChange={(e) => updateFilter("hasSpf", e.target.checked)} className="w-4 h-4 rounded accent-pink-500" />
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.hasSpf}
+                                        onChange={(e) => updateFilter("hasSpf", e.target.checked)}
+                                        className="w-4 h-4 rounded accent-pink-500"
+                                    />
                                     <span className="text-sm text-gray-700">SPF Protection</span>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" checked={filters.waterproof} onChange={(e) => updateFilter("waterproof", e.target.checked)} className="w-4 h-4 rounded accent-pink-500" />
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.waterproof}
+                                        onChange={(e) => updateFilter("waterproof", e.target.checked)}
+                                        className="w-4 h-4 rounded accent-pink-500"
+                                    />
                                     <span className="text-sm text-gray-700">Waterproof</span>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" checked={filters.longwear} onChange={(e) => updateFilter("longwear", e.target.checked)} className="w-4 h-4 rounded accent-pink-500" />
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.longwear}
+                                        onChange={(e) => updateFilter("longwear", e.target.checked)}
+                                        className="w-4 h-4 rounded accent-pink-500"
+                                    />
                                     <span className="text-sm text-gray-700">Long-wearing</span>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" checked={filters.photoFriendly} onChange={(e) => updateFilter("photoFriendly", e.target.checked)} className="w-4 h-4 rounded accent-pink-500" />
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.photoFriendly}
+                                        onChange={(e) => updateFilter("photoFriendly", e.target.checked)}
+                                        className="w-4 h-4 rounded accent-pink-500"
+                                    />
                                     <span className="text-sm text-gray-700">Photo Friendly</span>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" checked={filters.fragranceFree} onChange={(e) => updateFilter("fragranceFree", e.target.checked)} className="w-4 h-4 rounded accent-pink-500" />
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.fragranceFree}
+                                        onChange={(e) => updateFilter("fragranceFree", e.target.checked)}
+                                        className="w-4 h-4 rounded accent-pink-500"
+                                    />
                                     <span className="text-sm text-gray-700">Fragrance Free</span>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" checked={filters.nonComedogenic} onChange={(e) => updateFilter("nonComedogenic", e.target.checked)} className="w-4 h-4 rounded accent-pink-500" />
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.nonComedogenic}
+                                        onChange={(e) => updateFilter("nonComedogenic", e.target.checked)}
+                                        className="w-4 h-4 rounded accent-pink-500"
+                                    />
                                     <span className="text-sm text-gray-700">Non-Comedogenic</span>
                                 </label>
                             </div>
@@ -687,7 +804,10 @@ export default function FeaturedShelf({ onAdded }) {
                         <button className="w-full py-2.5 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg hover:from-pink-600 hover:to-pink-700 transition transform hover:-translate-y-0.5">
                             Apply Filters
                         </button>
-                        <button onClick={clearAllFilters} className="w-full py-2 border border-pink-300/80 text-pink-700 rounded-lg font-semibold hover:bg-pink-50/60 transition">
+                        <button
+                            onClick={clearAllFilters}
+                            className="w-full py-2 border border-pink-300/80 text-pink-700 rounded-lg font-semibold hover:bg-pink-50/60 transition"
+                        >
                             Clear All
                         </button>
                     </div>
@@ -697,29 +817,38 @@ export default function FeaturedShelf({ onAdded }) {
                 <div className="grid-wrap">
                     {loading ? (
                         <div className="fs-grid skeleton">
-                            {Array.from({ length: pageSize }).map((_, i) => <div key={i} className="skel-card" />)}
+                            {Array.from({ length: pageSize }).map((_, i) => (
+                                <div key={i} className="skel-card" />
+                            ))}
                         </div>
                     ) : (
                         <>
                             <div className="fs-grid">
                                 {data.items.map((p) => (
-                                   // <ProductCard
-                                    //    key={`${p.id}-${p.variantId ?? "base"}`}
-                                     //   product={p}
-                                     //   onAdded={onAdded}
-                                   // />
                                     <ProductCard key={p.reactKey} product={p} onAdded={onAdded} />
                                 ))}
                             </div>
 
                             <div className="pager">
-                                <button className="pager-nav" disabled={page <= 1} onClick={() => goPage(page - 1)}>‹ Prev</button>
+                                <button className="pager-nav" disabled={page <= 1} onClick={() => goPage(page - 1)}>
+                                    ‹ Prev
+                                </button>
                                 {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((n) => (
-                                    <button key={n} className={`page-btn ${page === n ? "active" : ""}`} onClick={() => goPage(n)}>
+                                    <button
+                                        key={n}
+                                        className={`page-btn ${page === n ? "active" : ""}`}
+                                        onClick={() => goPage(n)}
+                                    >
                                         {n}
                                     </button>
                                 ))}
-                                <button className="pager-nav" disabled={page >= data.totalPages} onClick={() => goPage(page + 1)}>Next ›</button>
+                                <button
+                                    className="pager-nav"
+                                    disabled={page >= data.totalPages}
+                                    onClick={() => goPage(page + 1)}
+                                >
+                                    Next ›
+                                </button>
                             </div>
                         </>
                     )}

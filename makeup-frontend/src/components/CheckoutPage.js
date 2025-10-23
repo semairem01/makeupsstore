@@ -1,19 +1,30 @@
 ﻿// src/components/CheckoutPage.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import axios from "axios";
 import { API_ENDPOINTS } from "../config";
 import { useNavigate } from "react-router-dom";
 import "./CheckoutPage.css";
+import AddressSelect from "./AddressSelect";
+// Adres modalını reuse edelim (AddressBook.jsx en sonunda export edilen isim)
+import { __INTERNAL__AddressModal as AddressModal } from "./AddressBook";
 
 export default function CheckoutPage() {
     const token = localStorage.getItem("token");
     const nav = useNavigate();
 
     const [cart, setCart] = useState([]);
-    const [shipping, setShipping] = useState("standard"); // "standard" | "express"
+    const [shipping, setShipping] = useState("standard");
     const [submitting, setSubmitting] = useState(false);
 
-    // Address form (kept client-side for now)
+    // ✔ seçilen adres objesi + id
+    const [selectedAddress, setSelectedAddress] = useState(null);
+    const [selectedAddressId, setSelectedAddressId] = useState(0);
+
+    // AddressSelect'i yeniden mount etmek için küçük sayaç
+    const [addrListVersion, setAddrListVersion] = useState(0);
+    const [addrModalOpen, setAddrModalOpen] = useState(false);
+
+    // Form (elle giriş yaparsa yine dursun)
     const [addr, setAddr] = useState({
         fullName: "",
         phone: "",
@@ -23,7 +34,7 @@ export default function CheckoutPage() {
         addressLine: "",
     });
 
-    // Card form (compatible with PaymentController/simulate)
+    // Kart formu
     const [card, setCard] = useState({
         cardNumber: "4242 4242 4242 4242",
         expMonth: 12,
@@ -32,7 +43,6 @@ export default function CheckoutPage() {
         nameOnCard: "Test User",
     });
 
-    // ₺ formatter
     const tl = (n) =>
         Number(n || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
 
@@ -47,7 +57,41 @@ export default function CheckoutPage() {
             .catch(() => setCart([]));
     }, [token, nav]);
 
-    // Totals
+    // ✔ AddressSelect'ten gelen objeyi forma geçir
+    const onAddressPicked = useCallback((obj) => {
+        setSelectedAddress(obj);
+        setSelectedAddressId(obj?.id ?? 0);
+
+        if (!obj) {
+            // seçimi temizlediyse formu sıfırlayalım
+            setAddr({
+                fullName: "",
+                phone: "",
+                city: "",
+                district: "",
+                postalCode: "",
+                addressLine: "",
+            });
+            return;
+        }
+
+        const line =
+            [
+                obj.street,
+                obj.buildingNo ? `No:${obj.buildingNo}` : null,
+                obj.apartmentNo ? `D:${obj.apartmentNo}` : null,
+            ].filter(Boolean).join(" ");
+
+        setAddr({
+            fullName: obj.fullName || "",
+            phone: obj.phone || "",
+            city: obj.city || "",
+            district: obj.district || "",
+            postalCode: obj.postalCode || "",
+            addressLine: line,
+        });
+    }, []);
+
     const subtotal = useMemo(
         () => (cart || []).reduce((s, x) => s + (x.totalPrice ?? x.TotalPrice ?? 0), 0),
         [cart]
@@ -56,16 +100,9 @@ export default function CheckoutPage() {
     const shippingFee = subtotal >= 600 ? 0 : shipBase;
     const grandTotal = subtotal + shippingFee;
 
-    // Simple validation
     const validAddress = () =>
-        addr.fullName &&
-        addr.phone &&
-        addr.city &&
-        addr.district &&
-        addr.postalCode &&
-        addr.addressLine;
+        addr.fullName && addr.phone && addr.city && addr.district && addr.postalCode && addr.addressLine;
 
-    // Pay + create order
     const pay = async () => {
         if (!validAddress()) {
             alert("Lütfen tüm adres bilgilerini doldurun.");
@@ -79,7 +116,7 @@ export default function CheckoutPage() {
 
         setSubmitting(true);
         try {
-            // 1) Simulate payment
+            // 1) Ödeme simülasyonu
             const payRes = await axios.post(
                 `${API_ENDPOINTS.PAYMENTS}/simulate`,
                 { ...card, cardNumber: rawCard, shippingFee },
@@ -90,12 +127,14 @@ export default function CheckoutPage() {
                 return;
             }
 
-            // 2) Create order from cart
+            // 2) Siparişi oluştur (✔ addressId gönderiyoruz)
             const orderRes = await axios.post(
                 `${API_ENDPOINTS.ORDERS}/checkout`,
                 {
                     shippingFee,
-                    shippingMethod: shipping, // "standard" | "express"
+                    shippingMethod: shipping,
+                    addressId: selectedAddressId > 0 ? selectedAddressId : null,
+                    // addressId yoksa backend tarafı body'den okuyor; istersen buraya da formdaki snapshot'ı koyabilirsin.
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -118,17 +157,57 @@ export default function CheckoutPage() {
             <h2 style={{ margin: "8px 0" }}>Ödeme</h2>
 
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
-                {/* Left: Address + Shipping + Card */}
+                {/* Left */}
                 <div style={{ display: "grid", gap: 16 }}>
-                    {/* Address */}
+                    {/* ✔ Address */}
                     <section style={cardBox}>
                         <h3 style={secTitle}>Teslimat Adresi</h3>
+
+                        {/* Select + Yeni Adres */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 10 }}>
+                            <AddressSelect
+                                key={addrListVersion}
+                                value={selectedAddressId}
+                                onChange={onAddressPicked}
+                                onNew={() => setAddrModalOpen(true)}
+                            />
+                            <button
+                                type="button"
+                                className="lp-btn lp-btn--secondary"
+                                onClick={() => setAddrModalOpen(true)}
+                                style={{ height: 36, alignSelf: "end" }}
+                            >
+                                Yeni Adres
+                            </button>
+                        </div>
+
+                        {/* Form alanlarını seçime göre dolduruyoruz */}
                         <div style={grid2}>
-                            <input placeholder="Ad Soyad" value={addr.fullName} onChange={(e) => setAddr({ ...addr, fullName: e.target.value })} />
-                            <input placeholder="Telefon" value={addr.phone} onChange={(e) => setAddr({ ...addr, phone: e.target.value })} />
-                            <input placeholder="İl" value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} />
-                            <input placeholder="İlçe" value={addr.district} onChange={(e) => setAddr({ ...addr, district: e.target.value })} />
-                            <input placeholder="Posta Kodu" value={addr.postalCode} onChange={(e) => setAddr({ ...addr, postalCode: e.target.value })} />
+                            <input
+                                placeholder="Ad Soyad"
+                                value={addr.fullName}
+                                onChange={(e) => setAddr({ ...addr, fullName: e.target.value })}
+                            />
+                            <input
+                                placeholder="Telefon"
+                                value={addr.phone}
+                                onChange={(e) => setAddr({ ...addr, phone: e.target.value })}
+                            />
+                            <input
+                                placeholder="İl"
+                                value={addr.city}
+                                onChange={(e) => setAddr({ ...addr, city: e.target.value })}
+                            />
+                            <input
+                                placeholder="İlçe"
+                                value={addr.district}
+                                onChange={(e) => setAddr({ ...addr, district: e.target.value })}
+                            />
+                            <input
+                                placeholder="Posta Kodu"
+                                value={addr.postalCode}
+                                onChange={(e) => setAddr({ ...addr, postalCode: e.target.value })}
+                            />
                             <div />
                             <textarea
                                 placeholder="Adres"
@@ -145,7 +224,10 @@ export default function CheckoutPage() {
                         <h3 style={secTitle}>Kargo</h3>
                         <label style={radioRow}>
                             <input type="radio" name="ship" checked={shipping === "standard"} onChange={() => setShipping("standard")} />
-                            <span>Standart ({tl(39.9)}) — {tl(600)}<strong>+ Ücretsiz</strong>{subtotal >= 600 && " (uygulandı)"}</span>
+                            <span>
+                Standart ({tl(39.9)}) — {tl(600)}<strong>+ Ücretsiz</strong>
+                                {subtotal >= 600 && " (uygulandı)"}
+              </span>
                         </label>
                         <label style={radioRow}>
                             <input type="radio" name="ship" checked={shipping === "express"} onChange={() => setShipping("express")} />
@@ -157,9 +239,7 @@ export default function CheckoutPage() {
                     <section style={cardBox}>
                         <h3 style={secTitle}>Card Information</h3>
 
-                        {/* Card form wrapper */}
                         <div className="card-form">
-                            {/* Visual card preview */}
                             <div className="card-preview">
                                 <div className="chip" />
                                 <div className="card-number">{card.cardNumber || "•••• •••• •••• ••••"}</div>
@@ -170,12 +250,13 @@ export default function CheckoutPage() {
                                     </div>
                                     <div>
                                         <label>Exp</label>
-                                        <div>{card.expMonth || "MM"}/{card.expYear || "YYYY"}</div>
+                                        <div>
+                                            {card.expMonth || "MM"}/{card.expYear || "YYYY"}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Inputs */}
                             <div className="inputs">
                                 <input
                                     placeholder="Name on Card"
@@ -229,13 +310,9 @@ export default function CheckoutPage() {
                     <h3 style={secTitle}>Sipariş Özeti</h3>
                     <div style={{ display: "grid", gap: 8 }}>
                         {(cart || []).map((it, i) => {
-                            // ✅ Varyant görseli/adı öncelikli
                             const imgRaw =
-                                it.variantImage ?? it.VariantImage ??
-                                it.imageUrl ?? it.ImageUrl ?? "";
-                            const imgSrc = imgRaw.startsWith("http")
-                                ? imgRaw
-                                : `http://localhost:5011${imgRaw}`;
+                                it.variantImage ?? it.VariantImage ?? it.imageUrl ?? it.ImageUrl ?? "";
+                            const imgSrc = imgRaw.startsWith("http") ? imgRaw : `http://localhost:5011${imgRaw}`;
                             const title =
                                 (it.productName ?? it.ProductName) +
                                 ((it.variantName ?? it.VariantName) ? ` - ${(it.variantName ?? it.VariantName)}` : "");
@@ -279,6 +356,19 @@ export default function CheckoutPage() {
                     </div>
                 </aside>
             </div>
+
+            {/* ✔ Yeni Adres Modalı */}
+            {addrModalOpen && (
+                <AddressModal
+                    initial={null}
+                    onClose={() => setAddrModalOpen(false)}
+                    onSaved={() => {
+                        setAddrModalOpen(false);
+                        // listeyi tazelemek için AddressSelect'i remount et
+                        setAddrListVersion((n) => n + 1);
+                    }}
+                />
+            )}
         </div>
     );
 }

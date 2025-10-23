@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+// src/App.js
+import React, { useEffect, useState, useRef } from "react";
 import ProductList from "./components/ProductList";
 import ProductDetail from "./components/ProductDetail";
 import Register from "./auth/Register";
 import Login from "./auth/Login";
-import { Routes, Route, Link, Navigate } from "react-router-dom";
+import { Routes, Route, Link, Navigate, useNavigate } from "react-router-dom";
 import "./App.css";
 import { FaShoppingCart } from "react-icons/fa";
 import CategoryMenu from "./components/CategoryMenu";
@@ -42,7 +43,14 @@ function App() {
     const [cartCount, setCartCount] = useState(0);
     const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem("avatarUrl"));
     const [initials, setInitials] = useState("U");
+    const [userName, setUserName] = useState("");
 
+    // Dropdown için state / ref / navigate
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef(null);
+    const navigate = useNavigate();
+
+    // Sepet sayısını yükle
     useEffect(() => {
         if (!token) {
             setCartCount(0);
@@ -62,10 +70,12 @@ function App() {
             .catch((err) => console.error("Sepet yüklenemedi:", err));
     }, [token]);
 
+    // Profile bilgisi yükle (avatar + isim)
     useEffect(() => {
         if (!token) {
             setAvatarUrl(null);
             setInitials("U");
+            setUserName("");
             localStorage.removeItem("avatarUrl");
             return;
         }
@@ -81,25 +91,60 @@ function App() {
                 const fn = (res.data?.firstName || "").trim();
                 const ln = (res.data?.lastName || "").trim();
                 const email = res.data?.email || "";
-                const init =
-                    (fn ? fn[0] : "") + (ln ? ln[0] : (!fn && email ? email[0] : ""));
+
+                // İsmi kaydet
+                setUserName(fn || email.split('@')[0] || "User");
+
+                const init = (fn ? fn[0] : "") + (ln ? ln[0] : (!fn && email ? email[0] : ""));
                 setInitials((init || "U").toUpperCase());
             })
             .catch(() => {
                 setAvatarUrl(null);
                 setInitials("U");
+                setUserName("");
                 localStorage.removeItem("avatarUrl");
             });
     }, [token]);
+
+    // Dışarı tıklayınca / ESC ile menüyü kapat
+    useEffect(() => {
+        const onClick = (e) => {
+            if (!menuRef.current) return;
+            if (!menuRef.current.contains(e.target)) setMenuOpen(false);
+        };
+        const onEsc = (e) => e.key === "Escape" && setMenuOpen(false);
+        document.addEventListener("mousedown", onClick);
+        document.addEventListener("keydown", onEsc);
+        return () => {
+            document.removeEventListener("mousedown", onClick);
+            document.removeEventListener("keydown", onEsc);
+        };
+    }, []);
 
     const handleAddedToCart = (qty = 1) =>
         setCartCount((prev) => prev + (Number(qty) || 1));
 
     const handleCartCleared = () => setCartCount(0);
 
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("isAdmin");
+        localStorage.removeItem("avatarUrl");
+        setCartCount(0);
+        setAvatarUrl(null);
+        setInitials("U");
+        setUserName("");
+        window.location.href = "/";
+    };
+
     return (
         <>
-            {/* 👇 Route değiştiğinde otomatik en üste kaydırır */}
+            {/* SABİT ARKA PLAN */}
+            <div className="page-bg" aria-hidden />
+
+            {/* ALTTAN YUKARI GEÇİŞLİ BLUR */}
+            <div className="page-bottom-blur" aria-hidden />
+            
             <ScrollToTop />
 
             <header className="navbar">
@@ -109,7 +154,7 @@ function App() {
                     <span className="brand-text">Lunara Beauty</span>
                 </Link>
 
-                {/* Orta: Arama (şık + ikonlu) */}
+                {/* Orta: Arama */}
                 <div className="nav-search pretty">
                     <input
                         id="navSearchInput"
@@ -166,36 +211,128 @@ function App() {
                         </Link>
                     </div>
 
+                    {/* Avatar & Dropdown */}
                     {token && (
-                        <>
+                        <div
+                            ref={menuRef}
+                            style={{ position: "relative", display: "flex", alignItems: "center" }}
+                        >
+                            {/* Trigger */}
                             <button
-                                className="btn-ghost"
-                                onClick={() => {
-                                    localStorage.removeItem("token");
-                                    localStorage.removeItem("isAdmin");
-                                    setCartCount(0);
-                                    window.location.href = "/";
-                                }}
+                                onClick={() => setMenuOpen((v) => !v)}
+                                aria-haspopup="menu"
+                                aria-expanded={menuOpen}
+                                className="user-trigger"
+                                title="Profil menüsü"
                             >
-                                Logout
-                            </button>
-                            <Link to="/profile" className="avatar-link" title="Profilim">
                                 {avatarUrl ? (
                                     <img
                                         src={`http://localhost:5011${avatarUrl}`}
                                         alt="Profil"
                                         className="nav-avatar"
                                         onError={(e) => {
-                                            e.currentTarget.src =
-                                                "https://via.placeholder.com/36/ffe3f1/000?text=U";
+                                            e.currentTarget.src = "https://via.placeholder.com/36/ffe3f1/000?text=U";
                                         }}
                                     />
                                 ) : (
                                     <div className="nav-avatar placeholder">{initials}</div>
                                 )}
-                            </Link>
-                        </>
+                                <span className="caret">▾</span>
+                            </button>
+
+                            {/* Menü */}
+                            {(() => {
+                                const items = [
+                                    { label: "Account",   tab: "account",   icon: "/icons/user.png" },
+                                    { label: "Addresses", tab: "addresses", icon: "/icons/location.png" },
+                                    { label: "Orders",    tab: "orders",    icon: "/icons/orders.png" },
+                                    { label: "Favorites", tab: "favorites", icon: "/icons/heart.png" },
+                                    { label: "Password",  tab: "password",  icon: "/icons/lock.png" },
+                                ];
+
+                                return (
+                                    <div
+                                        role="menu"
+                                        className={`user-menu ${menuOpen ? "open" : ""}`}
+                                    >
+                                        {/* Üst mini profil */}
+                                        <div className="user-menu-header">
+                                            <div className="avatar-wrap">
+                                                {avatarUrl ? (
+                                                    <img
+                                                        src={`http://localhost:5011${avatarUrl}`}
+                                                        alt="Profil"
+                                                        className="avatar-img"
+                                                        onError={(e) => {
+                                                            e.currentTarget.src =
+                                                                "https://via.placeholder.com/64/ffe3f1/000?text=U";
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="avatar-img placeholder">{initials}</div>
+                                                )}
+                                            </div>
+                                            <div className="user-info">
+                                                <div className="u-greeting">Welcome back</div>
+                                                <div className="u-name">{userName} !</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="menu-sep" />
+
+                                        {/* Liste */}
+                                        <ul className="user-menu-list">
+                                            {items.map((it) => (
+                                                <li key={it.tab}>
+                                                    <button
+                                                        role="menuitem"
+                                                        className="menu-item"
+                                                        onClick={() => {
+                                                            setMenuOpen(false);
+                                                            navigate(`/profile?tab=${it.tab}`);
+                                                        }}
+                                                    >
+                                                        <img
+                                                            src={it.icon}
+                                                            alt=""
+                                                            className="mi-icon"
+                                                            onError={(e) => (e.currentTarget.style.display = "none")}
+                                                        />
+                                                        <span className="mi-label">{it.label}</span>
+                                                        <span className="mi-right">›</span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+
+                                        <div className="menu-sep" />
+
+                                        {/* Çıkış */}
+                                        <button
+                                            role="menuitem"
+                                            className="menu-item danger"
+                                            onClick={() => {
+                                                setMenuOpen(false);
+                                                handleLogout();
+                                            }}
+                                        >
+                                            <img
+                                                src="/icons/logout.png"
+                                                alt=""
+                                                className="mi-icon"
+                                                onError={(e) => (e.currentTarget.style.display = "none")}
+                                            />
+                                            <span className="mi-label">Logout</span>
+                                        </button>
+
+                                        {/* küçük ok */}
+                                        <span className="menu-pointer" aria-hidden="true" />
+                                    </div>
+                                );
+                            })()}
+                        </div>
                     )}
+
                 </div>
             </header>
 
@@ -214,7 +351,7 @@ function App() {
                         element={<CartPage onCleared={handleCartCleared} onCountChange={setCartCount} />}
                     />
                     <Route path="/orders" element={<OrdersPage />} />
-                    <Route path="/profile" element={<PrivateRoute><ProfilePage/></PrivateRoute>} />
+                    <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
                     <Route
                         path="/admin/*"
                         element={
@@ -225,7 +362,7 @@ function App() {
                     />
                     <Route path="/sale" element={<SalePage onAdded={handleAddedToCart} />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
-                    <Route path="/routine" element={<RoutineFinder/>} />
+                    <Route path="/routine" element={<RoutineFinder />} />
                     <Route path="/contact" element={<ContactPage />} />
                 </Routes>
             </main>
