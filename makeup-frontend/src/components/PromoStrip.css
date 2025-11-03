@@ -1,0 +1,54 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Parisienne&display=swap');
+
+.promo-strip {
+    width: 100%;
+    overflow: hidden;
+    background: linear-gradient(90deg, rgba(255, 222, 230, 0.9), rgba(255, 240, 245, 0.9), rgba(255, 222, 230, 0.9));
+    color: #b2206d;
+    font-family: 'Parisienne', cursive;
+    font-size: 20px;
+    padding: 10px 0;
+    white-space: nowrap;
+    position: relative;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(255, 174, 188, 0.3);
+}
+
+/* Sürekli kayan track */
+.promo-track {
+    display: inline-flex;
+    align-items: center;
+    gap: 140px; /* mesajlar arası boşluk */
+    animation: promo-scroll 45s linear infinite;
+}
+
+/* Tek bir mesaj (ikon + yazı birlikte) */
+.promo-msg {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* İkonlar */
+.promo-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+/* Hoverda durur */
+.promo-strip:hover .promo-track {
+    animation-play-state: paused;
+}
+
+/* Sonsuz döngü animasyonu */
+@keyframes promo-scroll {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}

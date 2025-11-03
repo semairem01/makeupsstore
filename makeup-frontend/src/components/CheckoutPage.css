@@ -1,97 +1,522 @@
-﻿.summary { display: grid; gap: 8px; }
-.summary .row {
+﻿/* CheckoutPage.css - Lunar Beauty Premium Checkout */
+
+:root {
+    --lunar-pink: #f1798a;
+    --lunar-pink-light: #ffc5d1;
+    --lunar-pink-dark: #d9567a;
+    --lunar-peach: #ffe3f1;
+    --lunar-cream: #fff7f9;
+    --lunar-border: #f0d8e6;
+    --lunar-text: #2a1a22;
+    --lunar-text-light: #6b5d66;
+    --lunar-success: #4ade80;
+    --lunar-shadow: rgba(241, 121, 138, 0.12);
+}
+
+.checkout-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    min-height: 100vh;
+}
+
+/* Header */
+.checkout-header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--lunar-border);
+}
+
+.checkout-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--lunar-text);
+    margin: 0 0 8px;
+    background: linear-gradient(135deg, var(--lunar-pink) 0%, var(--lunar-pink-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.checkout-header p {
+    color: var(--lunar-text-light);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* Grid Layout */
+.checkout-grid {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 32px;
+    align-items: start;
+}
+
+/* Sections */
+.checkout-section {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+    border: 1px solid var(--lunar-border);
+    box-shadow: 0 4px 20px var(--lunar-shadow);
+    transition: all 0.3s ease;
+}
+
+.checkout-section:hover {
+    box-shadow: 0 8px 30px var(--lunar-shadow);
+    transform: translateY(-2px);
+}
+
+.section-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    font-size: 14px;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--lunar-peach);
 }
-.summary .row.total {
-    margin-top: 6px;
-    font-size: 18px;
+
+.section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--lunar-pink-light) 0%, var(--lunar-peach) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--lunar-pink);
 }
-.pay-btn {
-    margin-top: 10px;
-    background: #ff69b4;
-    color: #fff;
-    border: none;
-    padding: 12px 14px;
-    border-radius: 10px;
+
+.section-header h3 {
+    margin: 0;
+    font-size: 1.4rem;
     font-weight: 700;
+    color: var(--lunar-text);
+}
+
+/* Address Selector */
+.address-selector {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.address-dropdown {
+    padding: 14px 16px;
+    border: 2px solid var(--lunar-border);
+    border-radius: 12px;
+    font-size: 15px;
+    color: var(--lunar-text);
+    background: var(--lunar-cream);
+    transition: all 0.3s ease;
     cursor: pointer;
 }
-.pay-btn:disabled {
-    opacity: .6;
-    cursor: not-allowed;
-}
-.card-form {
-    display: grid;
-    gap: 14px;
+
+.address-dropdown:hover { border-color: var(--lunar-pink-light); }
+
+.address-dropdown:focus {
+    outline: none;
+    border-color: var(--lunar-pink);
+    box-shadow: 0 0 0 4px rgba(241, 121, 138, 0.1);
 }
 
-/* Card visual preview (like a real credit card) */
-.card-preview {
-    background: linear-gradient(135deg, #2409ec, #ff69b4);
-    border-radius: 12px;
-    padding: 20px;
+.btn-new-address {
+    padding: 14px 24px;
+    background: linear-gradient(135deg, var(--lunar-pink) 0%, var(--lunar-pink-dark) 100%);
     color: white;
-    font-family: "Poppins", sans-serif;
-    box-shadow: 0 8px 20px rgba(255, 105, 180, 0.4);
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
-/* Metallic chip design */
-.card-preview .chip {
-    width: 40px;
-    height: 28px;
-    background: linear-gradient(180deg, #e0e0e0, #c0c0c0);
-    border-radius: 6px;
-    margin-bottom: 10px;
+.btn-new-address:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(241, 121, 138, 0.3);
 }
 
-/* Card number styling */
-.card-preview .card-number {
-    letter-spacing: 2px;
-    font-size: 1.1rem;
-    margin-bottom: 10px;
+/* Form Styles */
+.address-form,
+.card-form-inputs { display: grid; gap: 16px; }
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
 }
 
-/* Footer: shows cardholder and expiration date */
-.card-preview .card-footer {
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--lunar-text);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    padding: 14px 16px;
+    border: 2px solid var(--lunar-border);
+    border-radius: 12px;
+    font-size: 15px;
+    color: var(--lunar-text);
+    background: var(--lunar-cream);
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--lunar-pink);
+    box-shadow: 0 0 0 4px rgba(241, 121, 138, 0.1);
+    background: white;
+}
+
+.form-group textarea { resize: vertical; font-family: inherit; }
+
+/* Shipping Options */
+.shipping-options { display: grid; gap: 12px; }
+
+.shipping-option {
+    display: block;
+    padding: 18px 20px;
+    border: 2px solid var(--lunar-border);
+    border-radius: 12px;
+    background: var(--lunar-cream);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.shipping-option:hover { border-color: var(--lunar-pink-light); background: white; }
+
+.shipping-option.selected {
+    border-color: var(--lunar-pink);
+    background: white;
+    box-shadow: 0 4px 16px var(--lunar-shadow);
+}
+
+.shipping-option input[type="radio"] { position: absolute; opacity: 0; }
+
+.option-content { display: grid; gap: 8px; }
+
+.option-header {
     display: flex;
     justify-content: space-between;
-    font-size: 0.9rem;
+    align-items: center;
 }
 
-.card-preview .card-footer label {
-    display: block;
-    font-size: 0.7rem;
-    opacity: 0.8;
+.option-header strong { font-size: 16px; color: var(--lunar-text); }
+
+.option-header .price { font-size: 18px; font-weight: 700; color: var(--lunar-pink); }
+
+.option-content p { margin: 0; color: var(--lunar-text-light); font-size: 14px; }
+
+.free-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    color: white;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-/* Input fields layout */
-.card-form .inputs {
-    display: grid;
-    gap: 10px;
+/* === PM CARD (unique class names; flip inline style ile kontrol ediliyor) === */
+.pm-card {
+    width: 340px;
+    height: 200px;
+    margin: 0 auto 24px;
+    perspective: 1000px;
+}
+.pm-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 16px;
+    transform-style: preserve-3d;
+    transition: transform .8s ease;
+    will-change: transform;
 }
 
-/* Row for MM / YYYY / CVV */
-.card-form .row {
+.pm-card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(255,125,160,.35);
+    padding: 22px 24px;
+    font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Front */
+.pm-card-front {
+    background: linear-gradient(135deg, #ffc4d6 0%, #ff9ebd 50%, #ff7fa5 100%);
+    color: #fff;
     display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transform: rotateY(0deg);
+}
+.pm-card-chip {
+    width: 45px;
+    height: 30px;
+    background: linear-gradient(135deg, #ffe7ef, #ffbfd3);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    z-index: 2;
+    position: relative;
+}
+.pm-card-number { font-size: 1.35rem; letter-spacing: 2px; margin: 8px 0 10px; }
+.pm-card-footer-info { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
+.pm-card-footer-info label { font-size: .7rem; opacity: .85; text-transform: uppercase; }
+.pm-card-footer-info .value { font-size: .95rem; font-weight: 600; }
+.pm-card-hologram {
+    position: absolute; right: 18px; bottom: 16px;
+    width: 42px; height: 28px; border-radius: 6px;
+    background: linear-gradient(45deg, #ffffff66, #ffb8d966);
+}
+
+/* Back – only CVV */
+.pm-card-back {
+    transform: rotateY(180deg);
+    background: linear-gradient(135deg, rgba(244, 179, 201, 0.82) 40%, #f52a52 100%);
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0;
+}
+.pm-card-stripe { width: 100%; height: 46px; background: rgba(241, 21, 62, 0.67); margin-top: 18px; }
+.pm-card-cvv-label {
+    align-self: flex-start; margin: 18px 0 6px 24px;
+    font-size: .75rem; text-transform: uppercase; opacity: .7;
+}
+.pm-card-cvv-box {
+    align-self: flex-start; margin-left: 24px;
+    background: #fff; color: #111; padding: 8px 12px; border-radius: 6px;
+    min-width: 70px; text-align: center; letter-spacing: 2px; font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+}
+
+
+/* Order Summary (Right Panel) */
+.checkout-right { position: sticky; top: 20px; }
+
+.order-summary {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    border: 1px solid var(--lunar-border);
+    box-shadow: 0 8px 30px var(--lunar-shadow);
+}
+
+.order-summary h3 {
+    margin: 0 0 24px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--lunar-text);
+}
+
+/* Summary Items */
+.summary-items { display: grid; gap: 16px; margin-bottom: 24px; }
+
+.summary-item {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.summary-item img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid var(--lunar-border);
+}
+
+.item-details { display: flex; flex-direction: column; gap: 4px; }
+
+.item-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--lunar-text);
+    line-height: 1.4;
+}
+
+.item-quantity { margin: 0; font-size: 13px; color: var(--lunar-text-light); }
+
+.item-price { font-size: 16px; font-weight: 700; color: var(--lunar-pink); }
+
+.summary-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, var(--lunar-border) 50%, transparent 100%);
+    margin: 24px 0;
+}
+
+/* Summary Totals */
+.summary-totals { display: grid; gap: 12px; }
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 15px;
+    color: var(--lunar-text);
+}
+
+.total-row.grand-total {
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 2px solid var(--lunar-peach);
+    font-size: 20px;
+}
+
+.total-row .free { color: var(--lunar-success); font-weight: 700; }
+
+/* Complete Order Button */
+.btn-complete-order {
+    width: 100%;
+    padding: 18px;
+    margin-top: 24px;
+    background: linear-gradient(135deg, var(--lunar-pink) 0%, var(--lunar-pink-dark) 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.btn-complete-order:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(241, 121, 138, 0.4);
+}
+
+.btn-complete-order:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Spinner */
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Security Badge */
+.security-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--lunar-peach);
+    border-radius: 8px;
+    color: var(--lunar-text-light);
+    font-size: 14px;
+    font-weight: 600;
+}
+.security-badge svg { color: var(--lunar-success); }
+
+/* Steps */
+.checkout-steps { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:8px; color:var(--lunar-text-light); font-weight:600; }
+.checkout-steps .step { padding:4px 10px; border-radius:999px; background:#fff0f5; }
+.checkout-steps .step.active { background: linear-gradient(135deg, var(--lunar-pink-light), var(--lunar-peach)); color:#7a2340; }
+.checkout-steps .step-sep { opacity:.6; }
+
+/* Secondary button */
+.btn-secondary-outline{
+    background: transparent;
+    border: 2px solid var(--lunar-border);
+    color: var(--lunar-text);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-weight: 700;
+    transition: .2s;
+}
+.btn-secondary-outline:hover{ border-color: var(--lunar-pink-light); }
+
+.installment-options {
+    display: grid;
+    gap: 12px;
+}
+
+.installment-option {
+    display: block;
+    padding: 18px 20px;
+    border: 2px solid var(--lunar-border);
+    border-radius: 12px;
+    background: var(--lunar-cream);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.installment-option:hover {
+    border-color: var(--lunar-pink-light);
+    background: white;
+}
+
+.installment-option.selected {
+    border-color: var(--lunar-pink);
+    background: white;
+    box-shadow: 0 4px 16px var(--lunar-shadow);
+}
+
+.installment-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.installment-option .option-content {
+    display: grid;
     gap: 8px;
 }
 
-/* Input base style */
-.card-form input {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 0.9rem;
-    width: 100%;
-    transition: all 0.2s;
+.installment-option .option-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* Focus effect with pink highlight */
-.card-form input:focus {
-    outline: none;
-    border-color: #ff69b4;
-    box-shadow: 0 0 4px rgba(255, 105, 180, 0.4);
+.installment-option .option-header strong {
+    font-size: 16px;
+    color: var(--lunar-text);
+}
+
+.installment-option .option-header .price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--lunar-pink);
+}
+
+.installment-option .option-content p {
+    margin: 0;
+    color: var(--lunar-text-light);
+    font-size: 14px;
 }

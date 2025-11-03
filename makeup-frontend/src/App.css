@@ -143,7 +143,7 @@ footer,
     padding: 10px clamp(42px, 7vw, 48px) 10px clamp(12px, 2vw, 16px);
     border: 1px solid #ead3df;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgb(255, 255, 255);
     backdrop-filter: blur(6px);
     font-size: clamp(0.8rem, 1.8vw, 0.95rem);
     outline: none;

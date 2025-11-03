@@ -1,170 +1,134 @@
-﻿/* Tek seferlik güvence: yatay taşmayı kapat */
-html, body { overflow-x: hidden; }
-
-/* Full-bleed satır: tam viewport genişliği, container dışına taşmadan */
-.hero-bleed {
+﻿/* Tamamen yeni sınıf isimleri: Home.css ile çakışmaz */
+.hero-carousel{
     position: relative;
     width: 100vw;
-    /* container merkezindeyken kenarlara yapıştırmak için calc yöntemi */
     margin-left: calc(50% - 50vw);
     margin-right: calc(50% - 50vw);
-}
-
-/* === HERO === */
-.hero{
-    position: relative;
-    width: 100%;
-    aspect-ratio: 2 / 1;
-    max-height: 600px;
-    min-height: 500px;
-    border-radius: 0;
     overflow: hidden;
-    box-shadow: none;
-    margin: 0;
+    aspect-ratio: 1920 / 700;      /* görüntü oranını koru */
+    max-height: 700px;             /* desktop tepe */
 }
 
-/* Slide katmanı */
-.hero-slide{
+.hc-slide{
     position: absolute;
     inset: 0;
-    background-size: cover;
-    background-position: center center;
-    background-repeat: no-repeat;
     opacity: 0;
-    transform: scale(1);
-    transition: opacity .5s ease;
-    /* Pasif slide'ların tüm etkileşimini kapat */
     pointer-events: none;
+    transition: opacity .5s ease;
 }
-
-/* Aktif slide tıklanabilir hale gelsin */
-.hero-slide.is-active{
+.hc-slide.is-active{
     opacity: 1;
     pointer-events: auto;
 }
 
-/* Overlay konum + varyasyonlar */
-.hero-overlay{
+/* Görsel: asla esnetme yok, sadece kırpma */
+.hc-media{
+    position: absolute;
+    inset: 0;
+    display: block;
+}
+.hc-media img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: none !important;    /* zoom blur yok */
+    filter: none !important;
+    image-rendering: auto;
+}
+
+/* Overlay: blur yok */
+.hc-overlay{
     position: absolute;
     inset: 0;
     pointer-events: none;
 }
-
-.hero-overlay.default{
-    background: linear-gradient(90deg,
-    rgba(255,218,219,.85) 0%,
-    rgba(255,255,255,.35) 45%,
-    rgba(255,255,255,0) 80%);
+.hc-overlay.default{
+    background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.25) 100%);
 }
-.hero-overlay.none{ background: none; }
-.hero-overlay.dark{
-    background: linear-gradient(90deg,
-    rgba(0,0,0,.35) 0%,
-    rgba(0,0,0,.15) 45%,
-    rgba(0,0,0,0) 80%);
+.hc-overlay.dark{
+    background: linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,.45) 100%);
 }
-.hero-overlay.light{
-    background: linear-gradient(90deg,
-    rgba(255,255,255,.55) 0%,
-    rgba(255,255,255,.25) 45%,
-    rgba(255,255,255,0) 80%);
+.hc-overlay.light{
+    background: linear-gradient(180deg, rgba(255,255,255,.0) 0%, rgba(255,255,255,.25) 100%);
 }
 
-/* İçerik */
-.hero-content{
-    position: relative;
-    z-index: 2;
-    height: 100%;
+/* Metin katmanı */
+.hc-content{
+    position: absolute;
+    left: 5%;
+    right: 5%;                 /* → geniş alan */
+    bottom: 8%;                /* alta yakın; istersen 5% yap */
+    width: auto;
+    max-width: 1200px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: clamp(16px, 4vw, 42px);
-    max-width: 680px;
-    color: #3b2a2a;
-}
-
-.hero-kicker{
-    display: inline-block;
-    font-weight: 600;
-    letter-spacing: .08em;
-    color: #a84e64;
-    background: rgba(255,255,255,.7);
-    padding: 6px 10px;
-    border-radius: 999px;
-    margin-bottom: 10px;
-    font-size: .82rem;
-}
-
-.hero-title{
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(28px, 4.5vw, 44px);
-    line-height: 1.15;
-    margin: 0 0 8px;
-    color: #2b1b1b;
-}
-.hero-title .accent{ color:#e5487a; }
-
-.hero-sub{
-    font-size: 1rem;
-    opacity: .9;
-    margin: 0 0 18px;
-}
-
-/* CTA Butonu - sadece inline style'dan gelen pointer-events'e güven */
-.hero-cta{
-    display: inline-block;
-    background: linear-gradient(90deg,#fe9a8b,#fd868c);
+    align-items: center;
+    gap: 10px;
     color: #fff;
-    text-decoration: none;
-    font-weight: 700;
-    padding: 12px 20px;
-    border-radius: 999px;
-    box-shadow: 0 10px 24px rgba(253,134,140,.35);
-    transition: transform .15s ease, box-shadow .15s ease, opacity .3s ease;
-    cursor: pointer;
-    position: relative;
-    z-index: 10;
+    text-shadow: 0 2px 12px rgba(0,0,0,.35);
 }
 
-.hero-cta:hover{
-    transform: translateY(-1px);
-    box-shadow: 0 14px 32px rgba(253,134,140,.45);
+/* İNCE-UZUN PİLL ŞERİTLER */
+.hc-kicker,
+.hc-cta{
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 44px;               /* ince görünüm */
+    border-radius: 9999px;
+    padding: 0 18px;
+    width: clamp(320px, 60vw, 720px); /* 🔥 uzun şerit: 320–720px arası, ekranla büyür */
+}
+.hc-title{ margin: 10px 0 0; }
+.hc-sub{   margin: 0 0 6px;  }
+
+.hc-kicker{
+    background: rgba(255,255,255,.28);             /* yarı saydam beyaz */
+    border: 1px solid rgba(255,255,255,.45);
+    backdrop-filter: saturate(140%) blur(6px);     /* cam efekti */
+    -webkit-backdrop-filter: saturate(140%) blur(6px);
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+/* ALTTAKİ PEMBE CTA ŞERİDİ */
+.hc-cta{
+    height: 48px;                                   /* CTA az daha kalın olabilir */
+    background: linear-gradient(90deg,#ff7aa2,#ff6aa0);
+    color: #fff;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: 0 10px 26px rgba(255,122,162,.35);
 }
 
 /* Dots */
-.hero-dots{
+.hc-dots{
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 12px;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
     display: flex;
     gap: 8px;
-    justify-content: center;
-    z-index: 20;
+    z-index: 3;
 }
-
-.hero-dots .dot{
-    width: 9px;
-    height: 9px;
-    border-radius: 999px;
+.hc-dots .dot{
+    width: 9px; height: 9px; border-radius: 50%;
+    background: rgba(255,255,255,.6);
     border: none;
-    background: rgba(255,255,255,.7);
     cursor: pointer;
-    transition: all .2s ease;
+}
+.hc-dots .dot.active{ background: #fff; }
+
+/* Hareketi azalt tercihinde animasyonları minimal tut */
+@media (prefers-reduced-motion: reduce){
+    .hc-slide{ transition: none; }
 }
 
-.hero-dots .dot.active{
-    background: #fe9a8b;
-    box-shadow: 0 0 0 3px rgba(255,255,255,.65);
-}
-
-/* Tablet */
+/* Mobil: yükseklik kısıtla */
 @media (max-width: 768px){
-    .hero{
-        aspect-ratio: 16/9;
-        min-height: 280px;
-    }
-    .hero-content{
-        max-width: 92%;
-    }
+    .hero-carousel{ max-height: 520px; }
 }

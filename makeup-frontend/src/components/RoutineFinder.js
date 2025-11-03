@@ -1,20 +1,85 @@
-﻿// src/pages/RoutineFinder.jsx
-import React, { useMemo, useState } from "react";
+﻿import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS, API_BASE_URL } from "../config";
 import "./RoutineFinder.css";
 
-const SKIN = ["Dry","Oily","Combination","Sensitive","Normal"];
-const VIBE = ["Natural","Soft Glam","Bold"];
-const ENV  = ["Office/Daylight","Indoor Evening","Outdoor/Sunny","Party"];
-const MUST = ["Lips","Eyes","Base","Cheeks"];
-const UNDERTONE = ["Warm","Cool","Neutral"];
-const EYES = ["Brown/Black","Hazel/Green","Blue/Gray"];
-
-function Pill({active, children, onClick}) {
-    return <button className={`rf-pill ${active?"active":""}`} onClick={onClick}>{children}</button>;
+// Sadece EK: ikon/emoji'yi doğru çizdirmek için küçük yardımcı
+function OptionIcon({ icon }) {
+    if (typeof icon === "string") {
+        const isPath = icon.startsWith("/") || icon.startsWith("http");
+        return isPath ? <img src={icon} alt="" className="rf-icon-img" /> : <span>{icon}</span>;
+    }
+    return <>{icon}</>;
 }
+
+const QUESTIONS = [
+    {
+        id: "skin",
+        title: "What's your skin type?",
+        emoji: "/icons/gem.png",
+        options: [
+            { value: "Dry", icon: "/icons/dry.png", desc: "Tight & flaky" },
+            { value: "Oily", icon: "/icons/oily.png", desc: "Shiny T-zone" },
+            { value: "Combination", icon: "/icons/combination.png", desc: "Mixed zones" },
+            { value: "Sensitive", icon: "/icons/sensitive.png", desc: "Easily irritated" },
+            { value: "Normal", icon: "/icons/normal.png", desc: "Balanced & happy" },
+        ]
+    },
+    {
+        id: "vibe",
+        title: "What's your makeup vibe?",
+        emoji: "/icons/lipstick.png",
+        options: [
+            { value: "Natural", icon: "/icons/natural.png", desc: "Effortless & minimal" },
+            { value: "Soft Glam", icon: "/icons/glam.png", desc: "Elegant & glowy" },
+            { value: "Bold", icon: "/icons/bold.png", desc: "Statement & dramatic" },
+        ]
+    },
+    {
+        id: "env",
+        title: "Where are you headed?",
+        emoji: "/icons/event.png",
+        options: [
+            { value: "Office/Daylight", icon: "/icons/office.png", desc: "Professional vibes" },
+            { value: "Indoor Evening", icon: "/icons/indoor.png", desc: "Dinner & dates" },
+            { value: "Outdoor/Sunny", icon: "/icons/sun.png", desc: "Beach & sun" },
+            { value: "Party", icon: "/icons/party.png", desc: "Dance floor ready" },
+        ]
+    },
+    {
+        id: "must",
+        title: "What's your must-have?",
+        emoji: "/icons/imp.png",
+        options: [
+            { value: "Lips", icon: "/icons/lips.png", desc: "The finishing touch" },
+            { value: "Eyes", icon: "/icons/eye.png", desc: "Windows to the soul" },
+            { value: "Base", icon: "/icons/base.png", desc: "Flawless canvas" },
+            { value: "Cheeks", icon: "/icons/peach.png", desc: "Natural flush" },
+        ]
+    }
+];
+
+const EXTRA_QUESTIONS = [
+    {
+        id: "undertone",
+        title: "What's your undertone?",
+        options: [
+            { value: "Warm", icon: "🌅", desc: "Peachy & golden" },
+            { value: "Cool", icon: "🌸", desc: "Rosy & pink" },
+            { value: "Neutral", icon: "🤍", desc: "Balanced mix" },
+        ]
+    },
+    {
+        id: "eyeColor",
+        title: "Your eye color?",
+        options: [
+            { value: "Brown/Black", icon: "🤎", desc: "Deep & rich" },
+            { value: "Hazel/Green", icon: "💚", desc: "Earthy tones" },
+            { value: "Blue/Gray", icon: "💙", desc: "Cool shades" },
+        ]
+    }
+];
 
 function ProductCard({ product, onAdded }) {
     const token = localStorage.getItem("token");
@@ -31,7 +96,7 @@ function ProductCard({ product, onAdded }) {
                 { productId: product.id, quantity: 1 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            alert("Sepete eklendi!");
+            alert("✨ Sepete eklendi!");
             if (onAdded) onAdded(1);
         } catch (err) {
             alert("Sepete eklenirken hata: " + (err.response?.data || err.message));
@@ -39,288 +104,168 @@ function ProductCard({ product, onAdded }) {
     };
 
     return (
-        <div className="rf-product-card">
-            <img
-                src={`${API_BASE_URL}${product.imageUrl}`}
-                alt={product.name}
-                onError={(e) => {
-                    e.currentTarget.src = "https://via.placeholder.com/200x200?text=No+Image";
-                }}
-            />
-            <div className="rf-product-info">
-                <div className="rf-product-brand">{product.brand}</div>
-                <div className="rf-product-name">{product.name}</div>
-                <div className="rf-product-category">{product.category}</div>
-                {product.shadeFamily && (
-                    <div className="rf-product-shade">🎨 {product.shadeFamily}</div>
-                )}
+        <div className="rf-product-card-new">
+            <div className="rf-product-image-wrap">
+                <img
+                    src={`${API_BASE_URL}${product.imageUrl}`}
+                    alt={product.name}
+                    onError={(e) => {
+                        e.currentTarget.src = "https://via.placeholder.com/300x300?text=No+Image";
+                    }}
+                />
                 {product.badges && product.badges.length > 0 && (
-                    <div className="rf-product-badges">
-                        {product.badges.map((badge, i) => (
-                            <span key={i} className="rf-badge">{badge}</span>
+                    <div className="rf-product-badges-overlay">
+                        {product.badges.slice(0, 2).map((badge, i) => (
+                            <span key={i} className="rf-badge-overlay">{badge}</span>
                         ))}
                     </div>
                 )}
-                <div className="rf-product-price">₺{product.price.toLocaleString("tr-TR")}</div>
-                <button className="rf-add-to-cart" onClick={addToCart}>
-                    Sepete Ekle
-                </button>
+            </div>
+            <div className="rf-product-content">
+                <div className="rf-product-brand-new">{product.brand}</div>
+                <h4 className="rf-product-name-new">{product.name}</h4>
+                {product.matchReason && (
+                    <div className="rf-match-reason">
+                        ✨ {product.matchReason}
+                    </div>
+                )}
+                {product.shadeFamily && (
+                    <div className="rf-product-shade-new">🎨 {product.shadeFamily}</div>
+                )}
+                <div className="rf-product-footer">
+                    <div className="rf-product-price-new">₺{product.price.toLocaleString("tr-TR")}</div>
+                    <button className="rf-add-btn" onClick={addToCart}>
+                        Add to Cart
+                    </button>
+                </div>
             </div>
         </div>
     );
 }
 
-export default function RoutineFinder({ onAdded }){
-    const [step,setStep] = useState(1);
-    const [skin,setSkin] = useState("");
-    const [vibe,setVibe] = useState("");
-    const [env,setEnv]   = useState("");
-    const [must,setMust] = useState("");
-    const [more,setMore] = useState(false);
-    const [tone,setTone] = useState("");
-    const [eyes,setEyes] = useState("");
-
-    // ✨ Backend sonuçları için state
+export default function RoutineFinder({ onAdded }) {
+    const [currentStep, setCurrentStep] = useState(0);
+    const [answers, setAnswers] = useState({});
+    const [showExtra, setShowExtra] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [backendResult, setBackendResult] = useState(null);
+    const [result, setResult] = useState(null);
 
-    const nav = useNavigate();
+    const isMainQuestionsComplete = QUESTIONS.every(q => answers[q.id]);
+    const currentQuestion = showExtra
+        ? EXTRA_QUESTIONS[currentStep - QUESTIONS.length]
+        : QUESTIONS[currentStep];
 
-    const canNext = (step===1 && skin) || (step===2 && vibe) || (step===3 && env) || (step===4 && must);
+    const handleAnswer = (questionId, value) => {
+        setAnswers(prev => ({ ...prev, [questionId]: value }));
 
-    // ---- KURALLAR (fallback için) ----
-    const shadeFromTone = (t)=> {
-        if (t==="Warm")   return ["coral","peach","terracotta","gold","bronze","warm pink"];
-        if (t==="Cool")   return ["rose","mauve","berry","plum","taupe","silver"];
-        return ["nude","beige","soft pink","brown","champagne"];
+        // Auto advance
+        setTimeout(() => {
+            if (currentStep < QUESTIONS.length - 1) {
+                setCurrentStep(currentStep + 1);
+            } else if (showExtra && currentStep < QUESTIONS.length + EXTRA_QUESTIONS.length - 1) {
+                setCurrentStep(currentStep + 1);
+            }
+        }, 300);
     };
 
-    const eyeBoost = (e)=> {
-        if (e==="Brown/Black") return ["emerald","navy","bronze"];
-        if (e==="Hazel/Green") return ["plum","mauve","copper"];
-        if (e==="Blue/Gray")   return ["warm brown","peach","gold"];
-        return [];
-    };
-
-    const baseBySkin = (s)=> {
-        if (s==="Dry")        return { title:"Hydration Glow", tags:["hyaluronic","dewy","hydrating primer"] };
-        if (s==="Oily")       return { title:"Matte Control",  tags:["mattifying","oil-control","powder"] };
-        if (s==="Combination")return { title:"Soft Balance",   tags:["balancing","natural finish"] };
-        if (s==="Sensitive")  return { title:"Calm & Care",    tags:["fragrance-free","soothing"] };
-        return { title:"Balanced Radiance", tags:["skin-like","natural"] };
-    };
-
-    const tagsByVibe = (v)=> {
-        if (v==="Natural")   return ["no-makeup","sheer","tinted"];
-        if (v==="Soft Glam") return ["soft-focus","glow","defined"];
-        return ["bold","longwear","high pigment"];
-    };
-
-    const tagsByEnv = (e)=> {
-        const t=[];
-        if (e==="Outdoor/Sunny")  t.push("spf","sweat-resistant");
-        if (e==="Indoor Evening") t.push("photo-friendly","setting spray");
-        if (e==="Office/Daylight")t.push("lightweight","fresh");
-        if (e==="Party")          t.push("glitter","shimmer","longwear");
-        return t;
-    };
-
-    const categories = {
-        Lips:   ["lipstick","lip gloss","liner"],
-        Eyes:   ["mascara","eyeliner","eyeshadow"],
-        Base:   ["primer","foundation","concealer","powder"],
-        Cheeks: ["blush","highlighter","bronzer"]
-    };
-
-    const result = useMemo(()=>{
-        if (!skin || !vibe || !env || !must) return null;
-
-        const base = baseBySkin(skin);
-        const vibeTags = tagsByVibe(vibe);
-        const envTags  = tagsByEnv(env);
-
-        const shade = tone ? shadeFromTone(tone) : ["nude","soft pink","brown"];
-        const eyePlus = eyes ? eyeBoost(eyes) : [];
-
-        const order = [must, ...Object.keys(categories).filter(k=>k!==must)];
-        const buckets = order.map(k => ({
-            bucket: k,
-            catTags: categories[k],
-            shades: (k==="Eyes" ? [...shade, ...eyePlus] : shade).slice(0,4)
-        }));
-
-        const allTags = [
-            ...base.tags, ...vibeTags, ...envTags, ...shade, ...eyePlus, ...categories[must]
-        ];
-
-        const q = encodeURIComponent(allTags.join(" "));
-        return {
-            title: base.title,
-            buckets,
-            queryUrl: `/products?q=${q}`
-        };
-    },[skin,vibe,env,must,tone,eyes]);
-
-    // ✨ Backend'den öneri al
-    const getRecommendations = async () => {
-        if (!skin || !vibe || !env || !must) {
-            alert("Lütfen tüm zorunlu alanları doldurun!");
+    const handleGetResults = async () => {
+        if (!isMainQuestionsComplete) {
+            alert("Lütfen tüm soruları cevaplayın!");
             return;
         }
 
         setLoading(true);
         try {
             const payload = {
-                skin,
-                vibe,
-                env,
-                must,
-                undertone: tone || null,
-                eyeColor: eyes || null,
+                skin: answers.skin,
+                vibe: answers.vibe,
+                env: answers.env,
+                must: answers.must,
+                undertone: answers.undertone || null,
+                eyeColor: answers.eyeColor || null,
             };
 
             const response = await axios.post(API_ENDPOINTS.RECOMMEND_ROUTINE, payload);
-            setBackendResult(response.data);
+            setResult(response.data);
+
+            // Scroll to results
+            setTimeout(() => {
+                document.querySelector('.rf-results')?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }, 100);
         } catch (err) {
             console.error("Backend öneri hatası:", err);
-            // Hata durumunda fallback: arama URL'sine yönlendir
-            if (result) {
-                nav(result.queryUrl);
-            } else {
-                alert("Öneriler yüklenirken hata oluştu. Lütfen tekrar deneyin.");
-            }
+            alert("Öneriler yüklenirken hata oluştu: " + (err.response?.data?.message || err.message));
         } finally {
             setLoading(false);
         }
     };
 
-    return (
-        <div className="rf-wrap">
-            <h2>Find Your Perfect Routine 💕</h2>
-            <p className="rf-sub">Tell us your skin type & vibe — we'll build your look.</p>
+    const resetQuiz = () => {
+        setCurrentStep(0);
+        setAnswers({});
+        setShowExtra(false);
+        setResult(null);
+    };
 
-            {/* steps */}
-            <div className="rf-steps">
-                <div className={`dot ${step>=1?"on":""}`}>1</div><div className={`bar ${step>1?"on":""}`}/>
-                <div className={`dot ${step>=2?"on":""}`}>2</div><div className={`bar ${step>2?"on":""}`}/>
-                <div className={`dot ${step>=3?"on":""}`}>3</div><div className={`bar ${step>3?"on":""}`}/>
-                <div className={`dot ${step>=4?"on":""}`}>4</div>
-            </div>
-
-            {step===1 && (
-                <section className="rf-card">
-                    <h3>Cilt Tipi</h3>
-                    <div className="rf-pills">{SKIN.map(s=><Pill key={s} active={skin===s} onClick={()=>setSkin(s)}>{s}</Pill>)}</div>
-                </section>
-            )}
-
-            {step===2 && (
-                <section className="rf-card">
-                    <h3>Makyaj Tarzı</h3>
-                    <div className="rf-pills">{VIBE.map(s=><Pill key={s} active={vibe===s} onClick={()=>setVibe(s)}>{s}</Pill>)}</div>
-                </section>
-            )}
-
-            {step===3 && (
-                <section className="rf-card">
-                    <h3>Ortam / Işık</h3>
-                    <div className="rf-pills">{ENV.map(s=><Pill key={s} active={env===s} onClick={()=>setEnv(s)}>{s}</Pill>)}</div>
-                </section>
-            )}
-
-            {step===4 && (
-                <section className="rf-card">
-                    <h3>Olmazsa Olmaz</h3>
-                    <div className="rf-pills">{MUST.map(s=><Pill key={s} active={must===s} onClick={()=>setMust(s)}>{s}</Pill>)}</div>
-
-                    <div className="rf-more">
-                        <label>
-                            <input type="checkbox" checked={more} onChange={e=>setMore(e.target.checked)} />
-                            <span> Daha da kişiselleştir (30 sn)</span>
-                        </label>
+    if (result) {
+        return (
+            <div className="rf-results">
+                {/* Persona Card */}
+                <div className="rf-persona-reveal">
+                    <div className="rf-persona-icon" style={{ color: result.personaColor }}>
+                        {result.personaIcon}
                     </div>
+                    <h2 className="rf-persona-name">You're {result.personaName}!</h2>
+                    <p className="rf-persona-desc">{result.personaDescription}</p>
+                    <button className="rf-retake-btn" onClick={resetQuiz}>
+                        Take Quiz Again
+                    </button>
+                </div>
 
-                    {more && (
-                        <div className="rf-more-grid">
-                            <div>
-                                <div className="rf-more-label">Undertone</div>
-                                <div className="rf-pills small">{UNDERTONE.map(s=>
-                                    <Pill key={s} active={tone===s} onClick={()=>setTone(s)}>{s}</Pill>)}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="rf-more-label">Göz Rengi</div>
-                                <div className="rf-pills small">{EYES.map(s=>
-                                    <Pill key={s} active={eyes===s} onClick={()=>setEyes(s)}>{s}</Pill>)}
-                                </div>
+                {/* Product Recommendations */}
+                <div className="rf-recommendations">
+                    <h3 className="rf-recommendations-title">Your Personalized Picks ✨</h3>
+
+                    {/* Must-Have Category First */}
+                    {result[answers.must?.toLowerCase()] && result[answers.must.toLowerCase()].length > 0 && (
+                        <div className="rf-category-section priority">
+                            <h4 className="rf-category-title">
+                                <span className="rf-category-icon">💖</span>
+                                {answers.must} (Your Must-Have!)
+                            </h4>
+                            <div className="rf-products-grid-new">
+                                {result[answers.must.toLowerCase()].map((p) => (
+                                    <ProductCard key={p.id} product={p} onAdded={onAdded} />
+                                ))}
                             </div>
                         </div>
                     )}
-                </section>
-            )}
 
-            <div className="rf-actions">
-                <button className="rf-ghost" disabled={step===1} onClick={()=>setStep(step-1)}>Geri</button>
-                {step<4 ? (
-                    <button className="rf-btn" disabled={!canNext} onClick={()=>setStep(step+1)}>İleri</button>
-                ) : (
-                    <button
-                        className="rf-btn"
-                        disabled={!result || loading}
-                        onClick={getRecommendations}
-                    >
-                        {loading ? "Yükleniyor..." : "Önerilen Ürünleri Gör →"}
-                    </button>
-                )}
-            </div>
-
-            {/* Özet - Backend sonucu yoksa eski görünüm */}
-            {!backendResult && result && (
-                <div className="rf-result">
-                    <div className="rf-title">Your Routine: <b>{result.title}</b></div>
-                    <div className="rf-buckets">
-                        {result.buckets.map(b=>(
-                            <div key={b.bucket} className="rf-bucket">
-                                <div className="rf-bucket-title">{b.bucket}</div>
-                                <div className="rf-tags">
-                                    {b.catTags.slice(0,3).map((t,i)=><span key={i} className="rf-tag">#{t}</span>)}
-                                </div>
-                                <div className="rf-shades">
-                                    {b.shades.map((s,i)=><span key={i} className="rf-chip">{s}</span>)}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="rf-hint">İpucu: Buton tıklandığında backend'den kişiselleştirilmiş ürünler gelecek.</div>
-                </div>
-            )}
-
-            {/* ✨ Backend Sonuçları */}
-            {backendResult && (
-                <div className="rf-result">
-                    <div className="rf-title">Your Routine: <b>{backendResult.title}</b></div>
-
-                    {/* Must-Have Kategori (Öncelikli) */}
-                    <div className="rf-bucket-section">
-                        <h3 className="rf-bucket-title">✨ {must} (Olmazsa Olmaz)</h3>
-                        <div className="rf-products-grid">
-                            {backendResult[must.toLowerCase()]?.slice(0, 3).map((p) => (
-                                <ProductCard key={p.id} product={p} onAdded={onAdded} />
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Diğer Kategoriler */}
-                    {["Lips", "Eyes", "Base", "Cheeks"]
-                        .filter((cat) => cat !== must)
+                    {/* Other Categories */}
+                    {["lips", "eyes", "base", "cheeks"]
+                        .filter(cat => cat !== answers.must?.toLowerCase())
                         .map((cat) => {
-                            const products = backendResult[cat.toLowerCase()];
+                            const products = result[cat];
                             if (!products || products.length === 0) return null;
+
+                            const icons = {
+                                lips: "💋",
+                                eyes: "👁️",
+                                base: "🧴",
+                                cheeks: "🍑"
+                            };
+
                             return (
-                                <div key={cat} className="rf-bucket-section">
-                                    <h3 className="rf-bucket-title">{cat}</h3>
-                                    <div className="rf-products-grid">
-                                        {products.slice(0, 3).map((p) => (
+                                <div key={cat} className="rf-category-section">
+                                    <h4 className="rf-category-title">
+                                        <span className="rf-category-icon">{icons[cat]}</span>
+                                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                    </h4>
+                                    <div className="rf-products-grid-new">
+                                        {products.map((p) => (
                                             <ProductCard key={p.id} product={p} onAdded={onAdded} />
                                         ))}
                                     </div>
@@ -328,6 +273,117 @@ export default function RoutineFinder({ onAdded }){
                             );
                         })}
                 </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="rf-container">
+            {/* Hero Section */}
+            <div className="rf-hero">
+                <h1 className="rf-hero-title">
+                    Discover Your Beauty DNA
+                </h1>
+                <p className="rf-hero-subtitle">
+                    Take our quiz and unlock your perfect makeup routine ✨
+                </p>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="rf-progress-container">
+                <div className="rf-progress-bar">
+                    <div
+                        className="rf-progress-fill"
+                        style={{
+                            width: `${((currentStep + 1) / (showExtra ? QUESTIONS.length + EXTRA_QUESTIONS.length : QUESTIONS.length)) * 100}%`
+                        }}
+                    />
+                </div>
+                <div className="rf-progress-text">
+                    Question {currentStep + 1} of {showExtra ? QUESTIONS.length + EXTRA_QUESTIONS.length : QUESTIONS.length}
+                </div>
+            </div>
+
+            {/* Question Card */}
+            <div className="rf-question-card">
+                <div className="rf-question-emoji">
+                    <OptionIcon icon={currentQuestion.emoji} />
+                </div>
+                <h2 className="rf-question-title">{currentQuestion.title}</h2>
+
+                <div className="rf-options-grid">
+                    {currentQuestion.options.map((option) => {
+                        const isSelected = answers[currentQuestion.id] === option.value;
+                        return (
+                            <button
+                                key={option.value}
+                                className={`rf-option-card ${isSelected ? 'selected' : ''}`}
+                                onClick={() => handleAnswer(currentQuestion.id, option.value)}
+                            >
+                                <div className="rf-option-icon">
+                                    <OptionIcon icon={option.icon} />
+                                </div>
+                                <div className="rf-option-value">{option.value}</div>
+                                <div className="rf-option-desc">{option.desc}</div>
+                                {isSelected && <div className="rf-option-checkmark">✓</div>}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Navigation Buttons */}
+            <div className="rf-nav-buttons">
+                {currentStep > 0 && (
+                    <button
+                        className="rf-nav-btn rf-nav-back"
+                        onClick={() => setCurrentStep(currentStep - 1)}
+                    >
+                        ← Back
+                    </button>
+                )}
+
+                {currentStep === QUESTIONS.length - 1 && !showExtra && isMainQuestionsComplete && (
+                    <div className="rf-final-actions">
+                        <button
+                            className="rf-nav-btn rf-nav-extra"
+                            onClick={() => {
+                                setShowExtra(true);
+                                setCurrentStep(QUESTIONS.length);
+                            }}
+                        >
+                            ✨ Get Even More Personalized
+                        </button>
+                        <button
+                            className="rf-nav-btn rf-nav-submit"
+                            onClick={handleGetResults}
+                            disabled={loading}
+                        >
+                            {loading ? '✨ Creating Your Routine...' : 'See My Results →'}
+                        </button>
+                    </div>
+                )}
+
+                {showExtra && currentStep === QUESTIONS.length + EXTRA_QUESTIONS.length - 1 && (
+                    <button
+                        className="rf-nav-btn rf-nav-submit"
+                        onClick={handleGetResults}
+                        disabled={loading}
+                    >
+                        {loading ? '✨ Creating Your Routine...' : 'See My Results →'}
+                    </button>
+                )}
+            </div>
+
+            {/* Skip Extra Questions */}
+            {showExtra && (
+                <button
+                    className="rf-skip-btn"
+                    onClick={handleGetResults}
+                    disabled={loading}
+                >
+                    Skip & See Results
+                </button>
             )}
         </div>
     );

@@ -5,8 +5,24 @@ import { API_ENDPOINTS } from "../config";
 import { useNavigate } from "react-router-dom";
 import "./CheckoutPage.css";
 import AddressSelect from "./AddressSelect";
-// Adres modalını reuse edelim (AddressBook.jsx en sonunda export edilen isim)
 import { __INTERNAL__AddressModal as AddressModal } from "./AddressBook";
+
+/* Icons */
+const MapPinIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+        <circle cx="12" cy="10" r="3" />
+    </svg>
+);
+
+const TruckIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M1 3h15v13H1z" />
+        <path d="M16 8h4l3 3v5h-7V8z" />
+        <circle cx="5.5" cy="18.5" r="2.5" />
+        <circle cx="18.5" cy="18.5" r="2.5" />
+    </svg>
+);
 
 export default function CheckoutPage() {
     const token = localStorage.getItem("token");
@@ -14,17 +30,11 @@ export default function CheckoutPage() {
 
     const [cart, setCart] = useState([]);
     const [shipping, setShipping] = useState("standard");
-    const [submitting, setSubmitting] = useState(false);
 
-    // ✔ seçilen adres objesi + id
-    const [selectedAddress, setSelectedAddress] = useState(null);
     const [selectedAddressId, setSelectedAddressId] = useState(0);
-
-    // AddressSelect'i yeniden mount etmek için küçük sayaç
     const [addrListVersion, setAddrListVersion] = useState(0);
     const [addrModalOpen, setAddrModalOpen] = useState(false);
 
-    // Form (elle giriş yaparsa yine dursun)
     const [addr, setAddr] = useState({
         fullName: "",
         phone: "",
@@ -34,17 +44,7 @@ export default function CheckoutPage() {
         addressLine: "",
     });
 
-    // Kart formu
-    const [card, setCard] = useState({
-        cardNumber: "4242 4242 4242 4242",
-        expMonth: 12,
-        expYear: new Date().getFullYear() + 1,
-        cvv: "123",
-        nameOnCard: "Test User",
-    });
-
-    const tl = (n) =>
-        Number(n || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
+    const tl = (n) => Number(n || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
 
     useEffect(() => {
         if (!token) {
@@ -57,13 +57,10 @@ export default function CheckoutPage() {
             .catch(() => setCart([]));
     }, [token, nav]);
 
-    // ✔ AddressSelect'ten gelen objeyi forma geçir
     const onAddressPicked = useCallback((obj) => {
-        setSelectedAddress(obj);
         setSelectedAddressId(obj?.id ?? 0);
 
         if (!obj) {
-            // seçimi temizlediyse formu sıfırlayalım
             setAddr({
                 fullName: "",
                 phone: "",
@@ -75,27 +72,21 @@ export default function CheckoutPage() {
             return;
         }
 
-        const line =
-            [
-                obj.street,
-                obj.buildingNo ? `No:${obj.buildingNo}` : null,
-                obj.apartmentNo ? `D:${obj.apartmentNo}` : null,
-            ].filter(Boolean).join(" ");
+        const line = [obj.street, obj.buildingNo ? `No:${obj.buildingNo}` : null, obj.apartmentNo ? `D:${obj.apartmentNo}` : null]
+            .filter(Boolean)
+            .join(" ");
 
         setAddr({
             fullName: obj.fullName || "",
             phone: obj.phone || "",
-            city: obj.city || "",
-            district: obj.district || "",
+            city: obj.cityName ?? obj.city ?? "",
+            district: obj.districtName ?? obj.district ?? "",
             postalCode: obj.postalCode || "",
             addressLine: line,
         });
     }, []);
 
-    const subtotal = useMemo(
-        () => (cart || []).reduce((s, x) => s + (x.totalPrice ?? x.TotalPrice ?? 0), 0),
-        [cart]
-    );
+    const subtotal = useMemo(() => (cart || []).reduce((s, x) => s + (x.totalPrice ?? x.TotalPrice ?? 0), 0), [cart]);
     const shipBase = shipping === "express" ? 79.9 : 39.9;
     const shippingFee = subtotal >= 600 ? 0 : shipBase;
     const grandTotal = subtotal + shippingFee;
@@ -103,268 +94,228 @@ export default function CheckoutPage() {
     const validAddress = () =>
         addr.fullName && addr.phone && addr.city && addr.district && addr.postalCode && addr.addressLine;
 
-    const pay = async () => {
+    const goPayment = () => {
         if (!validAddress()) {
             alert("Lütfen tüm adres bilgilerini doldurun.");
             return;
         }
-        const rawCard = (card.cardNumber || "").replace(/\s+/g, "");
-        if (rawCard.length < 12 || !card.cvv || !card.nameOnCard) {
-            alert("Kart bilgilerini kontrol edin.");
-            return;
-        }
-
-        setSubmitting(true);
-        try {
-            // 1) Ödeme simülasyonu
-            const payRes = await axios.post(
-                `${API_ENDPOINTS.PAYMENTS}/simulate`,
-                { ...card, cardNumber: rawCard, shippingFee },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            if (!payRes.data?.success) {
-                alert(payRes.data?.message || "Ödeme reddedildi.");
-                return;
-            }
-
-            // 2) Siparişi oluştur (✔ addressId gönderiyoruz)
-            const orderRes = await axios.post(
-                `${API_ENDPOINTS.ORDERS}/checkout`,
-                {
-                    shippingFee,
-                    shippingMethod: shipping,
-                    addressId: selectedAddressId > 0 ? selectedAddressId : null,
-                    // addressId yoksa backend tarafı body'den okuyor; istersen buraya da formdaki snapshot'ı koyabilirsin.
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            if (orderRes.data?.success === false) {
-                alert(orderRes.data?.message || "Sipariş oluşturulamadı.");
-                return;
-            }
-
-            nav("/orders");
-        } catch (e) {
-            alert(e?.response?.data || "Ödeme/sipariş sırasında bir hata oluştu.");
-        } finally {
-            setSubmitting(false);
-        }
+        nav("/checkout/payment", {
+            state: {
+                selectedAddressId: selectedAddressId > 0 ? selectedAddressId : null,
+                addr,
+                shipping,
+                shippingFee,
+                subtotal,
+                grandTotal,
+            },
+        });
     };
 
     return (
-        <div style={{ maxWidth: 1100, margin: "16px auto", padding: "0 16px", display: "grid", gap: 16 }}>
-            <h2 style={{ margin: "8px 0" }}>Ödeme</h2>
+        <div className="checkout-container">
+            {/* Header */}
+            <div className="checkout-header">
+                <h1>Ödeme</h1>
+                <p>Siparişinizi güvenli bir şekilde tamamlayın</p>
+            </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
-                {/* Left */}
-                <div style={{ display: "grid", gap: 16 }}>
-                    {/* ✔ Address */}
-                    <section style={cardBox}>
-                        <h3 style={secTitle}>Teslimat Adresi</h3>
+            <div className="checkout-grid">
+                {/* Left Panel */}
+                <div>
+                    {/* Teslimat Adresi */}
+                    <section className="checkout-section">
+                        <div className="section-header">
+                            <div className="section-icon">
+                                <MapPinIcon />
+                            </div>
+                            <h3>Teslimat Adresi</h3>
+                        </div>
 
-                        {/* Select + Yeni Adres */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 10 }}>
+                        <div className="address-selector">
                             <AddressSelect
                                 key={addrListVersion}
                                 value={selectedAddressId}
                                 onChange={onAddressPicked}
                                 onNew={() => setAddrModalOpen(true)}
                             />
-                            <button
-                                type="button"
-                                className="lp-btn lp-btn--secondary"
-                                onClick={() => setAddrModalOpen(true)}
-                                style={{ height: 36, alignSelf: "end" }}
-                            >
-                                Yeni Adres
-                            </button>
                         </div>
 
-                        {/* Form alanlarını seçime göre dolduruyoruz */}
-                        <div style={grid2}>
-                            <input
-                                placeholder="Ad Soyad"
-                                value={addr.fullName}
-                                onChange={(e) => setAddr({ ...addr, fullName: e.target.value })}
-                            />
-                            <input
-                                placeholder="Telefon"
-                                value={addr.phone}
-                                onChange={(e) => setAddr({ ...addr, phone: e.target.value })}
-                            />
-                            <input
-                                placeholder="İl"
-                                value={addr.city}
-                                onChange={(e) => setAddr({ ...addr, city: e.target.value })}
-                            />
-                            <input
-                                placeholder="İlçe"
-                                value={addr.district}
-                                onChange={(e) => setAddr({ ...addr, district: e.target.value })}
-                            />
-                            <input
-                                placeholder="Posta Kodu"
-                                value={addr.postalCode}
-                                onChange={(e) => setAddr({ ...addr, postalCode: e.target.value })}
-                            />
-                            <div />
-                            <textarea
-                                placeholder="Adres"
-                                style={{ gridColumn: "1/-1" }}
-                                rows={3}
-                                value={addr.addressLine}
-                                onChange={(e) => setAddr({ ...addr, addressLine: e.target.value })}
-                            />
-                        </div>
-                    </section>
-
-                    {/* Shipping */}
-                    <section style={cardBox}>
-                        <h3 style={secTitle}>Kargo</h3>
-                        <label style={radioRow}>
-                            <input type="radio" name="ship" checked={shipping === "standard"} onChange={() => setShipping("standard")} />
-                            <span>
-                Standart ({tl(39.9)}) — {tl(600)}<strong>+ Ücretsiz</strong>
-                                {subtotal >= 600 && " (uygulandı)"}
-              </span>
-                        </label>
-                        <label style={radioRow}>
-                            <input type="radio" name="ship" checked={shipping === "express"} onChange={() => setShipping("express")} />
-                            <span>Ekspres ({tl(79.9)})</span>
-                        </label>
-                    </section>
-
-                    {/* Card */}
-                    <section style={cardBox}>
-                        <h3 style={secTitle}>Card Information</h3>
-
-                        <div className="card-form">
-                            <div className="card-preview">
-                                <div className="chip" />
-                                <div className="card-number">{card.cardNumber || "•••• •••• •••• ••••"}</div>
-                                <div className="card-footer">
-                                    <div>
-                                        <label>Card Holder</label>
-                                        <div>{card.nameOnCard || "Full Name"}</div>
-                                    </div>
-                                    <div>
-                                        <label>Exp</label>
-                                        <div>
-                                            {card.expMonth || "MM"}/{card.expYear || "YYYY"}
-                                        </div>
-                                    </div>
+                        <div className="address-form">
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Ad Soyad</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Adınız ve soyadınız"
+                                        value={addr.fullName}
+                                        onChange={(e) => setAddr({ ...addr, fullName: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Telefon</label>
+                                    <input
+                                        type="tel"
+                                        placeholder="0555 555 55 55"
+                                        value={addr.phone}
+                                        onChange={(e) => setAddr({ ...addr, phone: e.target.value })}
+                                    />
                                 </div>
                             </div>
 
-                            <div className="inputs">
-                                <input
-                                    placeholder="Name on Card"
-                                    value={card.nameOnCard}
-                                    onChange={(e) => setCard({ ...card, nameOnCard: e.target.value })}
-                                />
-                                <input
-                                    placeholder="Card Number"
-                                    value={card.cardNumber}
-                                    onChange={(e) => {
-                                        let value = e.target.value.replace(/\D/g, "");
-                                        value = value.replace(/(.{4})/g, "$1 ").trim();
-                                        setCard({ ...card, cardNumber: value });
-                                    }}
-                                    maxLength={19}
-                                />
-                                <div className="row">
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>İl</label>
                                     <input
-                                        placeholder="Month (MM)"
-                                        type="number"
-                                        min="1"
-                                        max="12"
-                                        value={card.expMonth}
-                                        onChange={(e) => setCard({ ...card, expMonth: Number(e.target.value) })}
+                                        type="text"
+                                        placeholder="İl seçin"
+                                        value={addr.city}
+                                        onChange={(e) => setAddr({ ...addr, city: e.target.value })}
                                     />
+                                </div>
+                                <div className="form-group">
+                                    <label>İlçe</label>
                                     <input
-                                        placeholder="Year (YYYY)"
-                                        type="number"
-                                        min={new Date().getFullYear()}
-                                        value={card.expYear}
-                                        onChange={(e) => setCard({ ...card, expYear: Number(e.target.value) })}
+                                        type="text"
+                                        placeholder="İlçe seçin"
+                                        value={addr.district}
+                                        onChange={(e) => setAddr({ ...addr, district: e.target.value })}
                                     />
+                                </div>
+                                <div className="form-group">
+                                    <label>Posta Kodu</label>
                                     <input
-                                        placeholder="CVV"
-                                        type="password"
-                                        maxLength={3}
-                                        value={card.cvv}
-                                        onChange={(e) => {
-                                            const value = e.target.value.replace(/\D/g, "").slice(0, 3);
-                                            setCard({ ...card, cvv: value });
-                                        }}
+                                        type="text"
+                                        placeholder="34000"
+                                        value={addr.postalCode}
+                                        onChange={(e) => setAddr({ ...addr, postalCode: e.target.value })}
                                     />
                                 </div>
                             </div>
+
+                            <div className="form-group">
+                                <label>Adres</label>
+                                <textarea
+                                    placeholder="Sokak, mahalle, bina no, daire no..."
+                                    rows={3}
+                                    value={addr.addressLine}
+                                    onChange={(e) => setAddr({ ...addr, addressLine: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Kargo Seçenekleri */}
+                    <section className="checkout-section">
+                        <div className="section-header">
+                            <div className="section-icon">
+                                <TruckIcon />
+                            </div>
+                            <h3>Kargo Seçenekleri</h3>
+                        </div>
+
+                        <div className="shipping-options">
+                            <label className={`shipping-option ${shipping === "standard" ? "selected" : ""}`}>
+                                <input
+                                    type="radio"
+                                    name="shipping"
+                                    checked={shipping === "standard"}
+                                    onChange={() => setShipping("standard")}
+                                />
+                                <div className="option-content">
+                                    <div className="option-header">
+                                        <strong>Standart Kargo</strong>
+                                        {subtotal >= 600 ? (
+                                            <span className="free-badge">Ücretsiz</span>
+                                        ) : (
+                                            <span className="price">{tl(39.9)}</span>
+                                        )}
+                                    </div>
+                                    <p>3-5 iş günü içinde teslimat • {tl(600)} ve üzeri siparişlerde ücretsiz</p>
+                                </div>
+                            </label>
+
+                            <label className={`shipping-option ${shipping === "express" ? "selected" : ""}`}>
+                                <input
+                                    type="radio"
+                                    name="shipping"
+                                    checked={shipping === "express"}
+                                    onChange={() => setShipping("express")}
+                                />
+                                <div className="option-content">
+                                    <div className="option-header">
+                                        <strong>Ekspres Kargo</strong>
+                                        <span className="price">{tl(79.9)}</span>
+                                    </div>
+                                    <p>1-2 iş günü içinde hızlı teslimat</p>
+                                </div>
+                            </label>
                         </div>
                     </section>
                 </div>
 
-                {/* Right: Summary */}
-                <aside style={cardBox}>
-                    <h3 style={secTitle}>Sipariş Özeti</h3>
-                    <div style={{ display: "grid", gap: 8 }}>
-                        {(cart || []).map((it, i) => {
-                            const imgRaw =
-                                it.variantImage ?? it.VariantImage ?? it.imageUrl ?? it.ImageUrl ?? "";
-                            const imgSrc = imgRaw.startsWith("http") ? imgRaw : `http://localhost:5011${imgRaw}`;
-                            const title =
-                                (it.productName ?? it.ProductName) +
-                                ((it.variantName ?? it.VariantName) ? ` - ${(it.variantName ?? it.VariantName)}` : "");
+                {/* Right Panel - Sipariş Özeti */}
+                <aside className="checkout-right">
+                    <div className="order-summary">
+                        <h3>Sipariş Özeti</h3>
 
-                            return (
-                                <div key={i} style={{ display: "grid", gridTemplateColumns: "56px 1fr auto", gap: 10, alignItems: "center" }}>
-                                    <img
-                                        src={imgSrc}
-                                        alt=""
-                                        style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 10, border: "1px solid #f0d8e6" }}
-                                        onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/56"; }}
-                                    />
-                                    <div style={{ fontSize: 13, color: "#333" }}>
-                                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{title}</div>
-                                        <div style={{ opacity: 0.7 }}>Adet: {it.quantity ?? it.Quantity}</div>
+                        <div className="summary-items">
+                            {(cart || []).map((it, i) => {
+                                const imgRaw = it.variantImage ?? it.VariantImage ?? it.imageUrl ?? it.ImageUrl ?? "";
+                                const imgSrc = imgRaw?.startsWith?.("http") ? imgRaw : `http://localhost:5011${imgRaw}`;
+                                const title =
+                                    (it.productName ?? it.ProductName) +
+                                    ((it.variantName ?? it.VariantName) ? ` - ${(it.variantName ?? it.VariantName)}` : "");
+
+                                return (
+                                    <div key={i} className="summary-item">
+                                        <img
+                                            src={imgSrc}
+                                            alt={title}
+                                            onError={(e) => {
+                                                e.currentTarget.src = "https://via.placeholder.com/60";
+                                            }}
+                                        />
+                                        <div className="item-details">
+                                            <p className="item-title">{title}</p>
+                                            <p className="item-quantity">Adet: {it.quantity ?? it.Quantity}</p>
+                                        </div>
+                                        <div className="item-price">{tl(it.totalPrice ?? it.TotalPrice ?? 0)}</div>
                                     </div>
-                                    <div style={{ fontWeight: 700 }}>{tl(it.totalPrice ?? it.TotalPrice ?? 0)}</div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
 
-                        <hr />
+                        <div className="summary-divider"></div>
 
-                        <div className="summary">
-                            <div className="row">
+                        <div className="summary-totals">
+                            <div className="total-row">
                                 <span>Ara Toplam</span>
                                 <span>{tl(subtotal)}</span>
                             </div>
-                            <div className="row">
+                            <div className="total-row">
                                 <span>Kargo ({shipping === "standard" ? "Standart" : "Ekspres"})</span>
-                                <span>{tl(shippingFee)}</span>
+                                <span className={shippingFee === 0 ? "free" : ""}>{tl(shippingFee)}</span>
                             </div>
-                            <div className="row total">
+                            <div className="total-row grand-total">
                                 <strong>Genel Toplam</strong>
                                 <strong>{tl(grandTotal)}</strong>
                             </div>
-                            <button className="pay-btn" onClick={pay} disabled={submitting || (cart?.length ?? 0) === 0}>
-                                {submitting ? "Ödeniyor…" : `Ödemeyi Yap ve Siparişi Oluştur (${tl(grandTotal)})`}
-                            </button>
                         </div>
+
+                        <button className="btn-complete-order" onClick={goPayment} disabled={(cart?.length ?? 0) === 0}>
+                            Pay Now
+                        </button>
                     </div>
                 </aside>
             </div>
 
-            {/* ✔ Yeni Adres Modalı */}
+            {/* Adres Modal */}
             {addrModalOpen && (
                 <AddressModal
                     initial={null}
                     onClose={() => setAddrModalOpen(false)}
                     onSaved={() => {
                         setAddrModalOpen(false);
-                        // listeyi tazelemek için AddressSelect'i remount et
                         setAddrListVersion((n) => n + 1);
                     }}
                 />
@@ -372,13 +323,3 @@ export default function CheckoutPage() {
         </div>
     );
 }
-
-const cardBox = {
-    background: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    boxShadow: "0 8px 26px rgba(0,0,0,.06)",
-};
-const secTitle = { margin: "0 0 10px", fontSize: 18 };
-const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 };
-const radioRow = { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 };

@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
     AUTH: `${API_BASE_URL}/api/auth`,
     CART: `${API_BASE_URL}/api/cart`,
     PAYMENTS: `${API_BASE_URL}/api/payment`,
+    PAYMENT: `${API_BASE_URL}/api/payment`,
     FAVORITES: `${API_BASE_URL}/api/favorites`,
     PROFILE: `${API_BASE_URL}/api/profile`,
     CHANGE_PASSWORD: `${API_BASE_URL}/api/auth/change-password` ,
@@ -41,6 +42,10 @@ export const API_ENDPOINTS = {
     GEO_CITIES: "http://localhost:5011/api/geo/cities",
     GEO_DISTRICTS: (cityId) => `http://localhost:5011/api/geo/districts?cityId=${cityId}`,
     GEO_NBHDS: (distId) => `http://localhost:5011/api/geo/neighborhoods?districtId=${distId}`,
+    PRODUCT_IMAGES: (productId) => `${API_BASE_URL}/api/admin/products/${productId}/images`,
+    PRODUCT_IMAGES_REORDER: (productId) => `${API_BASE_URL}/api/admin/products/${productId}/images/reorder`,
+    DELETE_PRODUCT_IMAGE: (imageId) => `${API_BASE_URL}/api/admin/products/images/${imageId}`,
+    
 };
 
 // App configuration

@@ -21,7 +21,8 @@ import RoutineFinder from "./components/RoutineFinder";
 import Footer from "./components/Footer";
 import ContactPage from "./components/ContactPage";
 import ScrollToTop from "./components/ScrollToTop";
-
+import PaymentPage from "./components/PaymentPage";
+import PromoStrip from "./components/PromoStrip";
 function AdminDashboard() {
     return <h1>Admin Dashboard - Sadece Admin görebilir</h1>;
 }
@@ -146,7 +147,7 @@ function App() {
             <div className="page-bottom-blur" aria-hidden />
             
             <ScrollToTop />
-
+            <PromoStrip />
             <header className="navbar">
                 {/* Sol: Logo + isim */}
                 <Link to="/" className="brand">
@@ -364,6 +365,7 @@ function App() {
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/routine" element={<RoutineFinder />} />
                     <Route path="/contact" element={<ContactPage />} />
+                    <Route path="/checkout/payment" element={<PaymentPage />} />
                 </Routes>
             </main>
             <Footer />

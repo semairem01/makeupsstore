@@ -1,9 +1,25 @@
-// src/admin/ProductsAdmin.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { API_ENDPOINTS, API_BASE_URL } from "../config";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import "./ProductsAdmin.css";
 
 // ---- helpers ----
+const parseTags = (s = "") =>
+    s.split(",").map(t => t.trim()).filter(Boolean);
+
+const stringifyTags = (arr) =>
+    [...new Set(arr.map(t => t.toLowerCase()))].join(", ");
+
+const hasTag = (tagsStr, tag) =>
+    parseTags(tagsStr).some(t => t.toLowerCase() === tag.toLowerCase());
+
+const toggleTag = (tagsStr, tag) => {
+    const arr = parseTags(tagsStr);
+    const idx = arr.findIndex(t => t.toLowerCase() === tag.toLowerCase());
+    if (idx >= 0) arr.splice(idx, 1); else arr.push(tag);
+    return stringifyTags(arr);
+};
 const toNumber = (v) => {
     if (v === null || v === undefined) return 0;
     const s = String(v).trim().replace(/\./g, "").replace(",", ".");
@@ -27,7 +43,6 @@ function getAxiosErrorMessage(errOrResp) {
     try { return JSON.stringify(d ?? errOrResp); } catch { return String(d ?? errOrResp); }
 }
 
-// ✅ Bit-mask seçenekleri
 const SKIN = [
     { bit: 1,  label: "Dry" },
     { bit: 2,  label: "Oily" },
@@ -38,7 +53,6 @@ const SKIN = [
 const toggleBit = (mask, bit) => (mask & bit) ? (mask & ~bit) : (mask | bit);
 const ALL_SKIN_MASK = SKIN.reduce((m, s) => (m | s.bit), 0);
 
-// (Opsiyonel) preset butonlarında duplicate'siz tag eklemek için ufak helper
 function mergeTags(current, addList) {
     const cur = (current || "")
         .split(",")
@@ -53,27 +67,26 @@ export default function ProductsAdmin() {
     const authHeaders = { Authorization: `Bearer ${token}` };
 
     const [list, setList] = useState([]);
-    const [cats, setCats] = useState([]);     // parent + subCategories
+    const [cats, setCats] = useState([]);
     const [q, setQ] = useState("");
-    const [editing, setEditing] = useState(null); // null => create, sayı => edit id
+    const [editing, setEditing] = useState(null);
     const [showForm, setShowForm] = useState(false);
-    const [activeTab, setActiveTab] = useState("genel"); // "genel" | "varyantlar"
+    const [activeTab, setActiveTab] = useState("genel");
 
-    // form state (price & stock string tutulur)
     const emptyForm = {
         id: 0,
         name: "",
         brand: "",
         description: "",
-        price: "",            // string
-        stockQuantity: "",    // string
+        price: "",
+        stockQuantity: "",
         isActive: true,
         imageUrl: "/images/placeholder.png",
         color: "",
         size: "",
         categoryId: 0,
         discountPercent: "",
-        suitableForSkin: ALL_SKIN_MASK,   // varsayılan: tüm ciltlere uygun
+        suitableForSkin: ALL_SKIN_MASK,
         finish: "",
         coverage: "",
         longwear: false,
@@ -87,7 +100,6 @@ export default function ProductsAdmin() {
     };
     const [form, setForm] = useState(emptyForm);
 
-    // upload
     const fileRef = useRef(null);
     const [uploading, setUploading] = useState(false);
 
@@ -98,6 +110,7 @@ export default function ProductsAdmin() {
             .then((r) => setList(r.data || []))
             .catch(() => setList([]));
     };
+
     const loadCats = async () => {
         try {
             const r = await axios.get(API_ENDPOINTS.ADMIN_CATEGORIES, { headers: authHeaders });
@@ -112,10 +125,8 @@ export default function ProductsAdmin() {
     useEffect(() => {
         load();
         loadCats();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // parent+child kategorileri düz listeye çevir
     const flatCategories = useMemo(() => {
         const out = [];
         for (const p of cats) {
@@ -214,14 +225,14 @@ export default function ProductsAdmin() {
                 name: form.name,
                 brand: form.brand,
                 description: form.description,
-                price: toNumber(form.price),               // number
-                stockQuantity: toInt(form.stockQuantity),  // number
+                price: toNumber(form.price),
+                stockQuantity: toInt(form.stockQuantity),
                 isActive: !!form.isActive,
                 imageUrl: form.imageUrl,
                 color: form.color || null,
                 size: form.size || null,
                 categoryId: Number(form.categoryId) || 0,
-                discountPercent: form.discountPercent !== "" ? toNumber(form.discountPercent) : null, // ← düzeltildi
+                discountPercent: form.discountPercent !== "" ? toNumber(form.discountPercent) : null,
                 suitableForSkin: Number(form.suitableForSkin || 0),
                 finish: form.finish || null,
                 coverage: form.coverage || null,
@@ -241,10 +252,9 @@ export default function ProductsAdmin() {
             if (editing) {
                 const idNum = Number(form.id || editing);
                 const url = `${API_ENDPOINTS.ADMIN_PRODUCTS}/${idNum}`;
-                const body = { id: idNum, ...payload }; // controller id == dto.Id
+                const body = { id: idNum, ...payload };
                 const resp = await axios.put(url, body, { headers: authHeaders, validateStatus: () => true });
                 if (resp.status < 200 || resp.status >= 300) {
-                    console.log("PUT FAIL", url, body, resp.status, resp.data);
                     alert(getAxiosErrorMessage(resp));
                     return;
                 }
@@ -254,7 +264,6 @@ export default function ProductsAdmin() {
                     validateStatus: () => true,
                 });
                 if (resp.status < 200 || resp.status >= 300) {
-                    console.log("POST FAIL", payload, resp.status, resp.data);
                     alert(getAxiosErrorMessage(resp));
                     return;
                 }
@@ -265,7 +274,6 @@ export default function ProductsAdmin() {
             setShowForm(false);
             load();
         } catch (err) {
-            console.error("save error:", err);
             alert(getAxiosErrorMessage(err));
         }
     };
@@ -281,349 +289,997 @@ export default function ProductsAdmin() {
     };
 
     return (
-        <div>
-            <h2>Ürünler</h2>
-
-            <div className="toolbar">
-                <input placeholder="Ara..." value={q} onChange={(e) => setQ(e.target.value)} />
-                <button onClick={load}>Ara</button>
-                <button onClick={startCreate}>+ Yeni Ürün</button>
+        <div className="admin-products">
+            {/* Header */}
+            <div className="admin-header">
+                <div>
+                    <h1 className="admin-title">Ürün Yönetimi</h1>
+                    <p className="admin-subtitle">Ürünlerinizi ekleyin, düzenleyin ve yönetin</p>
+                </div>
+                <button className="btn-primary" onClick={startCreate}>
+                    <span>+</span> Yeni Ürün Ekle
+                </button>
             </div>
 
+            {/* Search Bar */}
+            <div className="search-bar">
+                <input
+                    type="text"
+                    placeholder="Ürün ara..."
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && load()}
+                />
+                <button className="btn-search" onClick={load}>Ara</button>
+            </div>
+
+            {/* Form Modal */}
             {showForm && (
-                <div className="card card--pink admin-form" style={{ margin: "12px 0", padding: 12 }}>
-                    <h3>{editing ? "Ürünü Güncelle" : "Yeni Ürün"}</h3>
+                <div className="modal-overlay">
+                    <div className="modal-container">
+                        <div className="modal-header">
+                            <h2>{editing ? "Ürünü Düzenle" : "Yeni Ürün Ekle"}</h2>
+                            <button className="btn-close" onClick={() => setShowForm(false)}>×</button>
+                        </div>
 
-                    {/* Sekmeler */}
-                    <div className="tabs" style={{ display:"flex", gap:8, margin:"8px 0" }}>
-                        <button
-                            className={`tab ${activeTab === "genel" ? "tab-active" : ""}`}
-                            onClick={()=>setActiveTab("genel")}
-                            type="button"
-                        >
-                            Genel
-                        </button>
-                        {Boolean(editing || form.id) && (
+                        {/* Tabs */}
+                        <div className="tabs-container">
                             <button
-                                className={`tab ${activeTab === "varyantlar" ? "tab-active" : ""}`}
-                                onClick={()=>setActiveTab("varyantlar")}
-                                type="button"
+                                className={`tab ${activeTab === "genel" ? "active" : ""}`}
+                                onClick={() => setActiveTab("genel")}
                             >
-                                Varyantlar
+                                📝 Genel Bilgiler
                             </button>
-                        )}
-                    </div>
-
-                    {/* --- GENEL SEKME --- */}
-                    {activeTab === "genel" && (
-                        <>
-                            {/* Görsel önizleme + yükleme */}
-                            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8 }}>
-                                <div style={{ width: 84, height: 84, borderRadius: 12, overflow: "hidden", border: "1px solid #f3c7dd" }}>
-                                    <img
-                                        src={`${API_BASE_URL}${form.imageUrl || ""}`}
-                                        alt=""
-                                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                        onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/84x84?text=IMG"; }}
-                                    />
-                                </div>
-                                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                                    <button type="button" onClick={onUploadClick} disabled={uploading}>
-                                        {uploading ? "Yükleniyor…" : "Görsel Yükle"}
-                                    </button>
-                                    <input
-                                        style={{ minWidth: 280 }}
-                                        placeholder="/images/products/xxx.png"
-                                        value={form.imageUrl}
-                                        onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                                    />
-                                    <input
-                                        ref={fileRef}
-                                        type="file"
-                                        accept="image/*"
-                                        style={{ display: "none" }}
-                                        onChange={onFileChange}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* *** 1. grid2: responsive *** */}
-                            <div
-                                className="grid2"
-                                style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:12 }}
-                            >
-                                <label>
-                                    Ad
-                                    <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                                </label>
-                                <label>
-                                    Marka
-                                    <input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
-                                </label>
-
-                                <label>
-                                    Kategori
-                                    <select
-                                        value={form.categoryId}
-                                        onChange={(e) => setForm({ ...form, categoryId: Number(e.target.value) })}
+                            {Boolean(editing || form.id) && (
+                                <>
+                                    <button
+                                        className={`tab ${activeTab === "varyantlar" ? "active" : ""}`}
+                                        onClick={() => setActiveTab("varyantlar")}
                                     >
-                                        <option value={0}>— Kategori seç —</option>
-                                        {flatCategories.map((opt) => (
-                                            <option key={opt.id} value={opt.id}>{opt.label}</option>
-                                        ))}
-                                    </select>
-                                </label>
+                                        🎨 Varyantlar
+                                    </button>
+                                    <button
+                                        className={`tab ${activeTab === "gorseller" ? "active" : ""}`}
+                                        onClick={() => setActiveTab("gorseller")}
+                                    >
+                                        📸 Görseller
+                                    </button>
+                                </>
+                            )}
+                        </div>
 
-                                <label>
-                                    Fiyat
-                                    <input
-                                        type="text"
-                                        inputMode="decimal"
-                                        value={form.price}
-                                        onChange={(e) => setForm({ ...form, price: e.target.value })}
-                                    />
-                                </label>
-                                <label>
-                                    İndirim (%)
-                                    <input
-                                        type="text"
-                                        inputMode="decimal"
-                                        placeholder="örnek: 20"
-                                        value={form.discountPercent}
-                                        onChange={(e) => setForm({ ...form, discountPercent: e.target.value })}
-                                    />
-                                </label>
-                                <label>
-                                    Stok
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        value={form.stockQuantity}
-                                        onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })}
-                                    />
-                                </label>
-                                <label>
-                                    Aktif
-                                    <input
-                                        type="checkbox"
-                                        checked={form.isActive}
-                                        onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                                    />
-                                </label>
-                                <label>
-                                    Renk
-                                    <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
-                                </label>
-                                <label>
-                                    Beden/Size
-                                    <input value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
-                                </label>
-                            </div>
-
-                            <label>
-                                Açıklama
-                                <textarea
-                                    rows={4}
-                                    value={form.description}
-                                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                        <div className="modal-content">
+                            {activeTab === "genel" && (
+                                <GeneralTab
+                                    form={form}
+                                    setForm={setForm}
+                                    flatCategories={flatCategories}
+                                    onUploadClick={onUploadClick}
+                                    uploading={uploading}
+                                    fileRef={fileRef}
+                                    onFileChange={onFileChange}
+                                    save={save}
+                                    setShowForm={setShowForm}
+                                    editing={editing}
                                 />
-                            </label>
+                            )}
 
-                            {/* --- Öneri Motoru Alanları --- */}
-                            <div className="card" style={{marginTop:12, padding:12}}>
-                                <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
-                                    <h4 style={{margin:0}}>Öneri / Rutin Alanları</h4>
+                            {activeTab === "varyantlar" && Boolean(editing || form.id) && (
+                                <VariantsPanel
+                                    productId={Number(form.id || editing)}
+                                    authHeaders={authHeaders}
+                                    onUploadedImageEndpoint={API_ENDPOINTS.ADMIN_UPLOAD_IMAGE}
+                                />
+                            )}
 
-                                    {/* Preset butonları */}
-                                    <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
-                                        <button type="button" className="btn-outline"
-                                                title="Günlük/doğal"
-                                                onClick={()=>setForm(f=>({
-                                                    ...f,
-                                                    finish: "Natural", coverage: f.coverage || "Sheer",
-                                                    longwear:false, waterproof:false, photoFriendly:false, hasSpf:false,
-                                                    tags: mergeTags(f.tags, ["skin-like"])
-                                                }))}>
-                                            Preset: Office
-                                        </button>
-
-                                        <button type="button" className="btn-outline"
-                                                title="Açık hava"
-                                                onClick={()=>setForm(f=>({
-                                                    ...f,
-                                                    hasSpf:true, waterproof:true, longwear:true,
-                                                    finish: f.finish || "Natural",
-                                                    tags: mergeTags(f.tags, ["spf"])
-                                                }))}>
-                                            Preset: Outdoor
-                                        </button>
-
-                                        <button type="button" className="btn-outline"
-                                                title="Akşam/parti"
-                                                onClick={()=>setForm(f=>({
-                                                    ...f,
-                                                    finish:"Shimmer", longwear:true, photoFriendly:true,
-                                                    tags: mergeTags(f.tags, ["glitter","metallic"])
-                                                }))}>
-                                            Preset: Party
-                                        </button>
-
-                                        <button type="button" className="btn-outline"
-                                                title="Yumuşak ışıltı"
-                                                onClick={()=>setForm(f=>({
-                                                    ...f,
-                                                    finish: f.finish || "Dewy",
-                                                    coverage: f.coverage || "Medium",
-                                                    longwear:true
-                                                }))}>
-                                            Preset: Soft Glam
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* *** 2. grid2: responsive *** */}
-                                <div
-                                    className="grid2"
-                                    style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:12, marginTop:10 }}
-                                >
-                                    <label>
-                                        Finish
-                                        <select value={form.finish} onChange={e=>setForm({...form, finish:e.target.value})}>
-                                            <option value="">—</option>
-                                            <option value="Dewy">Dewy</option>
-                                            <option value="Natural">Natural</option>
-                                            <option value="Matte">Matte</option>
-                                            <option value="Shimmer">Shimmer</option>
-                                        </select>
-                                    </label>
-
-                                    <label>
-                                        Coverage
-                                        <select value={form.coverage} onChange={e=>setForm({...form, coverage:e.target.value})}>
-                                            <option value="">—</option>
-                                            <option value="Sheer">Sheer</option>
-                                            <option value="Medium">Medium</option>
-                                            <option value="Full">Full</option>
-                                        </select>
-                                    </label>
-
-                                    <label>
-                                        ShadeFamily (ör. coral|peach|mauve)
-                                        <input value={form.shadeFamily} onChange={e=>setForm({...form, shadeFamily:e.target.value})}/>
-                                    </label>
-
-                                    <label>
-                                        Tags (virgülle ayırın)
-                                        <input value={form.tags} onChange={e=>setForm({...form, tags:e.target.value})}/>
-                                    </label>
-                                </div>
-
-                                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:8}}>
-                                    <div>
-                                        <div style={{fontWeight:600, marginBottom:6}}>Cilt Uyumu</div>
-
-                                        {/* Hızlı aksiyonlar */}
-                                        <div style={{display:"flex", gap:8, marginBottom:6}}>
-                                            <button type="button" className="btn-outline" onClick={() => setForm(f => ({...f, suitableForSkin: ALL_SKIN_MASK}))}>
-                                                Tümünü Seç
-                                            </button>
-                                            <button type="button" className="btn-outline" onClick={() => setForm(f => ({...f, suitableForSkin: 0}))}>
-                                                Temizle
-                                            </button>
-                                        </div>
-
-                                        <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
-                                            {SKIN.map(s=>(
-                                                <label key={s.bit} style={{display:"inline-flex", gap:6, alignItems:"center"}}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={(form.suitableForSkin & s.bit) === s.bit}
-                                                        onChange={()=>setForm(f=>({...f, suitableForSkin: toggleBit(f.suitableForSkin, s.bit)}))}
-                                                    />
-                                                    <span>{s.label}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div style={{fontWeight:600, marginBottom:6}}>Özellikler</div>
-                                        <div className="grid2" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:12 }}>
-                                            <label><input type="checkbox" checked={form.longwear} onChange={e=>setForm({...form, longwear:e.target.checked})}/> Longwear</label>
-                                            <label><input type="checkbox" checked={form.waterproof} onChange={e=>setForm({...form, waterproof:e.target.checked})}/> Waterproof</label>
-                                            <label><input type="checkbox" checked={form.photoFriendly} onChange={e=>setForm({...form, photoFriendly:e.target.checked})}/> Photo Friendly</label>
-                                            <label><input type="checkbox" checked={form.hasSpf} onChange={e=>setForm({...form, hasSpf:e.target.checked})}/> SPF</label>
-                                            <label><input type="checkbox" checked={form.fragranceFree} onChange={e=>setForm({...form, fragranceFree:e.target.checked})}/> Fragrance Free</label>
-                                            <label><input type="checkbox" checked={form.nonComedogenic} onChange={e=>setForm({...form, nonComedogenic:e.target.checked})}/> Non-Comedogenic</label>
-                                        </div>
-
-                                        {/* (Opsiyonel) Rozet önizleme */}
-                                        <div style={{marginTop:8, display:"flex", gap:6, flexWrap:"wrap"}}>
-                                            {form.hasSpf && <span className="chip">SPF</span>}
-                                            {form.longwear && <span className="chip">Longwear</span>}
-                                            {form.waterproof && <span className="chip">Waterproof</span>}
-                                            {form.photoFriendly && <span className="chip">Photo</span>}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="admin-form__actions" style={{ display: "flex", gap: 8 }}>
-                                <button onClick={save}>{editing ? "Kaydet" : "Ekle"}</button>
-                                <button className="btn-outline" onClick={() => setShowForm(false)}>İptal</button>
-                            </div>
-                        </>
-                    )}
-
-                    {/* --- VARYANTLAR SEKME --- */}
-                    {activeTab === "varyantlar" && Boolean(editing || form.id) && (
-                        <VariantsPanel
-                            productId={Number(form.id || editing)}
-                            authHeaders={authHeaders}
-                            onUploadedImageEndpoint={API_ENDPOINTS.ADMIN_UPLOAD_IMAGE}
-                        />
-                    )}
+                            {activeTab === "gorseller" && Boolean(editing || form.id) && (
+                                <ImagesPanel
+                                    productId={Number(form.id || editing)}
+                                    authHeaders={authHeaders}
+                                />
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
-            <div className="admin-table-wrap">
-                <table className="admin-table">
-                    <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Ad</th>
-                        <th>Marka</th>
-                        <th>Kategori</th>
-                        <th>Fiyat</th>
-                        <th>Stok</th>
-                        <th>Aktif</th>
-                        <th></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {list.map((p) => (
-                        <tr key={p.id}>
-                            <td>{p.id}</td>
-                            <td>{p.name}</td>
-                            <td>{p.brand}</td>
-                            <td>{p.categoryName}</td>
-                            <td>₺{Number(p.price).toLocaleString("tr-TR")}</td>
-                            <td>{p.stockQuantity}</td>
-                            <td>{p.isActive ? "Evet" : "Hayır"}</td>
-                            <td style={{ whiteSpace: "nowrap" }}>
-                                <button className="btn-link" onClick={() => startEdit(p.id)}>Düzenle</button>
-                                <button className="btn-link danger" onClick={() => del(p.id)}>Sil</button>
-                            </td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
+            {/* Products Grid */}
+            <div className="products-grid">
+                {list.map((p) => (
+                    <div key={p.id} className="product-card">
+                        <div className="product-image">
+                            <img
+                                src={`${API_BASE_URL}${p.imageUrl}`}
+                                alt={p.name}
+                                onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/200x200?text=IMG"; }}
+                            />
+                            {p.discountPercent > 0 && (
+                                <div className="discount-badge">-%{p.discountPercent}</div>
+                            )}
+                        </div>
+                        <div className="product-info">
+                            <div className="product-brand">{p.brand}</div>
+                            <h3 className="product-name">{p.name}</h3>
+                            <div className="product-category">{p.categoryName}</div>
+                            <div className="product-meta">
+                                <span className="product-price">₺{Number(p.price).toLocaleString("tr-TR")}</span>
+                                <span className={`stock-badge ${p.stockQuantity > 0 ? 'in-stock' : 'out-of-stock'}`}>
+                                    {p.stockQuantity > 0 ? `${p.stockQuantity} stok` : 'Tükendi'}
+                                </span>
+                            </div>
+                            <div className="product-actions">
+                                <button className="btn-edit" onClick={() => startEdit(p.id)}>
+                                    ✏️ Düzenle
+                                </button>
+                                <button className="btn-delete" onClick={() => del(p.id)}>
+                                    🗑️ Sil
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {list.length === 0 && (
+                <div className="empty-state">
+                    <div className="empty-icon">📦</div>
+                    <h3>Henüz ürün yok</h3>
+                    <p>İlk ürününüzü eklemek için yukarıdaki butonu kullanın</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ✨ GENEL BİLGİLER SEKME COMPONENT
+function GeneralTab({ form, setForm, flatCategories, onUploadClick, uploading, fileRef, onFileChange, save, setShowForm, editing }) {
+    return (
+        <div className="form-section">
+            {/* Görsel Yükleme */}
+            <div className="image-upload-section">
+                <div className="image-preview">
+                    <img
+                        src={`${API_BASE_URL}${form.imageUrl || ""}`}
+                        alt="Preview"
+                        onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/120x120?text=IMG"; }}
+                    />
+                </div>
+                <div className="upload-controls">
+                    <button type="button" className="btn-upload" onClick={onUploadClick} disabled={uploading}>
+                        {uploading ? "⏳ Yükleniyor..." : "📤 Görsel Yükle"}
+                    </button>
+                    <input
+                        type="text"
+                        className="input-url"
+                        placeholder="/images/products/xxx.png"
+                        value={form.imageUrl}
+                        onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                    />
+                    <input
+                        ref={fileRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={onFileChange}
+                    />
+                </div>
+            </div>
+
+            {/* Temel Bilgiler */}
+            <div className="form-grid">
+                <div className="form-group">
+                    <label>Ürün Adı ⭐</label>
+                    <input
+                        type="text"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        placeholder="ör: Unlimited Double Touch 46"
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>Marka ⭐</label>
+                    <input
+                        type="text"
+                        value={form.brand}
+                        onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                        placeholder="ör: KIKO Milano"
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>Kategori ⭐</label>
+                    <select
+                        value={form.categoryId}
+                        onChange={(e) => setForm({ ...form, categoryId: Number(e.target.value) })}
+                    >
+                        <option value={0}>— Kategori seç —</option>
+                        {flatCategories.map((opt) => (
+                            <option key={opt.id} value={opt.id}>{opt.label}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label>Fiyat (₺) ⭐</label>
+                    <input
+                        type="text"
+                        inputMode="decimal"
+                        value={form.price}
+                        onChange={(e) => setForm({ ...form, price: e.target.value })}
+                        placeholder="399.90"
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>İndirim (%)</label>
+                    <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="20"
+                        value={form.discountPercent}
+                        onChange={(e) => setForm({ ...form, discountPercent: e.target.value })}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>Stok Adedi ⭐</label>
+                    <input
+                        type="text"
+                        inputMode="numeric"
+                        value={form.stockQuantity}
+                        onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })}
+                        placeholder="100"
+                    />
+                </div>
+            </div>
+
+            {/* Açıklama */}
+            <div className="form-group full-width">
+                <label>Ürün Açıklaması</label>
+                <textarea
+                    rows={4}
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="Ürünün özelliklerini ve kullanım alanlarını yazın..."
+                />
+            </div>
+
+            {/* Preset Butonları */}
+            <div className="preset-section">
+                <h3>🎯 Hızlı Preset'ler</h3>
+                <div className="preset-buttons">
+                    <button
+                        type="button"
+                        className="btn-preset"
+                        onClick={() => setForm(f => ({
+                            ...f,
+                            finish: "Natural",
+                            coverage: "Sheer",
+                            longwear: false,
+                            waterproof: false,
+                            photoFriendly: false,
+                            hasSpf: false,
+                            tags: mergeTags(f.tags, ["skin-like", "natural", "lightweight", "fresh", "breathable", "minimal"])
+                        }))}
+                    >
+                        🏢 Office Look
+                        <small style={{ display: 'block', fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+                            Doğal & Hafif
+                        </small>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="btn-preset"
+                        onClick={() => setForm(f => ({
+                            ...f,
+                            hasSpf: true,
+                            waterproof: true,
+                            longwear: true,
+                            finish: f.finish || "Natural",
+                            tags: mergeTags(f.tags, ["spf", "waterproof", "sweat-resistant", "long-lasting", "fade-resistant"])
+                        }))}
+                    >
+                        ☀️ Outdoor
+                        <small style={{ display: 'block', fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+                            SPF & Su Geçirmez
+                        </small>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="btn-preset"
+                        onClick={() => setForm(f => ({
+                            ...f,
+                            finish: "Shimmer",
+                            longwear: true,
+                            photoFriendly: true,
+                            tags: mergeTags(f.tags, ["glitter", "metallic", "party", "shimmer", "sparkle", "dramatic"])
+                        }))}
+                    >
+                        🎉 Party Glam
+                        <small style={{ display: 'block', fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+                            Parlak & Uzun Süre
+                        </small>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="btn-preset"
+                        onClick={() => setForm(f => ({
+                            ...f,
+                            finish: "Dewy",
+                            coverage: "Medium",
+                            longwear: true,
+                            tags: mergeTags(f.tags, ["soft-focus", "glow", "defined", "elegant", "romantic", "pearl"])
+                        }))}
+                    >
+                        ✨ Soft Glam
+                        <small style={{ display: 'block', fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+                            Işıltılı & Zarif
+                        </small>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="btn-preset"
+                        onClick={() => setForm(f => ({
+                            ...f,
+                            finish: "Matte",
+                            coverage: "Full",
+                            longwear: true,
+                            tags: mergeTags(f.tags, ["high pigment", "bold", "vibrant", "intense", "statement", "full-coverage"])
+                        }))}
+                    >
+                        💄 Bold & Matte
+                        <small style={{ display: 'block', fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+                            Yoğun Pigment
+                        </small>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="btn-preset"
+                        onClick={() => setForm(f => ({
+                            ...f,
+                            finish: "Dewy",
+                            fragranceFree: true,
+                            nonComedogenic: true,
+                            tags: mergeTags(f.tags, ["hydrating", "nourishing", "glow", "moisture", "luminous", "creamy"])
+                        }))}
+                    >
+                        💧 Hydrating
+                        <small style={{ display: 'block', fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+                            Nemlendirici & Işıltılı
+                        </small>
+                    </button>
+                </div>
+            </div>
+
+            {/* Öneri Motoru Alanları */}
+            <div className="recommendation-section">
+                <h3>🤖 Öneri Motoru Ayarları</h3>
+
+                {/* Etiket Önerileri */}
+                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#e3f2fd', borderRadius: '8px', border: '2px solid #64b5f6' }}>
+                    <div style={{ fontWeight: 600, marginBottom: '0.75rem', color: '#1976d2' }}>
+                        💡 Popüler Etiketler
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {[
+                            'dewy','matte','satin','shimmer','hydrating','longwear','waterproof',
+                            'transfer-proof','high pigment','buildable','lightweight','full-coverage',
+                            'natural','bold','nude','vibrant','coral','peach','mauve','rose','plum',
+                            'berry','spf','fragrance-free','vegan','cruelty-free','glitter','metallic',
+                            'pearl','sparkle'
+                        ].map(tag => {
+                            const active = hasTag(form.tags, tag);
+                            return (
+                                <button
+                                    key={tag}
+                                    type="button"
+                                    onClick={() => setForm({ ...form, tags: toggleTag(form.tags, tag) })}
+                                    style={{
+                                        padding:'0.375rem 0.75rem',
+                                        background: active ? '#ff6b9d' : 'white',
+                                        color: active ? 'white' : '#666',
+                                        border:'2px solid', borderColor: active ? '#ff6b9d' : '#e0e0e0',
+                                        borderRadius:20, fontSize:'0.8rem', cursor:'pointer', fontWeight: active?600:400
+                                    }}
+                                >
+                                    {tag}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div className="form-grid">
+                    <div className="form-group">
+                        <label>Finish</label>
+                        <select value={form.finish} onChange={e => setForm({ ...form, finish: e.target.value })}>
+                            <option value="">—</option>
+                            <option value="Dewy">Dewy</option>
+                            <option value="Natural">Natural</option>
+                            <option value="Matte">Matte</option>
+                            <option value="Shimmer">Shimmer</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Coverage</label>
+                        <select value={form.coverage} onChange={e => setForm({ ...form, coverage: e.target.value })}>
+                            <option value="">—</option>
+                            <option value="Sheer">Sheer</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Full">Full</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Renk Ailesi</label>
+                        <input
+                            type="text"
+                            value={form.shadeFamily}
+                            onChange={e => setForm({ ...form, shadeFamily: e.target.value })}
+                            placeholder="coral, peach, mauve"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label>Etiketler (virgülle ayırın)</label>
+                        <input
+                            type="text"
+                            value={form.tags}
+                            onChange={e => setForm({ ...form, tags: e.target.value })}
+                            placeholder="dewy, hydrating, glow"
+                        />
+                    </div>
+                </div>
+
+                {/* Cilt Tipi Checkboxları */}
+                <div className="checkbox-section">
+                    <label className="section-label">Uygun Cilt Tipleri</label>
+                    <div className="checkbox-grid">
+                        {SKIN.map(s => (
+                            <label key={s.bit} className="checkbox-label">
+                                <input
+                                    type="checkbox"
+                                    checked={(form.suitableForSkin & s.bit) === s.bit}
+                                    onChange={() => setForm(f => ({ ...f, suitableForSkin: toggleBit(f.suitableForSkin, s.bit) }))}
+                                />
+                                <span>{s.label}</span>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Özellikler */}
+                <div className="checkbox-section">
+                    <label className="section-label">Ürün Özellikleri</label>
+                    <div className="checkbox-grid">
+                        <label className="checkbox-label">
+                            <input type="checkbox" checked={form.longwear} onChange={e => setForm({ ...form, longwear: e.target.checked })} />
+                            <span>🕐 Longwear</span>
+                        </label>
+                        <label className="checkbox-label">
+                            <input type="checkbox" checked={form.waterproof} onChange={e => setForm({ ...form, waterproof: e.target.checked })} />
+                            <span>💧 Waterproof</span>
+                        </label>
+                        <label className="checkbox-label">
+                            <input type="checkbox" checked={form.photoFriendly} onChange={e => setForm({ ...form, photoFriendly: e.target.checked })} />
+                            <span>📷 Photo Friendly</span>
+                        </label>
+                        <label className="checkbox-label">
+                            <input type="checkbox" checked={form.hasSpf} onChange={e => setForm({ ...form, hasSpf: e.target.checked })} />
+                            <span>☀️ SPF</span>
+                        </label>
+                        <label className="checkbox-label">
+                            <input type="checkbox" checked={form.fragranceFree} onChange={e => setForm({ ...form, fragranceFree: e.target.checked })} />
+                            <span>🌸 Fragrance Free</span>
+                        </label>
+                        <label className="checkbox-label">
+                            <input type="checkbox" checked={form.nonComedogenic} onChange={e => setForm({ ...form, nonComedogenic: e.target.checked })} />
+                            <span>✨ Non-Comedogenic</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="form-actions">
+                <button type="button" className="btn-primary" onClick={save}>
+                    {editing ? "💾 Değişiklikleri Kaydet" : "➕ Ürünü Ekle"}
+                </button>
+                <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>
+                    ❌ İptal
+                </button>
             </div>
         </div>
     );
 }
 
-/* ---------------- VariantsPanel (minimal, aynı dosyada) ---------------- */
+
+/* ---------------- ImagesPanel (Drag & Drop + Düzeltilmiş) ---------------- */
+
+function ImagesPanel({ productId, authHeaders }) {
+    const [images, setImages] = React.useState([]);
+    const [uploading, setUploading] = React.useState(false);
+    const [selectedVariant, setSelectedVariant] = React.useState(null);
+    const [variants, setVariants] = React.useState([]);
+    const fileInputRef = React.useRef(null);
+
+    const load = React.useCallback(async () => {
+        try {
+            const variantsRes = await axios.get(
+                API_ENDPOINTS.ADMIN_PRODUCT_VARIANTS(productId),
+                { headers: authHeaders }
+            );
+            setVariants(variantsRes.data || []);
+
+            const params = selectedVariant ? `?variantId=${selectedVariant}` : '';
+            const imagesRes = await axios.get(
+                `${API_BASE_URL}/api/admin/products/${productId}/images${params}`,
+                { headers: authHeaders }
+            );
+
+            setImages(imagesRes.data || []);
+        } catch (err) {
+            console.error('Görsel yükleme hatası:', err);
+            setImages([]);
+        }
+    }, [productId, authHeaders, selectedVariant]);
+
+    React.useEffect(() => {
+        if (productId) load();
+    }, [productId, selectedVariant, load]);
+
+    const handleFileSelect = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFilesChange = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        setUploading(true);
+
+        try {
+            const formData = new FormData();
+            files.forEach(file => formData.append('files', file));
+
+            let url = `${API_BASE_URL}/api/admin/products/${productId}/images`;
+            if (selectedVariant) {
+                url += `?variantId=${selectedVariant}`;
+            }
+
+            await axios.post(url, formData, {
+                headers: {
+                    ...authHeaders,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            alert(`✅ ${files.length} görsel başarıyla yüklendi!`);
+            await load();
+
+        } catch (err) {
+            const errorMsg = err?.response?.data?.message ||
+                err?.response?.data ||
+                err?.message ||
+                'Yükleme başarısız';
+            alert('❌ Hata: ' + errorMsg);
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
+    // ✅ Drag & Drop ile sıralama
+    const onDragEnd = async (result) => {
+        if (!result.destination) return;
+
+        const reordered = Array.from(images);
+        const [moved] = reordered.splice(result.source.index, 1);
+        reordered.splice(result.destination.index, 0, moved);
+
+        // Optimistic update
+        setImages(reordered);
+
+        try {
+            await axios.post(
+                `${API_BASE_URL}/api/admin/products/${productId}/images/reorder`,
+                {
+                    order: reordered.map((img, idx) => ({
+                        id: img.id,
+                        sortOrder: idx + 1
+                    }))
+                },
+                { headers: authHeaders }
+            );
+        } catch (err) {
+            alert('❌ Sıralama kaydedilemedi: ' + getAxiosErrorMessage(err));
+            load(); // Eski haline döndür
+        }
+    };
+
+    const deleteImage = async (id) => {
+        if (!window.confirm('Bu görseli silmek istediğinize emin misiniz?')) return;
+
+        try {
+            await axios.delete(
+                `${API_BASE_URL}/api/admin/products/images/${id}`,
+                { headers: authHeaders }
+            );
+
+            alert('✅ Görsel silindi!');
+            load();
+        } catch (err) {
+            alert('❌ Silme başarısız: ' + getAxiosErrorMessage(err));
+        }
+    };
+
+    const selectedVariantInfo = variants.find(v => v.id === selectedVariant);
+
+    return (
+        <div style={{ padding: 20, background: '#fafafa', borderRadius: 12 }}>
+            <div style={{ marginBottom: 20 }}>
+                <h4 style={{ margin: '0 0 12px', color: '#333' }}>📸 Ürün Görselleri</h4>
+
+                {variants.length > 0 && (
+                    <div style={{ marginBottom: 16 }}>
+                        <label style={{
+                            display: 'block',
+                            marginBottom: 8,
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            color: '#555'
+                        }}>
+                            🎨 Görselleri yüklemek istediğiniz varyantı seçin:
+                        </label>
+                        <select
+                            value={selectedVariant || ''}
+                            onChange={(e) => {
+                                const val = e.target.value ? Number(e.target.value) : null;
+                                setSelectedVariant(val);
+                            }}
+                            style={{
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                border: '2px solid #f1798a',
+                                fontSize: '0.95rem',
+                                minWidth: 280,
+                                background: '#fff',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                            }}
+                        >
+                            <option value="">📦 Ana Ürün Görselleri (Ortak)</option>
+                            {variants.map(v => (
+                                <option key={v.id} value={v.id}>
+                                    🎨 {v.name} {v.shadeCode ? `(#${v.shadeCode})` : ''}
+                                    {v.isDefault ? ' ⭐' : ''}
+                                </option>
+                            ))}
+                        </select>
+
+                        {selectedVariantInfo && (
+                            <div style={{
+                                marginTop: 12,
+                                padding: '12px 16px',
+                                background: '#ffe3f1',
+                                borderRadius: 8,
+                                border: '2px solid #f1798a'
+                            }}>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 12,
+                                    marginBottom: 8
+                                }}>
+                                    {selectedVariantInfo.hexColor && (
+                                        <div style={{
+                                            width: 32,
+                                            height: 32,
+                                            borderRadius: '50%',
+                                            background: selectedVariantInfo.hexColor,
+                                            border: '3px solid #fff',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                                        }} />
+                                    )}
+                                    <div>
+                                        <div style={{
+                                            fontWeight: 700,
+                                            color: '#b2206d',
+                                            fontSize: '1rem'
+                                        }}>
+                                            {selectedVariantInfo.name}
+                                        </div>
+                                        <div style={{
+                                            fontSize: '0.8rem',
+                                            color: '#666',
+                                            marginTop: 2
+                                        }}>
+                                            SKU: {selectedVariantInfo.sku} | Stok: {selectedVariantInfo.stockQuantity}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{
+                                    fontSize: '0.85rem',
+                                    color: '#b2206d',
+                                    fontWeight: 600
+                                }}>
+                                    ℹ️ Bu görseller sadece "{selectedVariantInfo.name}" varyantı seçildiğinde görünecektir.
+                                </div>
+                            </div>
+                        )}
+
+                        {!selectedVariant && (
+                            <div style={{
+                                marginTop: 12,
+                                padding: '12px 16px',
+                                background: '#e3f2fd',
+                                borderRadius: 8,
+                                border: '2px solid #64b5f6',
+                                fontSize: '0.85rem',
+                                color: '#1976d2',
+                                fontWeight: 600
+                            }}>
+                                ℹ️ Ana ürün görselleri tüm varyantlar için ortak olarak görünür.
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <button
+                    onClick={handleFileSelect}
+                    disabled={uploading}
+                    style={{
+                        padding: '12px 24px',
+                        background: uploading ? '#ccc' : '#e91e63',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 8,
+                        cursor: uploading ? 'not-allowed' : 'pointer',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        opacity: uploading ? 0.6 : 1,
+                        boxShadow: uploading ? 'none' : '0 2px 8px rgba(233, 30, 99, 0.3)',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                    }}
+                >
+                    {uploading ? '⏳ Yükleniyor...' : '+ Görsel Ekle'}
+                </button>
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFilesChange}
+                    style={{ display: 'none' }}
+                />
+            </div>
+
+            {/* ✅ Drag & Drop Galeri */}
+            {images.length === 0 ? (
+                <div style={{
+                    textAlign: 'center',
+                    padding: 60,
+                    background: '#fff',
+                    borderRadius: 12,
+                    color: '#999',
+                    border: '2px dashed #ddd'
+                }}>
+                    <div style={{ fontSize: '3rem', marginBottom: 12 }}>📷</div>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '1.1rem' }}>
+                        {selectedVariant
+                            ? `"${selectedVariantInfo?.name}" için henüz görsel eklenmemiş`
+                            : 'Ana ürün için henüz görsel eklenmemiş'}
+                    </p>
+                    <p style={{ margin: '8px 0 0', fontSize: '0.85rem', color: '#aaa' }}>
+                        Yukarıdaki butonu kullanarak görsel ekleyebilirsiniz
+                    </p>
+                </div>
+            ) : (
+                <>
+                    <div style={{
+                        marginBottom: 12,
+                        padding: '8px 12px',
+                        background: '#e8f5e9',
+                        borderRadius: 6,
+                        color: '#2e7d32',
+                        fontWeight: 600,
+                        fontSize: '0.9rem'
+                    }}>
+                        ✅ {images.length} görsel yüklü • 🖱️ Sürükle-bırak ile sıralayın
+                    </div>
+
+                    <DragDropContext onDragEnd={onDragEnd}>
+                        <Droppable droppableId="images-grid" direction="horizontal">
+                            {(provided, snapshot) => (
+                                <div
+                                    ref={provided.innerRef}
+                                    {...provided.droppableProps}
+                                    style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                                        gap: 16,
+                                        padding: snapshot.isDraggingOver ? '8px' : '0',
+                                        background: snapshot.isDraggingOver ? '#f0f7ff' : 'transparent',
+                                        borderRadius: 12,
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {images.map((img, index) => (
+                                        <Draggable key={img.id} draggableId={String(img.id)} index={index}>
+                                            {(provided, snapshot) => (
+                                                <div
+                                                    ref={provided.innerRef}
+                                                    {...provided.draggableProps}
+                                                    {...provided.dragHandleProps}
+                                                    style={{
+                                                        position: 'relative',
+                                                        borderRadius: 12,
+                                                        overflow: 'hidden',
+                                                        border: index === 0
+                                                            ? '3px solid #4caf50'
+                                                            : '2px solid #f1798a',
+                                                        background: '#fff',
+                                                        boxShadow: snapshot.isDragging
+                                                            ? '0 8px 24px rgba(0,0,0,0.25)'
+                                                            : '0 2px 8px rgba(0,0,0,0.1)',
+                                                        transform: snapshot.isDragging ? 'rotate(3deg)' : 'none',
+                                                        transition: 'all 0.2s',
+                                                        cursor: 'grab',
+                                                        ...provided.draggableProps.style
+                                                    }}
+                                                >
+                                                    {/* Sıra Badge */}
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: 8,
+                                                        left: 8,
+                                                        background: index === 0
+                                                            ? 'linear-gradient(135deg, #4caf50, #66bb6a)'
+                                                            : 'rgba(0,0,0,0.7)',
+                                                        color: '#fff',
+                                                        borderRadius: '50%',
+                                                        width: 32,
+                                                        height: 32,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '0.9rem',
+                                                        fontWeight: 700,
+                                                        zIndex: 2,
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                                                    }}>
+                                                        {index === 0 ? '★' : index + 1}
+                                                    </div>
+
+                                                    {/* Görsel */}
+                                                    <img
+                                                        src={`${API_BASE_URL}${img.url}`}
+                                                        alt={`Görsel ${index + 1}`}
+                                                        style={{
+                                                            width: '100%',
+                                                            height: 150,
+                                                            objectFit: 'cover',
+                                                            display: 'block',
+                                                            pointerEvents: 'none'
+                                                        }}
+                                                        onError={(e) => {
+                                                            e.currentTarget.src = 'https://via.placeholder.com/150x150?text=IMG';
+                                                        }}
+                                                    />
+
+                                                    {/* Silme Butonu */}
+                                                    <button
+                                                        onClick={() => deleteImage(img.id)}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: 8,
+                                                            right: 8,
+                                                            background: 'rgba(220, 53, 69, 0.9)',
+                                                            color: '#fff',
+                                                            border: 'none',
+                                                            borderRadius: '50%',
+                                                            width: 32,
+                                                            height: 32,
+                                                            cursor: 'pointer',
+                                                            fontSize: '1.1rem',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            zIndex: 2,
+                                                            transition: 'all 0.2s',
+                                                            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                                                        }}
+                                                        onMouseOver={(e) => {
+                                                            e.currentTarget.style.background = 'rgba(220, 53, 69, 1)';
+                                                            e.currentTarget.style.transform = 'scale(1.1)';
+                                                        }}
+                                                        onMouseOut={(e) => {
+                                                            e.currentTarget.style.background = 'rgba(220, 53, 69, 0.9)';
+                                                            e.currentTarget.style.transform = 'scale(1)';
+                                                        }}
+                                                    >
+                                                        ✕
+                                                    </button>
+
+                                                    {/* İlk Görsel Badge */}
+                                                    {index === 0 && (
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            bottom: 0,
+                                                            left: 0,
+                                                            right: 0,
+                                                            background: 'linear-gradient(135deg, #4caf50, #66bb6a)',
+                                                            color: '#fff',
+                                                            padding: '6px 8px',
+                                                            fontSize: '0.75rem',
+                                                            textAlign: 'center',
+                                                            fontWeight: 700,
+                                                            letterSpacing: '0.5px'
+                                                        }}>
+                                                            ⭐ ÖN YÜZDE GÖRÜNECEK
+                                                        </div>
+                                                    )}
+
+                                                    {/* Varyant Etiketi */}
+                                                    {img.variantId && index !== 0 && (
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            bottom: 0,
+                                                            left: 0,
+                                                            right: 0,
+                                                            background: 'rgba(233, 30, 99, 0.95)',
+                                                            color: '#fff',
+                                                            padding: '6px 8px',
+                                                            fontSize: '0.75rem',
+                                                            textAlign: 'center',
+                                                            fontWeight: 600
+                                                        }}>
+                                                            🎨 Varyant
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </Draggable>
+                                    ))}
+                                    {provided.placeholder}
+                                </div>
+                            )}
+                        </Droppable>
+                    </DragDropContext>
+                </>
+            )}
+
+            {images.length > 0 && (
+                <div style={{
+                    marginTop: 20,
+                    padding: '12px 16px',
+                    background: '#fff',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: 8,
+                    fontSize: '0.85rem',
+                    color: '#666'
+                }}>
+                    <strong>💡 İpucu:</strong> Görselleri sürükleyerek sıralayın.
+                    İlk görsel ön yüzde ve thumbnail'lerde gösterilir. ⭐ işareti ilk görseli belirtir.
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ---------------- VariantsPanel ---------------- */
 
 function VariantsPanel({ productId, authHeaders, onUploadedImageEndpoint }) {
     const [list, setList] = React.useState([]);
@@ -756,7 +1412,6 @@ function VariantsPanel({ productId, authHeaders, onUploadedImageEndpoint }) {
         }
     };
 
-    // Varyant Kartı
     const VariantCard = ({ variant }) => {
         const price = Number(variant.price || 0);
         const discount = Number(variant.discountPercent || 0);
@@ -894,10 +1549,6 @@ function VariantsPanel({ productId, authHeaders, onUploadedImageEndpoint }) {
         );
     };
 
-    // Varyant Form
-    // ProductsAdmin.jsx içindeki VariantFormCard fonksiyonunu bu şekilde güncelleyin
-// Sadece onChange handler'ları değişti - prev => ({ ...prev, ... }) pattern'i kullanıyor
-
     const VariantFormCard = () => {
         return (
             <div style={{
@@ -918,9 +1569,9 @@ function VariantsPanel({ productId, authHeaders, onUploadedImageEndpoint }) {
                     marginBottom: 16
                 }}>
                     <label style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#333' }}>
-                        Varyant Adı ⭐
-                    </span>
+                        <span style={{ marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#333' }}>
+                            Varyant Adı ⭐
+                        </span>
                         <input
                             type="text"
                             value={editingRow?.name || ''}
@@ -972,9 +1623,9 @@ function VariantsPanel({ productId, authHeaders, onUploadedImageEndpoint }) {
                 }}>
                     <div>
                         <label style={{ display: 'flex', flexDirection: 'column', marginBottom: 12 }}>
-                        <span style={{ marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#333' }}>
-                            Renk Ailesi
-                        </span>
+                            <span style={{ marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#333' }}>
+                                Renk Ailesi
+                            </span>
                             <input
                                 type="text"
                                 value={editingRow?.shadeFamily || ''}
@@ -985,9 +1636,9 @@ function VariantsPanel({ productId, authHeaders, onUploadedImageEndpoint }) {
                         </label>
 
                         <label style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#333' }}>
-                            Hex Renk Kodu
-                        </span>
+                            <span style={{ marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#333' }}>
+                                Hex Renk Kodu
+                            </span>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                 <input
                                     type="color"

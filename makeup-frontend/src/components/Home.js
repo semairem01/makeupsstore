@@ -22,11 +22,12 @@ export default function Home({ onAdded }) {
     // ----- SLIDES -----
     const slides = [
         {
-            image: "/banners/discount2.jpg",
+            image: "/banners/gpt.png",                     // ✅ var olan dosya
+            srcSet: "/banners/gpt.png 1920w",              // şimdilik tek kaynak (404 olmasın)
             kicker: "SEASON OFFER",
-            subtitle: "Selected products up to 40% off",
             cta: { label: "Shop", to: "/sale" },
             overlay: "light",
+            alt: "Lunara Beauty seasonal offer",
         },
         {
             image: "/banners/banner.jpg",
