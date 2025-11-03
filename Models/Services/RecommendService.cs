@@ -1,231 +1,486 @@
-﻿// Services/RecommendService.cs
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using makeup.Models.Repositories;
+﻿using makeup.Models.Repositories;
+using makeup.Models.Repositories.Entities;
 using makeup.Models.Services.Dtos;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace makeup.Models.Services
 {
     public interface IRecommendService
     {
-        Task<RoutineResponseDto> RecommendAsync(Guid? userId, RoutineRequestDto req);
+        Task<RoutineResponseDto> RecommendAsync(Guid? userId, RoutineRequestDto request);
     }
 
     public class RecommendService : IRecommendService
     {
-        private readonly AppDbContext _ctx;
-        public RecommendService(AppDbContext ctx) { _ctx = ctx; }
+        private readonly AppDbContext _db;
+        private readonly ILogger<RecommendService> _logger;
 
-        private static SkinTypeFlags ParseSkin(string s) => s switch
+        public RecommendService(AppDbContext db, ILogger<RecommendService> logger)
         {
-            "Dry" => SkinTypeFlags.Dry,
-            "Oily" => SkinTypeFlags.Oily,
-            "Combination" => SkinTypeFlags.Combination,
-            "Sensitive" => SkinTypeFlags.Sensitive,
-            _ => SkinTypeFlags.Normal
-        };
+            _db = db;
+            _logger = logger;
+        }
 
-        private static string[] ShadeFromTone(string? t) => t switch
+        public async Task<RoutineResponseDto> RecommendAsync(Guid? userId, RoutineRequestDto req)
         {
-            "Warm" => new[] { "coral", "peach", "terracotta", "gold", "bronze", "warm pink" },
-            "Cool" => new[] { "rose", "mauve", "berry", "plum", "taupe", "silver" },
-            _ => new[] { "nude", "soft pink", "brown", "champagne" }
-        };
+            // 1️⃣ Kişilik profili belirleme
+            var persona = DeterminePersona(req);
+            
+            // 2️⃣ Scoring kurallarını oluştur
+            var rules = BuildScoringRules(req);
+            
+            _logger.LogInformation("User Persona: {Persona}, Rules: {Rules}", 
+                persona.Name,
+                string.Join(", ", rules.Select(r => $"{r.Key}={r.Value}")));
 
-        private static string[] EyeBoost(string? e) => e switch
-        {
-            "Brown/Black" => new[] { "emerald", "navy", "bronze" },
-            "Hazel/Green" => new[] { "plum", "mauve", "copper" },
-            "Blue/Gray"   => new[] { "warm brown", "peach", "gold" },
-            _ => Array.Empty<string>()
-        };
-
-        // --- BUCKET TANIMLARI (kaş dâhil) ---
-        private static readonly Dictionary<string, string[]> BucketNames = new()
-        {
-            ["Lips"] = new[] { "Lips", "Lipstick", "Lip Gloss", "Lip Balm", "Lip Pencil" },
-            ["Eyes"] = new[]
-            {
-                // GÖZ + KAŞ
-                "Eyes", "Eyeshadow", "Mascara", "Eyeliner", "Eye Pencil",
-                "Eyebrow", "Eyebrow Pencil", "Eyebrow Gel"
-            },
-            ["Base"] = new[] { "Face", "Primer", "Foundation", "Concealer", "Powder", "Setting Spray", "BB & CC Cream" },
-            ["Cheeks"] = new[] { "Blush", "Highlighter", "Bronzer", "Contour" }
-        };
-        // -------------------------------------
-
-        private async Task<HashSet<int>> ResolveCategoryIdsAsync(string[] names)
-        {
-            var cats = await _ctx.Categories
-                .Select(c => new { c.Id, c.Name, c.ParentCategoryId })
+            // 3️⃣ Tüm aktif ürünleri getir
+            var allProducts = await _db.Products
+                .Include(p => p.Category)
+                .Include(p => p.Variants)
+                .Where(p => p.IsActive && p.StockQuantity > 0)
                 .ToListAsync();
 
-            var nameSet = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
-            var wanted  = new HashSet<int>();
+            // 4️⃣ Ürünleri puanla ve sırala
+            var scored = allProducts
+                .Select(p => new
+                {
+                    Product = p,
+                    Score = CalculateScore(p, rules),
+                    Category = GetProductCategory(p),
+                    MatchReason = GetMatchReason(p, rules)
+                })
+                .Where(x => x.Score > 0)
+                .OrderByDescending(x => x.Score)
+                .ToList();
 
-            // İsmi geçenleri ekle
-            foreach (var c in cats)
-                if (nameSet.Contains(c.Name))
-                    wanted.Add(c.Id);
+            _logger.LogInformation("Total scored products: {Count}", scored.Count);
 
-            // Eşleşen parentların çocuklarını da ekle
-            var parentIds = cats.Where(c => nameSet.Contains(c.Name))
-                                .Select(c => c.Id)
-                                .ToHashSet();
+            // 5️⃣ Kategorilere göre grupla (top 6 her kategoriden)
+            var lips = scored.Where(x => x.Category == "Lips").Take(6).ToList();
+            var eyes = scored.Where(x => x.Category == "Eyes").Take(6).ToList();
+            var baseProducts = scored.Where(x => x.Category == "Base").Take(6).ToList();
+            var cheeks = scored.Where(x => x.Category == "Cheeks").Take(6).ToList();
 
-            foreach (var c in cats)
-                if (c.ParentCategoryId.HasValue && parentIds.Contains(c.ParentCategoryId.Value))
-                    wanted.Add(c.Id);
+            // 6️⃣ Rutin başlığı oluştur
+            var title = GenerateTitle(persona, req);
 
-            return wanted;
+            return new RoutineResponseDto(
+                title,
+                lips.Select(x => ToDto(x.Product, x.Score, x.MatchReason)),
+                eyes.Select(x => ToDto(x.Product, x.Score, x.MatchReason)),
+                baseProducts.Select(x => ToDto(x.Product, x.Score, x.MatchReason)),
+                cheeks.Select(x => ToDto(x.Product, x.Score, x.MatchReason)),
+                persona.Name,
+                persona.Description,
+                persona.Icon,
+                persona.Color
+            );
         }
 
-        public async Task<RoutineResponseDto> RecommendAsync(Guid? userId, RoutineRequestDto r)
+        // ✨ KİŞİLİK PROFİLİ BELİRLEME
+        private BeautyPersona DeterminePersona(RoutineRequestDto req)
         {
-            var skin      = ParseSkin(r.Skin);
-            var skinMask  = (int)skin; // ✅ EF uyumlu bit-mask
-            var shades    = ShadeFromTone(r.Undertone);
-            var eyePlus   = EyeBoost(r.EyeColor);
+            var skin = req.Skin.ToLower();
+            var vibe = req.Vibe.ToLower();
+            var env = req.Env.ToLower();
 
-            var lipsIds   = await ResolveCategoryIdsAsync(BucketNames["Lips"]);
-            var eyesIds   = await ResolveCategoryIdsAsync(BucketNames["Eyes"]);
-            var baseIds   = await ResolveCategoryIdsAsync(BucketNames["Base"]);
-            var cheeksIds = await ResolveCategoryIdsAsync(BucketNames["Cheeks"]);
-
-            IQueryable<Product> BaseQuery() => _ctx.Products
-                .AsNoTracking()
-                .Include(p => p.Category)
-                .Where(p => p.IsActive);
-
-            IQueryable<Product> ApplyFilters(IQueryable<Product> q, HashSet<int> catIds, string bucket)
+            // Vibe + Environment kombinasyonu
+            if (vibe == "bold" && (env.Contains("party") || env.Contains("evening")))
             {
-                // kategori
-                q = q.Where(p => catIds.Contains(p.CategoryId));
+                return new BeautyPersona(
+                    "The Showstopper",
+                    "You live for the spotlight! Bold, confident, and always camera-ready. Your makeup is a statement.",
+                    "💃",
+                    "#FF1744"
+                );
+            }
 
-                // cilt uyumu
-                q = q.Where(p => (((int)p.SuitableForSkin & skinMask) != 0));
+            if (vibe == "natural" && env.Contains("office"))
+            {
+                return new BeautyPersona(
+                    "The Minimalist",
+                    "Less is more is your mantra. You love effortless, skin-like finishes that enhance your natural beauty.",
+                    "🌿",
+                    "#81C784"
+                );
+            }
 
-                // vibe
-                if (r.Vibe == "Natural")
-                    q = q.Where(p => p.Finish == FinishType.Natural || p.Finish == FinishType.Dewy);
-                else if (r.Vibe == "Soft Glam")
-                    q = q.Where(p => p.Finish != null);
-                else if (r.Vibe == "Bold")
-                    q = q.Where(p => p.Longwear || p.Coverage == CoverageLevel.Full);
+            if (vibe == "soft glam" && skin == "dry")
+            {
+                return new BeautyPersona(
+                    "The Dewy Dream",
+                    "You're all about that healthy glow! Hydration and luminosity are your best friends.",
+                    "✨",
+                    "#FFD700"
+                );
+            }
 
-                // ortam
-                if (r.Env == "Outdoor/Sunny")
-                    q = q.Where(p => p.HasSpf || p.Waterproof);
-                else if (r.Env == "Indoor Evening")
-                    q = q.Where(p => p.PhotoFriendly || p.Longwear);
-                else if (r.Env == "Office/Daylight")
-                    q = q.Where(p => !p.Longwear || p.Finish == FinishType.Natural);
-                else if (r.Env == "Party")
-                    q = q.Where(p =>
-                        p.Finish == FinishType.Shimmer
-                        || EF.Functions.Like(p.Tags ?? "", "%glitter%")
-                        || EF.Functions.Like(p.Tags ?? "", "%metallic%")
-                        || EF.Functions.Like(p.Tags ?? "", "%shimmer%")
-                        || EF.Functions.Like(p.Tags ?? "", "%neon%")
-                        || EF.Functions.Like(p.Tags ?? "", "%vivid%")
-                        || p.Longwear
-                    );
+            if (skin == "oily" && vibe == "bold")
+            {
+                return new BeautyPersona(
+                    "The Matte Maven",
+                    "You've mastered the art of shine-free perfection. Matte, long-lasting, and flawless all day.",
+                    "🎯",
+                    "#9C27B0"
+                );
+            }
 
-                // undertone / göz rengi -> shade eşleşmesi (OR'lu)
-                var needles = (bucket == "Eyes" ? shades.Concat(eyePlus) : shades)
-                              .Where(s => !string.IsNullOrWhiteSpace(s))
-                              .Take(4)
-                              .Select(s => s.Trim())
-                              .ToArray();
+            if (env.Contains("outdoor") || env.Contains("sunny"))
+            {
+                return new BeautyPersona(
+                    "The Sun Goddess",
+                    "SPF is your BFF! You need makeup that can keep up with your active, outdoor lifestyle.",
+                    "☀️",
+                    "#FF6F00"
+                );
+            }
 
-                if (needles.Length > 0)
+            if (vibe == "soft glam")
+            {
+                return new BeautyPersona(
+                    "The Romantic",
+                    "You love soft, elegant looks with a touch of shimmer. Think: date night perfection.",
+                    "💕",
+                    "#EC407A"
+                );
+            }
+
+            // Default
+            return new BeautyPersona(
+                "The Trendsetter",
+                "You're always ahead of the curve! Versatile and adaptable, you can pull off any look.",
+                "🌟",
+                "#3F51B5"
+            );
+        }
+
+        // ✨ SCORING KURALLARI (Geliştirilmiş)
+        private Dictionary<string, int> BuildScoringRules(RoutineRequestDto req)
+        {
+            var rules = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            // 🎨 Cilt tipine göre (+20 puan - artırıldı)
+            switch (req.Skin.ToLower())
+            {
+                case "dry":
+                    rules["dewy"] = 20;
+                    rules["hydrating"] = 20;
+                    rules["hyaluronic"] = 15;
+                    rules["glow"] = 15;
+                    rules["luminous"] = 15;
+                    rules["moisture"] = 12;
+                    rules["nourishing"] = 12;
+                    rules["creamy"] = 10;
+                    rules["oil-free"] = -8; // Negatif puan
+                    break;
+                case "oily":
+                    rules["matte"] = 20;
+                    rules["mattifying"] = 20;
+                    rules["oil-control"] = 15;
+                    rules["powder"] = 12;
+                    rules["shine-free"] = 12;
+                    rules["pore-minimizing"] = 10;
+                    rules["dewy"] = -8; // Negatif puan
+                    break;
+                case "combination":
+                    rules["balancing"] = 15;
+                    rules["natural"] = 12;
+                    rules["satin"] = 12;
+                    rules["semi-matte"] = 10;
+                    rules["buildable"] = 10;
+                    break;
+                case "sensitive":
+                    rules["fragrance-free"] = 20;
+                    rules["hypoallergenic"] = 15;
+                    rules["soothing"] = 12;
+                    rules["gentle"] = 12;
+                    rules["mineral"] = 10;
+                    rules["dermatologist-tested"] = 10;
+                    break;
+                case "normal":
+                    rules["natural"] = 12;
+                    rules["skin-like"] = 12;
+                    rules["radiant"] = 10;
+                    rules["lightweight"] = 10;
+                    break;
+            }
+
+            // 💄 Vibe'a göre (+15 puan)
+            switch (req.Vibe.ToLower())
+            {
+                case "natural":
+                    rules["no-makeup"] = 15;
+                    rules["sheer"] = 12;
+                    rules["tinted"] = 12;
+                    rules["nude"] = 10;
+                    rules["skin-like"] = 10;
+                    rules["glitter"] = -5; // Negatif puan
+                    break;
+                case "soft glam":
+                    rules["soft-focus"] = 15;
+                    rules["glow"] = 12;
+                    rules["shimmer"] = 12;
+                    rules["defined"] = 10;
+                    rules["satin"] = 10;
+                    rules["pearl"] = 8;
+                    break;
+                case "bold":
+                    rules["bold"] = 15;
+                    rules["high pigment"] = 15;
+                    rules["vibrant"] = 12;
+                    rules["dramatic"] = 12;
+                    rules["statement"] = 10;
+                    rules["intense"] = 10;
+                    break;
+            }
+
+            // 🌍 Ortam/Işık (+12 puan)
+            switch (req.Env.ToLower())
+            {
+                case "outdoor/sunny":
+                    rules["spf"] = 15;
+                    rules["waterproof"] = 12;
+                    rules["sweat-resistant"] = 12;
+                    rules["long-lasting"] = 10;
+                    rules["fade-resistant"] = 8;
+                    break;
+                case "indoor evening":
+                case "party":
+                    rules["photo-friendly"] = 15;
+                    rules["longwear"] = 12;
+                    rules["shimmer"] = 12;
+                    rules["glitter"] = 10;
+                    rules["metallic"] = 10;
+                    break;
+                case "office/daylight":
+                    rules["lightweight"] = 12;
+                    rules["fresh"] = 10;
+                    rules["natural"] = 10;
+                    rules["breathable"] = 8;
+                    break;
+            }
+
+            // 🎨 Undertone (+10 puan)
+            if (!string.IsNullOrEmpty(req.Undertone))
+            {
+                switch (req.Undertone.ToLower())
                 {
-                    var t1 = needles.ElementAtOrDefault(0);
-                    var t2 = needles.ElementAtOrDefault(1);
-                    var t3 = needles.ElementAtOrDefault(2);
-                    var t4 = needles.ElementAtOrDefault(3);
-
-                    q = q.Where(p => p.ShadeFamily != null && (
-                        (t1 != null && EF.Functions.Like(p.ShadeFamily!, "%" + t1 + "%")) ||
-                        (t2 != null && EF.Functions.Like(p.ShadeFamily!, "%" + t2 + "%")) ||
-                        (t3 != null && EF.Functions.Like(p.ShadeFamily!, "%" + t3 + "%")) ||
-                        (t4 != null && EF.Functions.Like(p.ShadeFamily!, "%" + t4 + "%"))
-                    ));
+                    case "warm":
+                        rules["coral"] = 10;
+                        rules["peach"] = 10;
+                        rules["gold"] = 8;
+                        rules["bronze"] = 8;
+                        rules["terracotta"] = 6;
+                        break;
+                    case "cool":
+                        rules["rose"] = 10;
+                        rules["mauve"] = 10;
+                        rules["berry"] = 8;
+                        rules["plum"] = 8;
+                        rules["taupe"] = 6;
+                        break;
+                    case "neutral":
+                        rules["nude"] = 10;
+                        rules["beige"] = 8;
+                        rules["champagne"] = 6;
+                        break;
                 }
-
-                return q;
             }
 
-            // ✅ SQL'de karmaşık dizi/VALUES üretme yok; badge'leri bellekte kuruyoruz
-            async Task<List<RecommendItemDto>> ProjectScoreAsync(IQueryable<Product> q)
+            // 👁️ Göz rengi (+8 puan)
+            if (!string.IsNullOrEmpty(req.EyeColor))
             {
-                var rows = await q
-                    .Select(p => new
-                    {
-                        P = p,
-                        CategoryName = p.Category.Name,
-                        Score =
-                            ((((int)p.SuitableForSkin & skinMask) != 0 ? 4 : 0)) +
-                            (r.Vibe == "Bold" && (p.Longwear || p.Coverage == CoverageLevel.Full) ? 3 : 0) +
-                            (r.Env == "Outdoor/Sunny" && (p.Waterproof || p.HasSpf) ? 2 : 0) +
-                            (r.Env == "Indoor Evening" && p.PhotoFriendly ? 1 : 0) +
-                            (r.Env == "Party" && (
-                                p.Finish == FinishType.Shimmer
-                                || EF.Functions.Like(p.Tags ?? "", "%glitter%")
-                                || EF.Functions.Like(p.Tags ?? "", "%metallic%")
-                                || EF.Functions.Like(p.Tags ?? "", "%shimmer%")
-                                || EF.Functions.Like(p.Tags ?? "", "%neon%")
-                                || EF.Functions.Like(p.Tags ?? "", "%vivid%")
-                            ) ? 3 : 0) +
-                            (r.Env == "Party" && p.Longwear ? 2 : 0),
-                        Discount = p.DiscountPercent
-                    })
-                    .OrderByDescending(x => x.Score)
-                    .ThenByDescending(x => x.Discount)
-                    .Take(12)
-                    .ToListAsync();
-
-                return rows.Select(x =>
+                switch (req.EyeColor.ToLower())
                 {
-                    var p = x.P;
-                    var badges = new List<string>(4);
-                    if (p.HasSpf)        badges.Add("SPF");
-                    if (p.Longwear)      badges.Add("Longwear");
-                    if (p.Waterproof)    badges.Add("Waterproof");
-                    if (p.PhotoFriendly) badges.Add("Photo");
-
-                    return new RecommendItemDto(
-                        p.Id,
-                        p.Name,
-                        p.Brand,
-                        x.CategoryName,
-                        p.Price,
-                        p.ImageUrl ?? "",
-                        p.ShadeFamily ?? "",
-                        badges
-                    );
-                }).ToList();
+                    case "brown/black":
+                        rules["emerald"] = 8;
+                        rules["navy"] = 8;
+                        rules["bronze"] = 6;
+                        break;
+                    case "hazel/green":
+                        rules["plum"] = 8;
+                        rules["mauve"] = 8;
+                        rules["copper"] = 6;
+                        break;
+                    case "blue/gray":
+                        rules["warm brown"] = 8;
+                        rules["peach"] = 8;
+                        rules["gold"] = 6;
+                        break;
+                }
             }
 
-            var lips   = await ProjectScoreAsync(ApplyFilters(BaseQuery(), lipsIds,   "Lips"));
-            var eyes   = await ProjectScoreAsync(ApplyFilters(BaseQuery(), eyesIds,   "Eyes"));
-            var @base  = await ProjectScoreAsync(ApplyFilters(BaseQuery(), baseIds,   "Base"));
-            var cheeks = await ProjectScoreAsync(ApplyFilters(BaseQuery(), cheeksIds, "Cheeks"));
+            return rules;
+        }
 
-            var title = r.Skin switch
+        // ✨ PUANLAMA MOTORU (Geliştirilmiş)
+        private static readonly Dictionary<string, string[]> Syn = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["matte"] = new[] { "mattifying", "shine-free", "oil-control" },
+            ["hydrating"] = new[] { "moisturizing", "moisture", "nourishing", "creamy", "luminous", "glow" },
+            ["photo-friendly"] = new[] { "photo friendly", "photo-ready", "camera-ready" },
+            ["full-coverage"] = new[] { "full coverage", "high pigment", "high-pigment" },
+            ["spf"] = new[] { "sun protection", "uv shield", "uv protection" },
+            ["longwear"] = new[] { "long-lasting", "long lasting", "all-day", "fade-resistant" },
+        };
+
+        private static HashSet<string> Tokenize(params string?[] fields)
+        {
+            var text = string.Join(" ", fields.Where(f => !string.IsNullOrWhiteSpace(f))).ToLowerInvariant();
+            var raw = Regex.Split(text, @"[^a-z0-9+#]+").Where(s => s.Length > 0);
+            var set = new HashSet<string>(raw);
+            foreach (var kv in Syn)
+                if (set.Contains(kv.Key))
+                    foreach (var alt in kv.Value)
+                        set.Add(alt.ToLower());
+            return set;
+        }
+
+        private int CalculateScore(Product product, Dictionary<string, int> rules)
+        {
+            int score = 0;
+            var tokens = Tokenize(product.Name, product.Description, product.Tags, product.ShadeFamily);
+
+            foreach (var (key, weight) in rules)
             {
-                "Dry"         => "Hydration Glow",
-                "Oily"        => "Matte Control",
-                "Combination" => "Soft Balance",
-                "Sensitive"   => "Calm & Care",
-                _             => "Balanced Radiance"
-            };
+                if (tokens.Contains(key.ToLower()) ||
+                    (Syn.TryGetValue(key, out var alts) && alts.Any(a => tokens.Contains(a.ToLower()))))
+                {
+                    score += weight;
+                }
+            }
 
-            return new RoutineResponseDto(title, lips, eyes, @base, cheeks);
+            // Finish & Coverage
+            var finish = product.Finish?.ToString()?.ToLower();
+            var coverage = product.Coverage?.ToString()?.ToLower();
+            if (finish != null && rules.TryGetValue(finish, out var wf)) score += wf;
+            if (coverage != null && rules.TryGetValue(coverage, out var wc)) score += wc;
+
+            // Boolean özellikler
+            if (product.HasSpf && rules.ContainsKey("spf")) score += rules["spf"];
+            if (product.Longwear && rules.ContainsKey("longwear")) score += rules["longwear"];
+            if (product.Waterproof && rules.ContainsKey("waterproof")) score += rules["waterproof"];
+            if (product.FragranceFree && rules.ContainsKey("fragrance-free")) score += rules["fragrance-free"];
+            if (product.NonComedogenic && rules.ContainsKey("non-comedogenic")) score += 5;
+
+            // İndirim bonusu
+            if (product.DiscountPercent is decimal d && d > 0)
+                score += (int)Math.Round(Math.Min(d, 50) / 10m);
+
+            // Stok bonusu/cezası
+            if (product.StockQuantity > 20) score += 3;
+            else if (product.StockQuantity <= 3) score -= 2;
+
+            return Math.Max(0, score);
+        }
+
+        // ✨ EŞLEŞME NEDENİ
+        private string GetMatchReason(Product product, Dictionary<string, int> rules)
+        {
+            var reasons = new List<string>();
+            var tokens = Tokenize(product.Name, product.Description, product.Tags, product.ShadeFamily);
+
+            // En yüksek puanlı 2-3 eşleşmeyi bul
+            var topMatches = rules
+                .Where(r => tokens.Contains(r.Key.ToLower()) || 
+                           (Syn.TryGetValue(r.Key, out var alts) && alts.Any(a => tokens.Contains(a.ToLower()))))
+                .OrderByDescending(r => r.Value)
+                .Take(3)
+                .Select(r => r.Key)
+                .ToList();
+
+            if (topMatches.Any())
+                return $"Perfect match for: {string.Join(", ", topMatches)}";
+
+            if (product.HasSpf) return "SPF protection";
+            if (product.Longwear) return "Long-lasting formula";
+            if (product.DiscountPercent > 0) return $"{product.DiscountPercent}% off!";
+
+            return "Great quality product";
+        }
+
+        // ✨ KATEGORİ BELİRLEME
+        private string GetProductCategory(Product p)
+        {
+            var catName = p.Category?.Name?.ToLower() ?? "";
+            var pName = p.Name.ToLower();
+
+            if (catName.Contains("lip") || pName.Contains("lipstick") || pName.Contains("gloss"))
+                return "Lips";
+            if (catName.Contains("eye") || pName.Contains("mascara") || pName.Contains("shadow") || pName.Contains("liner"))
+                return "Eyes";
+            if (catName.Contains("face") || catName.Contains("foundation") || pName.Contains("primer") || pName.Contains("concealer"))
+                return "Base";
+            if (catName.Contains("cheek") || pName.Contains("blush") || pName.Contains("bronzer") || pName.Contains("highlighter"))
+                return "Cheeks";
+
+            return "Other";
+        }
+
+        // ✨ BAŞLIK OLUŞTURMA
+        private string GenerateTitle(BeautyPersona persona, RoutineRequestDto req)
+        {
+            return $"Your {persona.Name} Routine";
+        }
+
+        // ✨ DTO DÖNÜŞÜMÜ
+        private RecommendItemDto ToDto(Product p, int score, string matchReason)
+        {
+            var badges = new List<string>();
+
+            if (p.HasSpf) badges.Add("SPF");
+            if (p.Longwear) badges.Add("Longwear");
+            if (p.Waterproof) badges.Add("Waterproof");
+            if (p.FragranceFree) badges.Add("Fragrance Free");
+            if (p.NonComedogenic) badges.Add("Non-Comedogenic");
+            if (p.DiscountPercent > 0) badges.Add($"{p.DiscountPercent}% OFF");
+
+            return new RecommendItemDto(
+                p.Id,
+                p.Name,
+                p.Brand,
+                p.Category?.Name ?? "Uncategorized",
+                p.Price,
+                p.ImageUrl,
+                p.ShadeFamily ?? "",
+                badges,
+                matchReason
+            );
         }
     }
+
+    // ✨ BEAUTY PERSONA MODEL
+    public record BeautyPersona(
+        string Name,
+        string Description,
+        string Icon,
+        string Color
+    );
 }
+
+// DTO güncellemesi gerekli (RecommendItemDto'ya matchReason ekle)
+public record RecommendItemDto(
+    int Id,
+    string Name,
+    string Brand,
+    string Category,
+    decimal Price,
+    string ImageUrl,
+    string ShadeFamily,
+    List<string> Badges,
+    string MatchReason = ""
+);
+
+// RoutineResponseDto güncellemesi
+public record RoutineResponseDto(
+    string Title,
+    IEnumerable<RecommendItemDto> Lips,
+    IEnumerable<RecommendItemDto> Eyes,
+    IEnumerable<RecommendItemDto> Base,
+    IEnumerable<RecommendItemDto> Cheeks,
+    string PersonaName = "",
+    string PersonaDescription = "",
+    string PersonaIcon = "",
+    string PersonaColor = ""
+);

@@ -16,7 +16,8 @@ namespace makeup.Models.Repositories
         {
             return await _context.Products
                 .Include(p => p.Category)
-                .Include(p=>p.Variants)
+                .Include(p => p.Variants).ThenInclude(v => v.Images) // ✅
+                .Include(p => p.Images)                              // ✅
                 .ToListAsync();
         }
 
@@ -24,7 +25,9 @@ namespace makeup.Models.Repositories
         {
             return await _context.Products
                 .Include(p => p.Category)
-                .Include(p=>p.Variants)
+                .Include(p => p.Variants)
+                .ThenInclude(v => v.Images)  
+                .Include(p => p.Images)       
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 

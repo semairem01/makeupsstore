@@ -212,7 +212,7 @@ public class ProductsController : ControllerBase
     [HttpPost("{productId:int}/variants")]
     public async Task<IActionResult> AdminCreateVariant(
         int productId,
-        [FromBody] ProductVariantDto dto,
+        [FromBody] ProductVariantUpsertDto dto,
         [FromServices] AppDbContext db)
     {
         var p = await db.Products.FindAsync(productId);
@@ -259,7 +259,7 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> AdminUpdateVariant(
         int productId,
         int id,
-        [FromBody] ProductVariantDto dto,
+        [FromBody] ProductVariantUpsertDto dto,
         [FromServices] AppDbContext db)
     {
         var v = await db.ProductVariants
@@ -326,8 +326,13 @@ public class ProductsController : ControllerBase
         v.DiscountPercent,
         v.StockQuantity,
         v.IsActive,
-        v.IsDefault
-    );
+        v.IsDefault,
+        v.Images?
+            .OrderBy(i => i.SortOrder)
+            .Select(i => new ImageDto(i.Id, i.Url, i.Alt, i.IsPrimary, i.SortOrder))
+            .ToList() ?? new List<ImageDto>()
+
+        );
     
     private static ProductVariantUpsertDto ToVariantUpsertDto(ProductVariant v) => new(
         v.Id,              // int? Id

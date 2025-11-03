@@ -20,6 +20,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
     public DbSet<ProductReview> ProductReviews { get; set; } = null!;
     public DbSet<NotifyRequest> NotifyRequests => Set<NotifyRequest>();
     public DbSet<Address> Addresses { get; set; } = null!;
+    public DbSet<ProductImage> ProductImages { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -143,6 +144,21 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
             e.HasIndex(f => new { f.UserId, f.ProductId }).IsUnique();
             e.HasOne(f => f.AppUser).WithMany().HasForeignKey(f => f.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(f => f.Product).WithMany().HasForeignKey(f => f.ProductId).OnDelete(DeleteBehavior.Cascade);
+        });
+        
+        modelBuilder.Entity<ProductImage>(b =>
+        {
+            b.HasOne(pi => pi.Product)
+                .WithMany(p => p.Images)
+                .HasForeignKey(pi => pi.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasOne(pi => pi.Variant)
+                .WithMany(v => v.Images)
+                .HasForeignKey(pi => pi.VariantId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            b.Property(p => p.Url).IsRequired();
         });
         
         modelBuilder.Entity<CartItem>(entity =>

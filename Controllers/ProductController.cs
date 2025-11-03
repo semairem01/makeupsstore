@@ -175,6 +175,11 @@ public class ProductController : ControllerBase
         v.DiscountPercent,
         v.StockQuantity,
         v.IsActive,
-        v.IsDefault
+        v.IsDefault,
+        v.Images?
+            .OrderBy(i => i.SortOrder)
+            .Select(i => new ImageDto(i.Id, i.Url, i.Alt, i.IsPrimary, i.SortOrder))
+            .ToList() ?? new List<ImageDto>()
+        
     );
 }

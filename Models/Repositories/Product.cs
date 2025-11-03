@@ -80,5 +80,6 @@ public class Product
     // Anahtar kelime/tags (örn: “glitter,shimmer,matte,longwear”)
     public string? Tags { get; set; }
     public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
+    public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
     
 }

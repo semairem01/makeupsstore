@@ -58,10 +58,14 @@ namespace makeup.Models.Services
                 .ToArray();
         }
 
+        private static ImageDto ToImg(ProductImage i) => new(i.Id, i.Url, i.Alt, i.IsPrimary, i.SortOrder);
         private static ProductVariantDto ToVariantDto(ProductVariant v) => new(
             v.Id, v.ProductId, v.Sku, v.Barcode, v.Name, v.ShadeCode, v.ShadeFamily,
             v.HexColor, v.SwatchImageUrl, v.ImageUrl, v.Price, v.DiscountPercent,
-            v.StockQuantity, v.IsActive, v.IsDefault);
+            v.StockQuantity, v.IsActive, v.IsDefault, v.Images?
+                .OrderBy(i => i.SortOrder)
+                .Select(ToImg)
+                .ToList() ?? new List<ImageDto>());
 
         private static ProductDto ToDto(Product p, double? ratingAvg = null, int ratingCount = 0,
             decimal? overridePrice = null,
@@ -95,7 +99,8 @@ namespace makeup.Models.Services
                 ratingCount,
                 p.StockQuantity,
                 p.Variants?.OrderByDescending(v => v.IsDefault).ThenBy(v => v.Name)
-                    .Select(ToVariantDto).ToList()
+                    .Select(ToVariantDto).ToList(),
+                p.Images?.OrderBy(i => i.SortOrder).Select(ToImg).ToList() 
             );
 
         private async Task<Dictionary<int, (double Avg, int Count)>> GetRatingsMapAsync(IEnumerable<int> productIds)
@@ -117,6 +122,33 @@ namespace makeup.Models.Services
                 .ToListAsync();
 
             return ratingAgg.ToDictionary(x => x.ProductId, x => (x.Avg, x.Count));
+        }
+
+        // --- Kategori ağacı yardımcı metodu (Seçenek 1) ---
+        private async Task<HashSet<int>> GetCategoryTreeIdsAsync(int rootId)
+        {
+            var allCats = await _db.Categories
+                .AsNoTracking()
+                .Select(c => new { c.Id, c.ParentCategoryId })
+                .ToListAsync();
+
+            var wanted = new HashSet<int> { rootId };
+            var lookup = allCats
+                .GroupBy(c => c.ParentCategoryId ?? 0)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToList());
+
+            var q = new Queue<int>();
+            q.Enqueue(rootId);
+
+            while (q.Count > 0)
+            {
+                var cur = q.Dequeue();
+                if (lookup.TryGetValue(cur, out var children))
+                    foreach (var cid in children)
+                        if (wanted.Add(cid))
+                            q.Enqueue(cid);
+            }
+            return wanted;
         }
 
         // ---------- CRUD & basit sorgular ----------
@@ -164,22 +196,7 @@ namespace makeup.Models.Services
 
         public async Task<IEnumerable<ProductDto>> GetByCategoryTreeAsync(int categoryId)
         {
-            var allCats = await _categoryRepository.GetAllAsync();
-            var wanted = new HashSet<int> { categoryId };
-            var q = new Queue<int>();
-            q.Enqueue(categoryId);
-
-            var lookup = allCats.GroupBy(c => c.ParentCategoryId ?? 0)
-                .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToList());
-
-            while (q.Count > 0)
-            {
-                var cur = q.Dequeue();
-                if (lookup.TryGetValue(cur, out var children))
-                    foreach (var cid in children)
-                        if (wanted.Add(cid))
-                            q.Enqueue(cid);
-            }
+            var wanted = await GetCategoryTreeIdsAsync(categoryId);
 
             var all = await _productRepository.GetAllAsync();
             var filtered = all.Where(p => wanted.Contains(p.CategoryId) && p.IsActive).ToList();
@@ -417,8 +434,12 @@ namespace makeup.Models.Services
             if (q.InStock == true)
                 baseQuery = baseQuery.Where(x => x.Product.StockQuantity > 0);
 
+            // 🔧 Ağaç bazlı kategori filtresi
             if (q.CategoryId is int cid)
-                baseQuery = baseQuery.Where(x => x.Product.CategoryId == cid);
+            {
+                var tree = await GetCategoryTreeIdsAsync(cid);
+                baseQuery = baseQuery.Where(x => tree.Contains(x.Product.CategoryId));
+            }
 
             if (!string.IsNullOrWhiteSpace(q.Q))
             {
@@ -547,8 +568,12 @@ namespace makeup.Models.Services
             if (q.InStock == true)
                 baseQ = baseQ.Where(p => p.StockQuantity > 0);
 
+            // 🔧 Ağaç bazlı kategori filtresi
             if (q.CategoryId is int cid)
-                baseQ = baseQ.Where(p => p.CategoryId == cid);
+            {
+                var tree = await GetCategoryTreeIdsAsync(cid);
+                baseQ = baseQ.Where(p => tree.Contains(p.CategoryId));
+            }
 
             if (!string.IsNullOrWhiteSpace(q.Q))
             {
@@ -597,21 +622,20 @@ namespace makeup.Models.Services
                     .Select(s => int.TryParse(s, out var n) ? n : -1)
                     .Where(n => n >= 1 && n <= 5)
                     .ToList();
-                
+
                 if (ratingsSel.Any())
                 {
-                    // Avg & Count haritasını çek (ProductService’te zaten var)
                     var ratingMap = await GetRatingsMapAsync(products.Select(p => p.Id));
-                    
+
                     products = products
                         .Where(p =>
                             ratingMap.TryGetValue(p.Id, out var r) &&
                             ratingsSel.Any(star => r.Avg >= star - 0.5 && r.Avg < star + 0.5)
-                            )
+                        )
                         .ToList();
                 }
             }
-            
+
             // Varyantları ayrı satıra yay
             var items = new List<ProductListItemDto>();
 

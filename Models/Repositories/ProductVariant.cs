@@ -28,4 +28,6 @@ public class ProductVariant
 
     // İşlevsel
     public bool IsDefault { get; set; } = false;      // sayfa ilk açılışta gösterilecek varyant
+    
+    public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
 }

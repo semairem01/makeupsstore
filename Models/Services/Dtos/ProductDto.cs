@@ -1,5 +1,7 @@
 ﻿namespace makeup.Models.Services.Dtos;
 
+public record ImageDto(int Id, string Url, string? Alt, bool IsPrimary, int SortOrder);
+
 public record ProductVariantDto(
     int Id,
     int ProductId,
@@ -15,7 +17,8 @@ public record ProductVariantDto(
     decimal? DiscountPercent,
     int StockQuantity,
     bool IsActive,
-    bool IsDefault
+    bool IsDefault,
+    List<ImageDto> Images
 );
 
 
@@ -152,7 +155,8 @@ public record ProductDto(
     double? RatingAverage,   // 0..5
     int RatingCount,
     int StockQuantity,
-    List<ProductVariantDto>? Variants
+    List<ProductVariantDto>? Variants,
+    List<ImageDto>? Images
     
 )
 
