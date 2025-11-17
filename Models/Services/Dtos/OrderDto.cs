@@ -9,7 +9,8 @@ public record OrderItemDto(
     int Quantity,
     decimal TotalPrice,
     string? VariantName = null,     
-    string? VariantImage = null
+    string? VariantImage = null,
+    int? OrderItemId = null
 );
 
 public record OrderDto(
@@ -18,9 +19,23 @@ public record OrderDto(
     DateTime OrderDate,
     string Status,
     List<OrderItemDto> Items,
-    decimal ShippingFee,           
-    string? ShippingMethod,
-    string? TrackingNumber
+    decimal ShippingFee,
+    string ShippingMethod,
+    string? TrackingNumber,
+    DateTime? ReturnRequestDate,
+    string? ReturnReason,
+    string? ReturnNotes,
+    string? ReturnItemsJson,
+    DateTime? ReturnApprovedDate,
+    string? ReturnAdminNotes,
+    // Add these new fields:
+    string? ReturnStatus,
+    string? ReturnCode,
+    string? ReturnAddress,
+    string? ReturnShippingInfo,
+    string? DiscountCode = null,       // ✅ YENİ
+    decimal DiscountAmount = 0,        // ✅ YENİ
+    int DiscountPercentage = 0
 );
 
 // Sipariş oluşturmak için
@@ -44,6 +59,7 @@ public record CheckoutRequestDto(
     decimal ShippingFee,
     int? AddressId = null,// 0 if free shipping
     string? ShipFullName = null,
+    string? DiscountCode = null,
     string? ShipPhone = null,
     string? ShipCity = null,
     string? ShipDistrict = null,

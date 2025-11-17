@@ -113,6 +113,97 @@ public class ProductController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("suggestions-for-free-shipping")]
+[AllowAnonymous]
+public async Task<ActionResult<IEnumerable<ProductDto>>> GetSuggestionsForFreeShipping(
+    [FromServices] AppDbContext db,
+    [FromQuery] decimal maxPrice,
+    [FromQuery] int limit = 4)
+{
+    if (limit <= 0) limit = 4;
+
+    // ---- Ortak base sorgu: aktif + stokta
+    var baseQuery = db.Products
+        .AsNoTracking()
+        .Include(p => p.Category)
+        .Include(p => p.Variants).ThenInclude(v => v.Images)
+        .Include(p => p.Images)
+        .Where(p => p.IsActive && p.StockQuantity > 0 && p.Price > 0);
+
+    // 1) Önce maxPrice altındakiler
+    var inBudget = await baseQuery
+        .Where(p => maxPrice > 0 ? p.Price <= maxPrice : true)
+        .OrderBy(p => p.Price)
+        .ThenByDescending(p => p.DiscountPercent ?? 0)
+        .Take(limit)
+        .ToListAsync();
+
+    // 2) Yeterli değilse, bütçe üstünden en ucuzlarla doldur (duplikasyon yok)
+    if (inBudget.Count < limit)
+    {
+        var missing = limit - inBudget.Count;
+        var takenIds = inBudget.Select(p => p.Id).ToHashSet();
+
+        var topUp = await baseQuery
+            .Where(p => !takenIds.Contains(p.Id))
+            .OrderBy(p => p.Price)                       // en ucuzlardan
+            .ThenByDescending(p => p.DiscountPercent ?? 0)
+            .Take(missing)
+            .ToListAsync();
+
+        inBudget.AddRange(topUp);
+    }
+
+    // ---- Rating toplama
+    var productIds = inBudget.Select(p => p.Id).ToList();
+    var ratingsAgg = await db.ProductReviews
+        .Where(r => productIds.Contains(r.ProductId) &&
+                    r.Status == ProductReview.ReviewStatus.Approved)
+        .GroupBy(r => r.ProductId)
+        .Select(g => new { ProductId = g.Key, Avg = g.Average(x => (double)x.Rating), Count = g.Count() })
+        .ToListAsync();
+    var ratingsMap = ratingsAgg.ToDictionary(x => x.ProductId, x => (x.Avg, x.Count));
+
+    // ---- DTO map
+    var result = inBudget.Select(p =>
+    {
+        ratingsMap.TryGetValue(p.Id, out var rating);
+        var defaultVariant = p.Variants?
+            .Where(v => v.IsDefault && v.IsActive && v.StockQuantity > 0)
+            .OrderByDescending(v => v.StockQuantity)
+            .FirstOrDefault();
+
+        return new ProductDto(
+            p.Id, p.Name, p.Brand, p.Description,
+            defaultVariant?.Price ?? p.Price,
+            p.IsActive,
+            defaultVariant?.ImageUrl ?? p.ImageUrl,
+            p.Color, p.Size, p.CategoryId, p.Category?.Name ?? "",
+            defaultVariant?.DiscountPercent ?? p.DiscountPercent,
+            (int)p.SuitableForSkin,
+            p.Finish?.ToString(), p.Coverage?.ToString(),
+            p.Longwear, p.Waterproof, p.PhotoFriendly, p.HasSpf,
+            p.FragranceFree, p.NonComedogenic, p.ShadeFamily, p.Tags,
+            rating.Avg, rating.Count, p.StockQuantity,
+            p.Variants?.OrderByDescending(v => v.IsDefault).ThenBy(v => v.Name)
+                .Select(v => new ProductVariantDto(
+                    v.Id, v.ProductId, v.Sku, v.Barcode, v.Name,
+                    v.ShadeCode, v.ShadeFamily, v.HexColor,
+                    v.SwatchImageUrl, v.ImageUrl, v.Price,
+                    v.DiscountPercent, v.StockQuantity, v.IsActive, v.IsDefault,
+                    v.Images?.OrderBy(i => i.SortOrder)
+                        .Select(i => new ImageDto(i.Id, i.Url, i.Alt, i.IsPrimary, i.SortOrder))
+                        .ToList() ?? new List<ImageDto>()
+                )).ToList(),
+            p.Images?.OrderBy(i => i.SortOrder)
+                .Select(i => new ImageDto(i.Id, i.Url, i.Alt, i.IsPrimary, i.SortOrder))
+                .ToList()
+        );
+    }).ToList();
+
+    return Ok(result);
+}
+    
     // ---- VARYANTLAR ----
 
     [HttpGet("{id:int}/variants")]
@@ -159,6 +250,7 @@ public class ProductController : ControllerBase
         return Ok(items);
     }
 
+    
     // ---- Local helper: Entity -> DTO map ----
     private static ProductVariantDto ToVariantDto(ProductVariant v) => new(
         v.Id,

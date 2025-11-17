@@ -237,7 +237,7 @@ public class ProductsController : ControllerBase
             Price = dto.Price,
             DiscountPercent = dto.DiscountPercent,
             StockQuantity = dto.StockQuantity,
-            IsActive = dto.StockQuantity > 0,
+            IsActive = dto.IsActive,
             IsDefault = dto.IsDefault
         };
 
@@ -282,7 +282,7 @@ public class ProductsController : ControllerBase
         v.Price = dto.Price;
         v.DiscountPercent = dto.DiscountPercent;
         v.StockQuantity = dto.StockQuantity;
-        v.IsActive = dto.StockQuantity > 0;
+        v.IsActive = dto.IsActive;
 
         if (dto.IsDefault && !v.IsDefault)
         {

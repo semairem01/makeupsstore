@@ -20,6 +20,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
     public DbSet<ProductReview> ProductReviews { get; set; } = null!;
     public DbSet<NotifyRequest> NotifyRequests => Set<NotifyRequest>();
     public DbSet<Address> Addresses { get; set; } = null!;
+    public DbSet<DiscountCode> DiscountCodes { get; set; } = null!;
     public DbSet<ProductImage> ProductImages { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -109,6 +110,24 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 entity.Property(o => o.ShipLine).HasMaxLength(240).HasDefaultValue("");
                 entity.Property(o => o.ShipPostalCode).HasMaxLength(10).HasDefaultValue("");
                     
+                entity.Property(o => o.ReturnStatus).HasConversion<string>().HasDefaultValue(ReturnStatus.None);
+                entity.Property(o => o.ReturnCode).HasMaxLength(50);
+                entity.Property(o => o.ReturnReason).HasMaxLength(500);
+                entity.Property(o => o.ReturnNotes).HasMaxLength(1000);
+                entity.Property(o => o.ReturnItemsJson).HasMaxLength(2000);
+                entity.Property(o => o.ReturnAdminNotes).HasMaxLength(1000);
+                entity.Property(o => o.ReturnAddress).HasMaxLength(500);
+                entity.Property(o => o.ReturnShippingInfo).HasMaxLength(1000);
+                entity.Property(o => o.ReturnTrackingNumber).HasMaxLength(100);
+                entity.Property(o => o.RefundAmount).HasColumnType("decimal(18,2)");
+                entity.Property(o => o.RefundMethod).HasMaxLength(50);
+                entity.Property(o => o.RefundTransactionId).HasMaxLength(100);
+                entity.Property(o => o.DiscountCode).HasMaxLength(100);
+                entity.Property(o => o.DiscountAmount).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+                entity.Property(o => o.DiscountPercentage).HasDefaultValue(0);
+
+                entity.HasIndex(o => o.ReturnCode).IsUnique().HasFilter("[ReturnCode] IS NOT NULL");
+                
                 entity.HasOne(o => o.AppUser)
                     .WithMany()
                     .HasForeignKey(o => o.UserId)
@@ -213,6 +232,24 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<ReturnRequest>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Reason).HasMaxLength(500).IsRequired();
+            entity.Property(r => r.Description).HasMaxLength(1000);
+            entity.Property(r => r.Status).HasConversion<string>().HasDefaultValue(ReturnStatus.Requested);
+            entity.Property(r => r.AdminNote).HasMaxLength(1000);
+    
+            entity.HasOne(r => r.Order)
+                .WithMany()
+                .HasForeignKey(r => r.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+    
+            entity.HasOne(r => r.AppUser)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<Address>(e =>
         {

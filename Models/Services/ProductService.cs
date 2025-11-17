@@ -199,7 +199,7 @@ namespace makeup.Models.Services
             var wanted = await GetCategoryTreeIdsAsync(categoryId);
 
             var all = await _productRepository.GetAllAsync();
-            var filtered = all.Where(p => wanted.Contains(p.CategoryId) && p.IsActive).ToList();
+            var filtered = all.Where(p => wanted.Contains(p.CategoryId)).ToList();
 
             var ids = filtered.Select(p => p.Id).ToList();
             var ratings = await GetRatingsMapAsync(ids);
@@ -560,10 +560,10 @@ namespace makeup.Models.Services
         {
             q ??= new ProductBrowseQuery();
 
-            var baseQ = _db.Products
+            IQueryable<Product> baseQ = _db.Products
                 .AsNoTracking()
-                .Include(p => p.Variants)
-                .Where(p => p.IsActive);
+                .Include(p => p.Variants);
+                
 
             if (q.InStock == true)
                 baseQ = baseQ.Where(p => p.StockQuantity > 0);

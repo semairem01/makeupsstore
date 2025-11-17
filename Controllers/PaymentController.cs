@@ -27,7 +27,8 @@ public class PaymentController : ControllerBase
         string Cvv,
         string NameOnCard,
         decimal ShippingFee,
-        int Installments = 1  // ✅ Taksit sayısı (varsayılan 1 = peşin)
+        int Installments = 1,  // ✅ Taksit sayısı (varsayılan 1 = peşin)
+        string? DiscountCode = null  // ✅ İndirim kodu
     );
 
     public record PaymentResponseDto(
@@ -61,32 +62,71 @@ public class PaymentController : ControllerBase
         { 6, 0.10m },   // 6 taksit - %10
     };
 
-    [HttpGet("installment-options")]
-    public async Task<ActionResult<List<InstallmentOption>>> GetInstallmentOptions()
+    // ✅ Sepet toplamını hesapla (discount dahil)
+    private async Task<(decimal subtotal, decimal discountAmount)> CalculateCartTotalAsync(string? discountCode = null)
     {
         var items = await _context.CartItems
             .Include(ci => ci.Product)
+            .Include(ci => ci.Variant)
             .Where(ci => ci.UserId == CurrentUserId)
             .ToListAsync();
 
         if (!items.Any())
-            return BadRequest("Sepet boş.");
+            return (0m, 0m);
 
-        decimal GetEffectivePrice(Product p)
+        // Subtotal hesapla
+        var subtotal = items.Sum(i =>
         {
-            var discountRate = p?.DiscountPercent ?? 0m;
-            return (discountRate > 0m) 
-                ? p.Price * (1 - discountRate / 100m) 
-                : p.Price;
+            var unitPrice = i.Variant != null
+                ? (i.Variant.DiscountPercent.HasValue
+                    ? i.Variant.Price * (1 - i.Variant.DiscountPercent.Value / 100m)
+                    : i.Variant.Price)
+                : (i.Product.DiscountPercent.HasValue
+                    ? i.Product.Price * (1 - i.Product.DiscountPercent.Value / 100m)
+                    : i.Product.Price);
+            return unitPrice * i.Quantity;
+        });
+
+        // Discount kontrolü
+        decimal discountAmount = 0m;
+        if (!string.IsNullOrWhiteSpace(discountCode))
+        {
+            var discount = await _context.DiscountCodes
+                .FirstOrDefaultAsync(d => d.Code == discountCode && !d.IsUsed);
+
+            if (discount != null)
+            {
+                // User kontrolü
+                if (!discount.UserId.HasValue || discount.UserId == CurrentUserId)
+                {
+                    // Minimum tutar kontrolü
+                    if (subtotal >= discount.MinimumOrderAmount)
+                    {
+                        discountAmount = (subtotal * discount.DiscountPercentage) / 100m;
+                    }
+                }
+            }
         }
 
-        var subtotal = items.Sum(i => GetEffectivePrice(i.Product) * i.Quantity);
+        return (subtotal, discountAmount);
+    }
+
+    [HttpGet("installment-options")]
+    public async Task<ActionResult<List<InstallmentOption>>> GetInstallmentOptions([FromQuery] string? discountCode = null)
+    {
+        var (subtotal, discountAmount) = await CalculateCartTotalAsync(discountCode);
+
+        if (subtotal == 0)
+            return BadRequest("Sepet boş.");
+
+        // ✅ Discount düşülmüş subtotal
+        var effectiveSubtotal = subtotal - discountAmount;
 
         var options = new List<InstallmentOption>();
 
         foreach (var (installments, rate) in InstallmentRates)
         {
-            var totalWithRate = subtotal * (1 + rate);
+            var totalWithRate = effectiveSubtotal * (1 + rate);
             var installmentAmount = totalWithRate / installments;
 
             options.Add(new InstallmentOption(
@@ -103,26 +143,16 @@ public class PaymentController : ControllerBase
     [HttpPost("simulate")]
     public async Task<ActionResult> Simulate([FromBody] PaymentRequestDto dto)
     {
-        // 1) Sepet kontrolü
-        var items = await _context.CartItems
-            .Include(ci => ci.Product)
-            .Where(ci => ci.UserId == CurrentUserId)
-            .ToListAsync();
+        // 1) Sepet kontrolü ve discount hesaplama
+        var (subtotal, discountAmount) = await CalculateCartTotalAsync(dto.DiscountCode);
 
-        if (!items.Any())
+        if (subtotal == 0)
             return BadRequest(new PaymentResponseDto(false, "Sepet boş.", ""));
 
-        decimal GetEffectivePrice(Product p)
-        {
-            var discountRate = p?.DiscountPercent ?? 0m;
-            return (discountRate > 0m) 
-                ? p.Price * (1 - discountRate / 100m) 
-                : p.Price;
-        }
-
-        var subtotal = items.Sum(i => GetEffectivePrice(i.Product) * i.Quantity);
+        // ✅ Discount düşülmüş toplam
+        var effectiveSubtotal = subtotal - discountAmount;
         var shipping = Math.Max(0m, dto.ShippingFee);
-        var cartTotal = subtotal + shipping;
+        var cartTotal = effectiveSubtotal + shipping;
 
         // ✅ Taksit hesaplama
         var installments = Math.Max(1, dto.Installments);

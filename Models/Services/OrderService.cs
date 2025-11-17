@@ -114,7 +114,15 @@ public class OrderService : IOrderService
         return ServiceResult<bool>.Ok(true, "Order deleted successfully!");
     }
 
-    public async Task<ServiceResult<OrderDto>> CheckoutAsync(Guid userId, decimal shippingFee, string shippingMethod,ShippingSnapshotDto? shippingSnapshot = null)
+    // ✅ SADECE İMZA GÜNCELLENDİ - 3 yeni parametre eklendi
+    public async Task<ServiceResult<OrderDto>> CheckoutAsync(
+        Guid userId, 
+        decimal shippingFee, 
+        string shippingMethod,
+        ShippingSnapshotDto? shippingSnapshot = null,
+        string? discountCode = null,
+        decimal discountAmount = 0m,
+        int discountPercentage = 0)
     {
         if (userId == Guid.Empty)
             return ServiceResult<OrderDto>.Fail("Kullanıcı bulunamadı");
@@ -200,7 +208,11 @@ public class OrderService : IOrderService
                 Status = OrderStatus.SiparisAlindi,
                 OrderItems = orderItems,
                 ShippingFee = shippingFee,
-                ShippingMethod = normalizedMethod
+                ShippingMethod = normalizedMethod,
+                // ✅ YENİ - Discount bilgileri
+                DiscountCode = discountCode,
+                DiscountAmount = discountAmount,
+                DiscountPercentage = discountPercentage
             };
 
             if (shippingSnapshot != null)
@@ -241,8 +253,8 @@ public class OrderService : IOrderService
         }
     }
 
-    // ✅ Minimal değişiklik: Varyant varsa onun adı/görseli de DTO'ya ekleniyor.
-    private OrderDto MapToDto(Order order)
+    // ✅ MapToDto'ya 3 yeni alan eklendi
+    public OrderDto MapToDto(Order order)
     {
         return new OrderDto(
             order.Id,
@@ -267,12 +279,26 @@ public class OrderService : IOrderService
                     oi.Quantity,
                     oi.UnitPrice * oi.Quantity, 
                     variantName,         
-                    variantImage         
+                    variantImage,
+                    oi.Id
                 );
             }).ToList(),
             order.ShippingFee,
             order.ShippingMethod,
-            order.TrackingNumber
+            order.TrackingNumber,
+            order.ReturnRequestDate,
+            order.ReturnReason,
+            order.ReturnNotes,
+            order.ReturnItemsJson,
+            order.ReturnApprovedDate,
+            order.ReturnAdminNotes,
+            order.ReturnStatus.ToString(),
+            order.ReturnCode,
+            order.ReturnAddress,
+            order.ReturnShippingInfo,
+            order.DiscountCode,      // ✅ YENİ
+            order.DiscountAmount,    // ✅ YENİ
+            order.DiscountPercentage // ✅ YENİ
         );
     }
 
