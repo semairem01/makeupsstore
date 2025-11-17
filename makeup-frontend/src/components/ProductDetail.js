@@ -132,6 +132,18 @@ export default function ProductDetail({ onAdded }) {
         }
     };
 
+    const requestNotify = async () => {
+        if (!token) return alert("Lütfen giriş yapın.");
+        try {
+            await axios.post(API_ENDPOINTS.NOTIFY_PRODUCT(Number(id)), {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert("Stok gelince haber vereceğiz!");
+        } catch (e) {
+            alert(e?.response?.data || "Kayıt alınamadı.");
+        }
+    };
+    
     const hasDiscountBase = Number(product?.discountPercent) > 0;
     const priceBase = Number(product?.price || 0);
     const discountBase = Number(product?.discountPercent || 0);
@@ -304,19 +316,25 @@ export default function ProductDetail({ onAdded }) {
                     </div>
 
                     {lowStock && <div className="pd-stock">Son {stock} ürün!</div>}
-                    {outOfStock && <div className="pd-stock pd-stock--out">Stokta yok</div>}
-
-                    <div className="pd-qtyrow">
-                        <QtyStepper value={qty} onChange={setQty} />
-                        <button
-                            className="pd-addcart"
-                            onClick={addToCart}
-                            disabled={outOfStock}
-                            title={outOfStock ? "Stokta yok" : "Sepete ekle"}
-                        >
-                            Sepete Ekle
-                        </button>
-                    </div>
+                    {outOfStock ? (
+                        <div className="pd-qtyrow">
+                            <button className="pd-notify" onClick={requestNotify} title="Stok gelince haber ver">
+                                Notify me
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="pd-qtyrow">
+                            <QtyStepper value={qty} onChange={setQty} />
+                            <button
+                                className="pd-addcart"
+                                onClick={addToCart}
+                                disabled={outOfStock}
+                                title={outOfStock ? "Stokta yok" : "Sepete ekle"}
+                            >
+                                Sepete Ekle
+                            </button>
+                        </div>
+                    )}
 
                     <div className="pd-desc">
                         <h3>Ürün Açıklaması</h3>

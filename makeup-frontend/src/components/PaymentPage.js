@@ -22,7 +22,7 @@ export default function PaymentPage() {
     const token = localStorage.getItem("token");
     const nav = useNavigate();
     const { state } = useLocation() || {};
-    const { selectedAddressId, addr, shipping, shippingFee, subtotal, grandTotal } = state || {};
+    const { selectedAddressId, addr, shipping, shippingFee, subtotal, grandTotal, discount } = state || {};
 
     const [flipped, setFlipped] = useState(false);
     const [card, setCard] = useState({
@@ -45,12 +45,15 @@ export default function PaymentPage() {
         }
     }, [state, nav]);
 
-    // ✅ Taksit seçeneklerini yükle
+    // ✅ Taksit seçeneklerini yükle - discount code ile
     useEffect(() => {
         if (!token || !state) return;
 
+        const params = discount?.code ? { discountCode: discount.code } : {};
+
         axios.get(`${API_ENDPOINTS.PAYMENT}/installment-options`, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
+            params
         })
             .then(r => {
                 setInstallmentOptions(r.data || []);
@@ -58,7 +61,7 @@ export default function PaymentPage() {
             .catch(err => {
                 console.error("Taksit seçenekleri yüklenemedi:", err);
             });
-    }, [token, state]);
+    }, [token, state, discount]);
 
     const tl = (n) => Number(n || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
 
@@ -93,15 +96,41 @@ export default function PaymentPage() {
                 return;
             }
 
+            // ✅ Discount bilgisini checkout'a gönder
+            const checkoutPayload = {
+                shippingFee,
+                shippingMethod: shipping,
+                addressId: selectedAddressId ?? null
+            };
+
+            // ✅ Eğer discount varsa ekle
+            if (discount) {
+                checkoutPayload.discountCode = discount.code;
+                checkoutPayload.discountAmount = discount.amount;
+                checkoutPayload.discountPercentage = discount.percentage;
+
+                console.log('💳 Sending discount to backend:', {
+                    code: discount.code,
+                    amount: discount.amount,
+                    percentage: discount.percentage
+                });
+            }
+
             const orderRes = await axios.post(
                 `${API_ENDPOINTS.ORDERS}/checkout`,
-                { shippingFee, shippingMethod: shipping, addressId: selectedAddressId ?? null },
+                checkoutPayload,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
             if (orderRes.data?.success === false) {
                 alert(orderRes.data?.message || "Sipariş oluşturulamadı.");
                 return;
+            }
+
+            // ✅ Sipariş başarılı - discount kullanıldı, localStorage'dan temizle
+            if (discount) {
+                localStorage.removeItem('lunaraDiscount');
+                console.log('🗑️ Discount used and removed from localStorage');
             }
 
             nav("/orders");
@@ -122,19 +151,29 @@ export default function PaymentPage() {
         "/" +
         (card.expYear || "YY");
 
-    // ✅ Seçili taksit bilgisi
+    // ✅ Seçili taksit bilgisi - grandTotal üzerinden hesapla
     const selectedOption = installmentOptions.find(
         opt => opt.installments === selectedInstallment
     );
-    const displayTotal = selectedOption?.totalAmount || grandTotal;
-    const monthlyPayment = selectedOption?.installmentAmount || displayTotal;
 
-    console.log("📊 Taksit Debug:", {
+    // ✅ Taksit hesaplamasını grandTotal (discount düşülmüş) üzerinden yap
+    const baseTotal = grandTotal; // Zaten discount düşülmüş
+    const installmentRate = selectedOption?.installmentRate || 0;
+    const displayTotal = baseTotal * (1 + installmentRate);
+    const monthlyPayment = selectedInstallment > 1 ? displayTotal / selectedInstallment : displayTotal;
+
+    console.log("📊 Payment Debug:", {
         optionsCount: installmentOptions.length,
         selectedInstallment,
         selectedOption,
+        subtotal,
+        discountAmount: discount?.amount || 0,
+        grandTotal,
+        baseTotal: grandTotal,
         displayTotal,
-        monthlyPayment
+        monthlyPayment,
+        hasDiscount: !!discount,
+        discount
     });
 
     return (
@@ -331,20 +370,32 @@ export default function PaymentPage() {
                                 <span>Ara Toplam</span>
                                 <span>{tl(subtotal)}</span>
                             </div>
+
+                            {/* ✅ Discount satırı */}
+                            {discount && discount.amount > 0 && (
+                                <div className="total-row" style={{ color: '#d946ef' }}>
+                                    <span>🌙 {discount.code} ({discount.percentage}%)</span>
+                                    <span>-{tl(discount.amount)}</span>
+                                </div>
+                            )}
+
                             <div className="total-row">
                                 <span>Kargo ({shipping === "standard" ? "Standart" : "Ekspres"})</span>
                                 <span className={shippingFee === 0 ? "free" : ""}>{tl(shippingFee)}</span>
                             </div>
-                            {selectedOption && selectedOption.installmentRate > 0 && (
+
+                            {selectedOption && installmentRate > 0 && (
                                 <div className="total-row">
-                                    <span>Taksit Faizi (%{(selectedOption.installmentRate * 100).toFixed(0)})</span>
+                                    <span>Taksit Faizi (%{(installmentRate * 100).toFixed(0)})</span>
                                     <span>{tl(displayTotal - grandTotal)}</span>
                                 </div>
                             )}
+
                             <div className="total-row grand-total">
                                 <strong>Genel Toplam</strong>
                                 <strong>{tl(displayTotal)}</strong>
                             </div>
+
                             {selectedInstallment > 1 && (
                                 <div className="total-row" style={{color: "#f1798a", fontSize: "1.1rem", marginTop: "8px"}}>
                                     <strong>Aylık Ödeme</strong>

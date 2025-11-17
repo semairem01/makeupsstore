@@ -6,6 +6,7 @@ import { Link, useLocation } from "react-router-dom";
 import "./Home.css";
 import HeroCarousel from "./HeroCarousel";
 import FeaturedShelf from "./FeaturedShelf";
+import LunaraDiscountPopup from "./LunaraDiscountPopup";
 
 function Star({ filled }) {
     return <span style={{ color: filled ? "#ffc107" : "#ddd", marginRight: 2 }}>★</span>;
@@ -134,29 +135,31 @@ export default function Home({ onAdded }) {
 
     return (
         <>
+            <LunaraDiscountPopup />
             {/* === FULL-BLEED HERO === */}
             <div className="hero-bleed">
                 <HeroCarousel slides={slides} intervalMs={4500} />
             </div>
 
+            
             {/* === ANA İÇERİK === */}
             <div className="home-wrap">
                 {/* PROMOS */}
                 <section className="promos">
                     <article className="promo-card pink">
                         <div>
-                            <h3>Big Sale</h3>
-                            <p>Season picks for less</p>
-                            <a href="#featured" className="link">Shop now →</a>
+                            <h3>Beauty Tips </h3>
+                            <p>Expert advice & techniques</p>
+                            <Link to="/beauty-tips" className="link">Discover →</Link>
                         </div>
                         <img
-                            src="https://images.unsplash.com/photo-1526045478516-99145907023c?q=80&w=800&auto=format&fit=crop"
-                            alt=""
+                            src="/banners/beautytips.png"
+                            alt="Beauty Tips"
                         />
                     </article>
                     <article className="promo-card peach">
                         <div>
-                            <h3>Find Your Look 💄</h3>
+                            <h3>Find Your Look </h3>
                             <p>Answer a few fun questions and get your perfect makeup routine!</p>
                             <Link to="/routine" className="link">Try Now →</Link>
                         </div>

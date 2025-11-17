@@ -69,7 +69,10 @@ export default function ProductCard({ product, onAdded }) {
 
     const stockRaw = product?.stockQuantity ?? product?.StockQuantity ?? 0;
     const isActiveRaw = product?.isActive ?? product?.IsActive ?? true;
-    const isOut = !isActiveRaw;
+    const isOut =
+        (product?.variantId != null || product?.VariantId != null || product?.finalPrice != null || product?.FinalPrice != null)
+            ? !Boolean(isActiveRaw)           // Liste (BrowseExpanded) kartları: IsActive'a bak
+            : Number(stockRaw) <= 0;
 
     const hasDiscount = Number(product?.discountPercent ?? product?.DiscountPercent) > 0;
     const basePrice = Number(product?.price ?? product?.Price ?? 0);

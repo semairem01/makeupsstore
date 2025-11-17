@@ -6,19 +6,20 @@ import ProductsAdmin from "./ProductsAdmin";
 import CategoriesAdmin from "./CategoriesAdmin";
 import ReviewsAdmin from "./ReviewsAdmin";
 import "./Admin.css";
-
+import ReturnsAdmin from "./ReturnsAdmin";
 export default function AdminApp(){
     return (
         <div className="admin-wrap">
             <aside className="admin-aside">
-                <h3>İşletme Paneli</h3>
+                <h3></h3>
                 <nav>
-                    <NavLink to="" end>Özet</NavLink>
-                    <NavLink to="orders">Siparişler</NavLink>
-                    <NavLink to="products">Ürünler</NavLink>
-                    <NavLink to="categories">Kategoriler</NavLink>
-                    <NavLink to="reviews">Yorumlar</NavLink>
-                    <NavLink to="users">Kullanıcılar</NavLink>
+                    <NavLink to="" end>Summary</NavLink>
+                    <NavLink to="orders">Orders</NavLink>
+                    <NavLink to="/admin/returns">Returns</NavLink>
+                    <NavLink to="products">Products</NavLink>
+                    <NavLink to="categories">Categories</NavLink>
+                    <NavLink to="reviews">Reviews</NavLink>
+                    <NavLink to="users">Users</NavLink>
                 </nav>
             </aside>
             <main className="admin-main">
@@ -28,6 +29,7 @@ export default function AdminApp(){
                     <Route path="products" element={<ProductsAdmin />} />
                     <Route path="categories" element={<CategoriesAdmin />} />
                     <Route path="reviews" element={<ReviewsAdmin />} />
+                    <Route path="returns" element={<ReturnsAdmin />} />
                 </Routes>
             </main>
         </div>

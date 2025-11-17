@@ -30,7 +30,9 @@ export const API_ENDPOINTS = {
     ADMIN_PRODUCT_VARIANT: (productId, variantId) =>
         `${API_BASE_URL}/api/admin/products/${productId}/variants/${variantId}`,
     PRODUCTS_BROWSE_EXPANDED: `${API_BASE_URL}/api/product/browse-expanded`,
-    
+    PRODUCT_SUGGESTIONS_FOR_SHIPPING: `${API_BASE_URL}/api/product/suggestions-for-free-shipping`,
+    PRODUCT_BY_ID: (id) => `${API_BASE_URL}/api/product/${id}`,
+    PRODUCT_BY_CATEGORY: (categoryId) => `${API_BASE_URL}/api/product/by-category/${categoryId}`,
     PRODUCT_VARIANTS: (productId) =>
         `${API_BASE_URL}/api/product/${productId}/variants`,                        
     PRODUCT_VARIANT: (productId, variantId) =>
@@ -45,7 +47,7 @@ export const API_ENDPOINTS = {
     PRODUCT_IMAGES: (productId) => `${API_BASE_URL}/api/admin/products/${productId}/images`,
     PRODUCT_IMAGES_REORDER: (productId) => `${API_BASE_URL}/api/admin/products/${productId}/images/reorder`,
     DELETE_PRODUCT_IMAGE: (imageId) => `${API_BASE_URL}/api/admin/products/images/${imageId}`,
-    
+    ADMIN_RETURNS: `${API_BASE_URL}/api/admin/orders`,
 };
 
 // App configuration

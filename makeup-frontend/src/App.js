@@ -23,6 +23,8 @@ import ContactPage from "./components/ContactPage";
 import ScrollToTop from "./components/ScrollToTop";
 import PaymentPage from "./components/PaymentPage";
 import PromoStrip from "./components/PromoStrip";
+import BeautyTips from "./components/BeautyTips";
+
 function AdminDashboard() {
     return <h1>Admin Dashboard - Sadece Admin görebilir</h1>;
 }
@@ -366,6 +368,7 @@ function App() {
                     <Route path="/routine" element={<RoutineFinder />} />
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/checkout/payment" element={<PaymentPage />} />
+                    <Route path="/beauty-tips" element={<BeautyTips />} />
                 </Routes>
             </main>
             <Footer />

@@ -56,15 +56,24 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: 20px;
     padding: 18px;
+    margin-top: 15px;
     border-radius: 16px;
+    border: 1px solid #f1798a;
     background: #fff;
     overflow: hidden;
     box-shadow: 0 8px 24px rgba(0,0,0,.06);
 }
-.promo-card h3 { margin: 0 0 4px; }
-.promo-card .link { color:#b2206d; font-weight:600; text-decoration:none; }
+.promo-card h3 
+{ 
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 500;
+    color: #f1798a;
+    
+}
+.promo-card .link { color: #d80d3c; font-weight:600; text-decoration:none; }
 .promo-card img { width:280px; height:160px; object-fit:cover; border-radius:12px; }
 .promo-card.pink { background:linear-gradient(135deg,#fff,#ffe3f1); }
 .promo-card.peach { background:linear-gradient(135deg,#fff,#ffe9e2); }
@@ -73,6 +82,10 @@
     transition: transform 0.3s ease;
 }
 
+.promo-card.pink:hover {
+    transform: scale(1.03);
+    transition: transform 0.3s ease;
+}
 /* FEATURED */
 .featured { display:flex; flex-direction:column; gap:14px; }
 .featured-head { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; }

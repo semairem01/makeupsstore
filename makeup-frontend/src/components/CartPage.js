@@ -8,17 +8,18 @@ import "./CartPage.css";
 function CartPage({ onCleared, onCountChange }) {
     const [cartItems, setCartItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [discount, setDiscount] = useState(null);
+    const [discountApplied, setDiscountApplied] = useState(false);
 
     const token = localStorage.getItem("token");
     const navigate = useNavigate();
 
-    // küçük yardımcılar
     const getId = (x) => x.id ?? x.Id;
     const getQty = (x) => x.quantity ?? x.Quantity ?? 0;
     const getUnitPrice = (x) => x.unitPrice ?? x.UnitPrice ?? 0;
     const getTotalPrice = (x) => x.totalPrice ?? x.TotalPrice ?? (getUnitPrice(x) * getQty(x));
     const fmtTRY = (n) =>
-        Number(n || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
+        Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "TRY" });
 
     const fetchCart = useCallback(() => {
         return axios
@@ -33,12 +34,52 @@ function CartPage({ onCleared, onCountChange }) {
 
     useEffect(() => {
         fetchCart();
+
+        // Check for Lunara discount in localStorage
+        const savedDiscount = localStorage.getItem('lunaraDiscount');
+        if (savedDiscount) {
+            try {
+                const discountData = JSON.parse(savedDiscount);
+                console.log('💎 Loaded discount from localStorage:', discountData);
+                setDiscount(discountData);
+                setDiscountApplied(true); // Otomatik uygula
+            } catch (e) {
+                console.error('Invalid discount data:', e);
+                localStorage.removeItem('lunaraDiscount');
+            }
+        }
     }, [fetchCart]);
 
-    const total = useMemo(
+    const subtotal = useMemo(
         () => (cartItems || []).reduce((s, x) => s + getTotalPrice(x), 0),
         [cartItems]
     );
+
+    // Calculate discount amount
+    const discountAmount = useMemo(() => {
+        if (!discount || !discountApplied) return 0;
+
+        const minAmount = discount.minimumOrderAmount ||
+            parseFloat(discount.condition?.match(/[\d,]+/)?.[0]?.replace(',', '') || '0');
+
+        if (subtotal < minAmount) {
+            console.log(`⚠️ Cart total ${subtotal} is less than minimum ${minAmount}`);
+            return 0;
+        }
+
+        const amount = (subtotal * discount.value) / 100;
+        console.log(`✅ Discount applied: ${discount.value}% = ${amount}`);
+        return amount;
+    }, [discount, discountApplied, subtotal]);
+
+    const total = subtotal - discountAmount;
+
+    const removeDiscount = () => {
+        setDiscountApplied(false);
+        setDiscount(null);
+        localStorage.removeItem('lunaraDiscount');
+        console.log('🗑️ Discount removed');
+    };
 
     const updateQty = async (id, qty) => {
         if (qty < 1) return;
@@ -67,7 +108,18 @@ function CartPage({ onCleared, onCountChange }) {
         onCleared?.();
     };
 
-    if (loading) return <p>Sepet yükleniyor...</p>;
+    const goToCheckout = () => {
+        if (discountApplied && discount) {
+            console.log('🚀 Going to checkout with discount:', {
+                code: discount.code,
+                amount: discountAmount,
+                percentage: discount.value
+            });
+        }
+        navigate("/checkout");
+    };
+
+    if (loading) return <p>Loading cart...</p>;
 
     return (
         <div className="cart-wrap">
@@ -79,12 +131,11 @@ function CartPage({ onCleared, onCountChange }) {
 
             {cartItems.length === 0 ? (
                 <div style={{ maxWidth: 880, margin: "24px auto", color: "#8a8a8a" }}>
-                    Sepetiniz boş.
+                    Your cart is empty.
                 </div>
             ) : (
                 <>
                     {cartItems.map((item) => {
-                        // ⭐ varyant görseli öncelikli
                         const imgRaw =
                             item.variantImage ?? item.VariantImage ?? item.imageUrl ?? item.ImageUrl ?? "";
                         const imgSrc = imgRaw.startsWith("http")
@@ -97,7 +148,6 @@ function CartPage({ onCleared, onCountChange }) {
                             <div key={getId(item)} className="cart-card">
                                 <div className="brand-row">
                                     <span>{item.brand ?? item.Brand}</span>
-                                    <span>view brand</span>
                                 </div>
 
                                 <img
@@ -109,7 +159,7 @@ function CartPage({ onCleared, onCountChange }) {
 
                                 <div className="info">
                                     <h4>{title}</h4>
-                                    <p>Face / Beauty</p>
+                                    <p>Beauty</p>
                                     <div className="price">
                                         {fmtTRY(getUnitPrice(item))}
                                     </div>
@@ -131,20 +181,59 @@ function CartPage({ onCleared, onCountChange }) {
                         );
                     })}
 
-                    {/* Alt sabit toplam / checkout barı */}
+                    {/* Discount Section */}
+                    {discount && (
+                        <div className="discount-section">
+                            <div className="discount-card">
+                                <div className="discount-icon">🌙</div>
+                                <div className="discount-info">
+                                    <div className="discount-name">{discount.name}</div>
+                                    <div className="discount-detail">
+                                        {discount.value}% off • {discount.condition}
+                                    </div>
+                                    {discount.code && (
+                                        <div className="discount-code">Code: {discount.code}</div>
+                                    )}
+                                </div>
+                                <button className="remove-btn" onClick={removeDiscount}>
+                                    Remove
+                                </button>
+                            </div>
+                            {discountAmount === 0 && subtotal > 0 && (
+                                <div className="discount-warning">
+                                    ⚠️ Add {fmtTRY(parseFloat(discount.condition?.match(/[\d,]+/)?.[0]?.replace(',', '') || '0') - subtotal)} more to use this discount
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Checkout Bar */}
                     <div className="checkout-bar">
                         <div className="checkout-inner">
-                            <div className="total">
-                                Amount Price<br /> {fmtTRY(total)}
+                            <div className="total-breakdown">
+                                <div className="total-row">
+                                    <span>Subtotal:</span>
+                                    <span>{fmtTRY(subtotal)}</span>
+                                </div>
+                                {discountApplied && discountAmount > 0 && (
+                                    <div className="total-row discount-row">
+                                        <span>🌙 {discount.name} ({discount.value}%):</span>
+                                        <span className="discount-value">-{fmtTRY(discountAmount)}</span>
+                                    </div>
+                                )}
+                                <div className="total-row total-final">
+                                    <span>Total:</span>
+                                    <span>{fmtTRY(total)}</span>
+                                </div>
                             </div>
                             <button
                                 className="checkout-btn"
-                                onClick={() => navigate("/checkout")}
+                                onClick={goToCheckout}
                             >
                                 Check Out
                                 <span className="badge">
-                  {(cartItems || []).reduce((s, x) => s + getQty(x), 0)}
-                </span>
+                                    {(cartItems || []).reduce((s, x) => s + getQty(x), 0)}
+                                </span>
                             </button>
                         </div>
                     </div>
