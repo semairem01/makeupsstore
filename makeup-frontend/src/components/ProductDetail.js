@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { API_ENDPOINTS } from "../config";
+import { API_ENDPOINTS, API_BASE_URL } from "../config";
 import Reviews from "./Reviews";
 import ProductQuestions from "./ProductQuestions";
 import "./ProductDetail.css";
@@ -31,6 +31,11 @@ export default function ProductDetail({ onAdded }) {
     const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
     const [activeTab, setActiveTab] = useState("reviews");
 
+    const resolveUrl = (u) => {
+        if (!u) return "https://via.placeholder.com/600x600?text=No+Image";
+        return String(u).startsWith("http") ? u : `${API_BASE_URL}${u}`;
+    };
+    
     useEffect(() => {
         if (!id) {
             setError("Product ID not found");
@@ -38,7 +43,7 @@ export default function ProductDetail({ onAdded }) {
             return;
         }
         axios
-            .get(`http://localhost:5011/api/product/${id}`)
+            .get(API_ENDPOINTS.PRODUCT_BY_ID(id))
             .then((res) => {
                 const p = res.data;
                 setProduct(p);
@@ -115,7 +120,7 @@ export default function ProductDetail({ onAdded }) {
         if (!token) return alert("Please sign in.");
         try {
             await axios.post(
-                "http://localhost:5011/api/cart/add",
+                `${API_ENDPOINTS.CART}/add`,
                 {
                     productId: product.id,
                     variantId: variant?.id ?? null,
@@ -179,7 +184,7 @@ export default function ProductDetail({ onAdded }) {
     if (gallery.length === 0 && (variant?.imageUrl || product.imageUrl))
         gallery = [variant?.imageUrl || product.imageUrl];
 
-    const activeImg = gallery[activeIdx] ? `http://localhost:5011${gallery[activeIdx]}` : "https://via.placeholder.com/600x600?text=No+Image";
+    const activeImg = resolveUrl(gallery[activeIdx]);
 
     const handleSelectVariant = (v) => {
         setVariant(v);
@@ -236,7 +241,7 @@ export default function ProductDetail({ onAdded }) {
                                     onClick={() => setActiveIdx(i)}
                                 >
                                     <img
-                                        src={`http://localhost:5011${g}`}
+                                        src={resolveUrl(g)}
                                         alt={`${product.name} ${i + 1}`}
                                         onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/96x96?text=No+Image")}
                                     />
@@ -280,7 +285,7 @@ export default function ProductDetail({ onAdded }) {
                                         />
                                         {v.swatchImageUrl && !v.hexColor && (
                                             <img
-                                                src={`http://localhost:5011${v.swatchImageUrl}`}
+                                                src={resolveUrl(v.swatchImageUrl)}
                                                 alt={v.name}
                                                 className="swatch-img"
                                             />
