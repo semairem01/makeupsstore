@@ -33,7 +33,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 entity.HasKey(p => p.Id);
                 entity.Property(p=>p.Name).HasMaxLength(100).IsRequired();
                 entity.Property(p=>p.Brand).HasMaxLength(100).IsRequired();
-                entity.Property(p => p.Description).HasColumnType("nvarchar(MAX)").IsRequired();
+                entity.Property(p => p.Description).HasColumnType("text").IsRequired();
                 entity.Property(p => p.DiscountPercent)
                     .HasColumnType("decimal(5,2)")  
                     .IsRequired(false);
@@ -80,7 +80,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
             // Her üründe en fazla 1 default varyant (SQL Server filtered unique index)
             v.HasIndex(x => new { x.ProductId, x.IsDefault })
                 .IsUnique()
-                .HasFilter("[IsDefault] = 1");
+                .HasFilter("\"IsDefault\" = true");
         });
 
         modelBuilder.Entity<ProductQuestion>(e =>
@@ -121,7 +121,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
         modelBuilder.Entity<Order>(entity =>
             {
                 entity.HasKey(o => o.Id);
-                entity.Property(o => o.OrderDate).HasDefaultValueSql("GETDATE()");
+                entity.Property(o => o.OrderDate);
                 entity.Property(o => o.Status)
                     .HasConversion<string>();
                 
@@ -152,7 +152,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
                 entity.Property(o => o.DiscountAmount).HasColumnType("decimal(18,2)").HasDefaultValue(0);
                 entity.Property(o => o.DiscountPercentage).HasDefaultValue(0);
 
-                entity.HasIndex(o => o.ReturnCode).IsUnique().HasFilter("[ReturnCode] IS NOT NULL");
+                entity.HasIndex(o => o.ReturnCode).IsUnique().HasFilter("\"ReturnCode\" IS NOT NULL");
                 
                 entity.HasOne(o => o.AppUser)
                     .WithMany()
@@ -302,7 +302,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
 
             // Her kullanıcıda en fazla 1 default adres
             e.HasIndex(a => new { a.UserId, a.IsDefault })
-                .HasFilter("[IsDefault] = 1")
+                .HasFilter("\"IsDefault\" = true")
                 .IsUnique();
         });
     }

@@ -7,7 +7,7 @@ public class Order
 {
     public int Id { get; set; }
     public Guid UserId { get; set; }
-    public DateTime OrderDate { get; set; }
+    public DateTime OrderDate { get; set; } = DateTime.UtcNow;
     public OrderStatus Status { get; set; }
     
     public decimal ShippingFee { get; set; }

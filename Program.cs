@@ -12,6 +12,19 @@ using Microsoft.AspNetCore.Mvc;
 using makeup.Infrastructure.Email;
 using makeup.Infrastructure;
 
+static string ConvertPostgresUrlToNpgsql(string databaseUrl)
+{
+    var uri = new Uri(databaseUrl);
+    var db = uri.AbsolutePath.TrimStart('/');
+    var userInfo = uri.UserInfo.Split(':', 2);
+
+    var username = userInfo[0];
+    var password = userInfo.Length > 1 ? userInfo[1] : "";
+
+    return $"Host={uri.Host};Port={uri.Port};Database={db};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+}
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
@@ -39,8 +52,31 @@ builder.Services.AddCors(options =>
 // Database Context
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
+    // Local MSSQL için appsettings.json'daki ConnectionStrings:SqlServer kullanılacak
+    var cs = builder.Configuration.GetConnectionString("SqlServer");
+
+    if (!builder.Environment.IsDevelopment())
+    {
+        // Railway'de genelde DATABASE_URL veya ConnectionStrings__SqlServer kullanılır
+        cs = cs
+             ?? builder.Configuration["DATABASE_URL"]
+             ?? builder.Configuration["ConnectionStrings:SqlServer"];
+
+        if (string.IsNullOrWhiteSpace(cs))
+            throw new Exception("Connection string bulunamadı. Railway Variables'a DATABASE_URL veya ConnectionStrings__SqlServer eklemelisin.");
+
+        // Railway'in verdiği URL "postgresql://..." ise Npgsql formatına çevir
+        if (cs.StartsWith("postgres://") || cs.StartsWith("postgresql://"))
+            cs = ConvertPostgresUrlToNpgsql(cs);
+
+        options.UseNpgsql(cs);
+    }
+    else
+    {
+        options.UseSqlServer(cs);
+    }
 });
+
 
 builder.Services.Configure<ApiBehaviorOptions>(opt =>
 {
@@ -154,7 +190,9 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<AppDbContext>();
         
         // Ensure database is created
-        await context.Database.EnsureCreatedAsync();
+       // await context.Database.EnsureCreatedAsync();
+       await context.Database.MigrateAsync();
+
         
         // Create default roles
         var adminRoleName = "Admin";
@@ -238,3 +276,5 @@ app.MapControllerRoute(
 app.MapControllers();
 
 app.Run();
+
+app.MapGet("/health", () => Results.Ok("OK"));
