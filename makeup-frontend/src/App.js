@@ -27,6 +27,9 @@ import BeautyTips from "./components/BeautyTips";
 import LunaraDiscountPopup from "./components/LunaraDiscountPopup";
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
+import NewArrivals from "./components/NewArrivals";
+
+
 function AdminDashboard() {
     return <h1>Admin Dashboard - Sadece Admin görebilir</h1>;
 }
@@ -126,6 +129,20 @@ function App() {
         };
     }, []);
 
+    useEffect(() => {
+        const input = document.getElementById('premiumSearchInput');
+        const clearBtn = document.querySelector('.search-clear-btn');
+
+        if (input && clearBtn) {
+            const handleInput = () => {
+                clearBtn.style.display = input.value ? 'flex' : 'none';
+            };
+
+            input.addEventListener('input', handleInput);
+            return () => input.removeEventListener('input', handleInput);
+        }
+    }, []);
+    
     const handleAddedToCart = (qty = 1) =>
         setCartCount((prev) => prev + (Number(qty) || 1));
 
@@ -159,43 +176,49 @@ function App() {
                     <span className="brand-text">Lunara Beauty</span>
                 </Link>
 
-                {/* Orta: Arama */}
-                <div className="nav-search pretty">
-                    <input
-                        id="navSearchInput"
-                        className="search-input"
-                        type="search"
-                        placeholder="Ürün, marka veya kategori ara…"
-                        aria-label="Search"
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                const q = e.currentTarget.value?.trim();
+                {/* Orta: Premium Arama */}
+                
+                <div className="elegant-search-wrapper">
+                    <div className="elegant-search-container">
+
+                        <input
+                            id="elegantSearchInput"
+                            className="elegant-search-input"
+                            type="search"
+                            placeholder="Search for products, brands or categories..."
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    const q = e.currentTarget.value?.trim();
+                                    if (q) {
+                                        window.location.href = `/products?q=${encodeURIComponent(q)}`;
+                                        e.currentTarget.value = "";
+                                    }
+                                }
+                                if (e.key === "Escape") {
+                                    e.currentTarget.value = "";
+                                    e.currentTarget.blur();
+                                }
+                            }}
+                        />
+
+                        <button
+                            className="elegant-search-btn"
+                            onClick={() => {
+                                const input = document.getElementById("elegantSearchInput");
+                                const q = input?.value?.trim();
                                 if (q) {
                                     window.location.href = `/products?q=${encodeURIComponent(q)}`;
-                                    e.currentTarget.value = "";
+                                    input.value = "";
                                 }
-                            }
-                            if (e.key === "Escape") {
-                                e.currentTarget.value = "";
-                            }
-                        }}
-                    />
-
-                    <button
-                        className="search-btn"
-                        onClick={() => {
-                            const input = document.getElementById("navSearchInput");
-                            const q = input?.value?.trim();
-                            if (q) {
-                                window.location.href = `/products?q=${encodeURIComponent(q)}`;
-                                input.value = "";
-                            }
-                        }}
-                        aria-label="Ara"
-                        title="Ara"
-                    >
-                        <img src="/icons/search.png" alt="" />
-                    </button>
+                            }}
+                            aria-label="Search"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2.5"/>
+                                <path d="M20 20L16.5 16.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Sağ: linkler + sepet + avatar / login-register */}
@@ -374,6 +397,7 @@ function App() {
                     <Route path="/beauty-tips" element={<BeautyTips />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/new-arrivals" element={<NewArrivals onAdded={handleAddedToCart} />} />
                 </Routes>
             </main>
             <Footer />

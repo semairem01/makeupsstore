@@ -125,85 +125,159 @@ footer,
 }
 
 /* Arama Bölümü */
-.nav-search,
-.nav-search.pretty {
-    flex: 1 1 auto;
-    max-width: clamp(280px, 45vw, 600px);
+
+.elegant-search-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 540px;
+}
+
+.elegant-search-container {
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.63);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 0 6px 0 16px;
+    height: 44px;
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    box-shadow:
+            0 2px 8px rgba(255, 105, 180, 0.08),
+            0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.nav-search.pretty .search-input,
-.search-input {
-    width: 100%;
-    height: clamp(36px, 6vw, 44px);
-    padding: 10px clamp(42px, 7vw, 48px) 10px clamp(12px, 2vw, 16px);
-    border: 1px solid #ead3df;
-    border-radius: 999px;
-    background: rgb(255, 255, 255);
-    backdrop-filter: blur(6px);
-    font-size: clamp(0.8rem, 1.8vw, 0.95rem);
-    outline: none;
-    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
-    box-shadow: 0 10px 26px rgba(178, 32, 109, 0.06), inset 0 1px 0 rgba(255, 255, 255, .9);
+.elegant-search-container:hover {
+    border-color: rgba(255, 105, 180, 0.3);
+    box-shadow:
+            0 4px 12px rgba(255, 105, 180, 0.12),
+            0 2px 4px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
 }
 
-.nav-search.pretty .search-input::placeholder {
-    color: #a07a7a;
+.elegant-search-container:focus-within {
+    border-color: #eb2a54;
+    box-shadow:
+            0 4px 16px rgba(255, 105, 180, 0.16),
+            0 2px 6px rgba(0, 0, 0, 0.08),
+            0 0 0 3px rgba(255, 105, 180, 0.08);
+    transform: translateY(-1px);
 }
 
-.nav-search.pretty .search-input:focus,
-.search-input:focus {
-    border-color: #ff69b4;
-    box-shadow: 0 12px 28px rgba(178, 32, 109, 0.10), 0 0 0 3px rgba(255, 105, 180, 0.18);
-    background: #fff;
+/* Sol İkon */
+.search-icon {
+    flex-shrink: 0;
+    color: #eb2a54;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    margin-right: 10px;
 }
 
-/* Ayraç çizgisi */
-.nav-search.pretty::after {
-    content: "";
-    position: absolute;
-    right: clamp(42px, 6vw, 48px);
-    top: 50%;
-    transform: translateY(-50%);
-    height: 55%;
-    width: 2px;
-    background: linear-gradient(#edd6e2, #e9ccdb);
-    border-radius: 1px;
-    pointer-events: none;
+.elegant-search-container:focus-within .search-icon {
+    opacity: 1;
 }
 
-/* Arama butonu */
-.nav-search.pretty .search-btn {
-    position: absolute;
-    right: clamp(4px, 0.8vw, 6px);
-    top: 50%;
-    transform: translateY(-50%);
-    height: clamp(28px, 5vw, 36px);
-    width: clamp(28px, 5vw, 36px);
+/* Input */
+.elegant-search-input {
+    flex: 1;
     border: none;
-    border-radius: 999px;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    color: #2d3748;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    padding: 0 8px;
+}
+
+.elegant-search-input::placeholder {
+    color: #f47992;
+    font-weight: 400;
+}
+
+.elegant-search-input::-webkit-search-cancel-button,
+.elegant-search-input::-webkit-search-decoration {
+    display: none;
+}
+
+/* Sağ Buton */
+.elegant-search-btn {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #f58ca2 0%, #ed3b62 100%);
+    border: none;
+    border-radius: 18px;
+    color: white;
     cursor: pointer;
-    background: linear-gradient(180deg, #ffe3f1 0%, #ffd3e9 100%);
-    box-shadow: 0 6px 16px rgba(178, 32, 109, 0.18);
-    transition: transform .1s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(255, 105, 180, 0.25);
 }
 
-.nav-search.pretty .search-btn:hover {
-    transform: translateY(-50%) scale(1.03);
+.elegant-search-btn:hover {
+    background: linear-gradient(135deg, #ff4da6 0%, #ff69b4 100%);
+    transform: scale(1.05);
+    box-shadow: 0 3px 10px rgba(255, 105, 180, 0.35);
 }
 
-.nav-search.pretty .search-btn img {
-    width: clamp(13px, 2vw, 17px);
-    height: clamp(13px, 2vw, 17px);
-    display: block;
-    filter: drop-shadow(0 1px 0 rgba(136, 34, 34, 0.5));
+.elegant-search-btn:active {
+    transform: scale(0.97);
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+    .elegant-search-wrapper {
+        max-width: 80%;
+    }
+
+    .elegant-search-container {
+        height: 42px;
+        padding: 0 6px 0 14px;
+    }
+
+    .elegant-search-input {
+        font-size: 13px;
+    }
+
+    .elegant-search-btn {
+        width: 34px;
+        height: 34px;
+    }
+
+    .search-icon {
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+    }
+}
+
+@media (max-width: 400px) {
+    .elegant-search-container {
+        height: 40px;
+        padding: 0 5px 0 12px;
+    }
+
+    .elegant-search-input {
+        font-size: 13px;
+    }
+
+    .elegant-search-input::placeholder {
+        font-size: 12px;
+    }
+
+    .elegant-search-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .search-icon {
+        width: 15px;
+        height: 15px;
+    }
 }
 
 /* Sağ Taraf - Actions */

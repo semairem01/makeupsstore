@@ -275,4 +275,75 @@ public async Task<ActionResult<IEnumerable<ProductDto>>> GetSuggestionsForFreeSh
             .ToList() ?? new List<ImageDto>()
         
     );
+    
+    [HttpGet("recently-added")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetRecentlyAdded(
+        [FromServices] AppDbContext db,
+        [FromQuery] int days = 30,
+        [FromQuery] int limit = 12)
+    {
+    var cutoffDate = DateTime.UtcNow.AddDays(-days);
+    
+    var products = await db.Products
+        .AsNoTracking()
+        .Include(p => p.Category)
+        .Include(p => p.Variants).ThenInclude(v => v.Images)
+        .Include(p => p.Images)
+        .Where(p => p.IsActive && 
+                    p.StockQuantity > 0 && 
+                    p.CreatedAt >= cutoffDate)
+        .OrderByDescending(p => p.CreatedAt)
+        .Take(limit)
+        .ToListAsync();
+
+    // Rating hesaplama...
+    var productIds = products.Select(p => p.Id).ToList();
+    var ratingsAgg = await db.ProductReviews
+        .Where(r => productIds.Contains(r.ProductId) &&
+                    r.Status == ProductReview.ReviewStatus.Approved)
+        .GroupBy(r => r.ProductId)
+        .Select(g => new { ProductId = g.Key, Avg = g.Average(x => (double)x.Rating), Count = g.Count() })
+        .ToListAsync();
+    var ratingsMap = ratingsAgg.ToDictionary(x => x.ProductId, x => (x.Avg, x.Count));
+
+    // DTO mapping (suggestions-for-free-shipping'dekine benzer)
+    var result = products.Select(p => {
+        ratingsMap.TryGetValue(p.Id, out var rating);
+        var defaultVariant = p.Variants?
+            .Where(v => v.IsDefault && v.IsActive && v.StockQuantity > 0)
+            .OrderByDescending(v => v.StockQuantity)
+            .FirstOrDefault();
+
+        return new ProductDto(
+            p.Id, p.Name, p.Brand, p.Description,
+            defaultVariant?.Price ?? p.Price,
+            p.IsActive,
+            defaultVariant?.ImageUrl ?? p.ImageUrl,
+            p.Color, p.Size, p.CategoryId, p.Category?.Name ?? "",
+            defaultVariant?.DiscountPercent ?? p.DiscountPercent,
+            p.Ingredients,
+            (int)p.SuitableForSkin,
+            p.Finish?.ToString(), p.Coverage?.ToString(),
+            p.Longwear, p.Waterproof, p.PhotoFriendly, p.HasSpf,
+            p.FragranceFree, p.NonComedogenic, p.ShadeFamily, p.Tags,
+            rating.Avg, rating.Count, p.StockQuantity,
+            p.Variants?.OrderByDescending(v => v.IsDefault).ThenBy(v => v.Name)
+                .Select(v => new ProductVariantDto(
+                    v.Id, v.ProductId, v.Sku, v.Barcode, v.Name,
+                    v.ShadeCode, v.ShadeFamily, v.HexColor,
+                    v.SwatchImageUrl, v.ImageUrl, v.Price,
+                    v.DiscountPercent, v.StockQuantity, v.IsActive, v.IsDefault,
+                    v.Images?.OrderBy(i => i.SortOrder)
+                        .Select(i => new ImageDto(i.Id, i.Url, i.Alt, i.IsPrimary, i.SortOrder))
+                        .ToList() ?? new List<ImageDto>()
+                )).ToList(),
+            p.Images?.OrderBy(i => i.SortOrder)
+                .Select(i => new ImageDto(i.Id, i.Url, i.Alt, i.IsPrimary, i.SortOrder))
+                .ToList()
+        );
+    }).ToList();
+
+    return Ok(result);
+}
 }

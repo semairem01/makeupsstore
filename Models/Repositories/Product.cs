@@ -49,6 +49,7 @@ public class Product
     public bool IsActive { get; set; }    
     public string ImageUrl { get; set; } = null!;
 
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? Color { get; set; }
     public string? Size { get; set; }
 

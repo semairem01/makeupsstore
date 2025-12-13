@@ -35,7 +35,7 @@ export default function Home({ onAdded }) {
             kicker: "LIMITED TIME",
             title: <><span className="accent">New Collection</span></>,
             subtitle: "Shimmer textures in peachy tones.",
-            cta: { label: "Explore", to: "/products?q=new" },
+            cta: { label: "Explore", to: "/new-arrivals" },
             overlay: "dark",
         },
         {

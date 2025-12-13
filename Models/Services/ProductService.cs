@@ -214,23 +214,60 @@ namespace makeup.Models.Services
 
         public async Task<IEnumerable<ProductDto>> GetDiscountedAsync()
         {
+            // Ürünleri ve varyantlarını yükle
             var all = await _productRepository.GetAllAsync();
-            var filtered = all.Where(p => p.IsActive && (p.DiscountPercent ?? 0) > 0).ToList();
-
-            var ids = filtered.Select(p => p.Id).ToList();
-            var ratings = await GetRatingsMapAsync(ids);
-
-            var discounted = filtered
-                .Select(p =>
+    
+            var discountedItems = new List<ProductDto>();
+    
+            foreach (var p in all.Where(p => p.IsActive))
+            {
+                var ratings = await GetRatingsMapAsync(new[] { p.Id });
+                ratings.TryGetValue(p.Id, out var rating);
+        
+                // Varyantları var mı kontrol et
+                var hasVariants = p.Variants != null && p.Variants.Any();
+        
+                if (hasVariants)
                 {
-                    ratings.TryGetValue(p.Id, out var rating);
-                    return ToDto(p, rating.Avg, rating.Count);
-                })
+                    // HER İNDİRİMLİ VARYANTI AYRI EKLE
+                    var discountedVariants = p.Variants
+                        .Where(v => v.IsActive && (v.DiscountPercent ?? 0) > 0)
+                        .ToList();
+            
+                    foreach (var variant in discountedVariants)
+                    {
+                        discountedItems.Add(ToDto(
+                            p, 
+                            rating.Avg, 
+                            rating.Count,
+                            variant.Price,
+                            variant.ImageUrl,
+                            variant.DiscountPercent
+                        ));
+                    }
+                }
+                else
+                {
+                    // VARYANT YOKSA VE ÜRÜN İNDİRİMLİYSE ÜRÜNÜ EKLE
+                    if ((p.DiscountPercent ?? 0) > 0)
+                    {
+                        discountedItems.Add(ToDto(
+                            p, 
+                            rating.Avg, 
+                            rating.Count,
+                            p.Price,
+                            p.ImageUrl,
+                            p.DiscountPercent
+                        ));
+                    }
+                }
+            }
+    
+            // İndirim oranına göre sırala
+            return discountedItems
                 .OrderByDescending(p => p.DiscountPercent)
                 .ThenBy(p => p.Name)
                 .ToList();
-
-            return discounted;
         }
 
         public async Task<IEnumerable<ProductDto>> SearchAsync(string? query)
