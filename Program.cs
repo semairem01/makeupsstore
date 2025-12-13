@@ -43,7 +43,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact",
         builder => builder
-            .WithOrigins("http://localhost:3000", "http://localhost:3001" ,"http://localhost:3002","http://localhost:3003")
+            .WithOrigins("http://localhost:3000", 
+                "http://localhost:3001" ,
+                "http://localhost:3002",
+                "http://localhost:3003",
+                "https://693d683825d75b8d44f0cea0--lively-daffodil-5657e0.netlify.app",
+                "https://lively-daffodil-5657e0.netlify.app")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());
