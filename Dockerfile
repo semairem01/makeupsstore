@@ -1,22 +1,14 @@
-﻿# Build Stage
+﻿# Build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# kopyala + restore
-COPY ["makeup/makeup.csproj", "makeup/"]
-# eğer başka projeler varsa onları da COPY et
-# COPY ["SomeProject/SomeProject.csproj", "SomeProject/"]
+COPY ["makeup.csproj", "./"]
+RUN dotnet restore "./makeup.csproj"
 
-RUN dotnet restore "makeup/makeup.csproj"
-
-# tüm kaynak
 COPY . .
+RUN dotnet publish "./makeup.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# publish
-WORKDIR /src/makeup
-RUN dotnet publish "makeup.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
-# Runtime Stage
+# Run
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 EXPOSE 8080
