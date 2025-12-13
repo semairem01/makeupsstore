@@ -56,3 +56,5 @@ export const APP_CONFIG = {
     NAME: "MakeUp Store",
     VERSION: "1.0.0",
 };
+export const API_BASE_URL = API_BASE_URL_CONST;
+
