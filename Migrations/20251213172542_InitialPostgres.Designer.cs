@@ -12,7 +12,7 @@ using makeup.Models.Repositories;
 namespace makeup.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251213122409_InitialPostgres")]
+    [Migration("20251213172542_InitialPostgres")]
     partial class InitialPostgres
     {
         /// <inheritdoc />
