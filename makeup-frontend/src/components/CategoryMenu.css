@@ -1,0 +1,68 @@
+﻿.category-navbar {
+    padding: 0.5rem 2rem;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 1000;
+}
+
+/* Ana kategori */
+.category-menu {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.category-item {
+    position: relative;
+    font-weight: 600;
+    font-family: 'Playfair Display', serif;
+    cursor: pointer;
+    color: #444;
+    transition: color 0.3s ease;
+}
+
+.category-item:hover {
+    color: #e75480;
+}
+
+.subcategory-menu {
+    position: absolute;
+    top: 2.5rem;
+    left: 0;
+    min-width: 220px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    list-style: none;
+    padding: 0.5rem 0;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(15px);
+    transition: all 0.3s ease;
+}
+
+.category-item:hover .subcategory-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.subcategory-menu li {
+    padding: 0.5rem 1rem;
+}
+
+.subcategory-menu li a {
+    text-decoration: none;
+    color: #333;
+    display: block;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.subcategory-menu li a:hover {
+    color: #e75480;
+    transform: translateX(5px);
+}

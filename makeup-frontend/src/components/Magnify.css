@@ -1,0 +1,41 @@
+﻿.magnify-wrap {
+    position: relative;
+    display: inline-block;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.magnify-wrap img {
+    width: 100%;
+    height: auto; object-fit: contain;
+    display: block;
+    user-select: none;
+    position: relative;
+    z-index: 1;
+}
+
+.magnify-lens {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid #f1798a;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,.25);
+    z-index: 10;
+}
+
+.magnify-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.magnify-lightbox img {
+    max-width: 95%;
+    max-height: 95%;
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(0,0,0,.4);
+}

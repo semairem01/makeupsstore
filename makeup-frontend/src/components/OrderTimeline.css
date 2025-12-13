@@ -1,0 +1,42 @@
+﻿/* src/components/orders/OrderTimeline.css */
+.progress {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    align-items: center;
+    margin: 12px 0;
+}
+.step {
+    position: relative;
+    text-align: center;
+}
+.dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #ff8db9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.step.done .dot {
+    background: #ff8db9;
+    color: #fff;
+}
+.label {
+    font-size: 12px;
+    margin-top: 6px;
+    color: #555;
+}
+.bar {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    right: -50%;
+    height: 4px;
+    background: #eee;
+    z-index: -1;
+}
+.bar.active {
+    background: #ff8db9;
+}

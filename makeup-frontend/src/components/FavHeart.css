@@ -1,0 +1,64 @@
+﻿.fav-btn {
+    --pink: #ff69b4;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(0,0,0,0.05);
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 6px 18px rgba(255,105,180,0.18);
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+    user-select: none;
+}
+
+.fav-btn:hover { transform: translateY(-1px) scale(1.03); }
+.fav-btn:active { transform: scale(0.98); }
+
+.fav-heart {
+    font-size: 18px;
+    line-height: 1;
+    color: #bbb;            /* boş kalp rengi */
+    transition: color .2s ease, transform .15s ease;
+}
+
+.fav-btn:hover .fav-heart { color: var(--pink); }
+
+/* aktif (favoride) */
+.fav-btn.fav-active {
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(255,105,180,0.28);
+    border-color: rgba(255,105,180,0.35);
+}
+
+.fav-btn.fav-active .fav-heart {
+    color: var(--pink);
+    transform: scale(1.08);
+}
+
+/* küçük nabız animasyonu (opsiyonel) */
+@keyframes fav-pop {
+    0%   { transform: scale(0.9); }
+    60%  { transform: scale(1.12); }
+    100% { transform: scale(1.0); }
+}
+.fav-btn.fav-just-toggled .fav-heart { animation: fav-pop .22s ease; }
+
+/* Detay sayfası için düz buton stili (başlığın yanında kullanmak istersen) */
+.fav-inline {
+    position: static;
+    width: auto;
+    height: auto;
+    border-radius: 12px;
+    padding: 6px 10px;
+    background: rgba(255,105,180,0.10);
+    border: 1px solid rgba(255,105,180,0.35);
+    gap: 6px;
+}
+.fav-inline .fav-heart { color: var(--pink); }
+.fav-inline span { font-size: 14px; color: #444; }

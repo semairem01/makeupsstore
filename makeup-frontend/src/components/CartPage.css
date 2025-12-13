@@ -1,0 +1,280 @@
+﻿/* sayfa arka planı */
+.cart-wrap {
+    min-height: 100%;
+    background: linear-gradient(180deg, #ffe6f1 0%, #fff 100%);
+    padding: 16px;
+    padding-bottom: 120px;
+}
+
+/* üst bar */
+.cart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 880px;
+    margin: 0 auto 12px;
+}
+.cart-title {
+    font-weight: 700;
+    font-size: 22px;
+    color: #333;
+}
+.icon-btn {
+    border: 1px solid #f5b2cc;
+    background: #fff;
+    color: #d9578a;
+    border-radius: 12px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+/* kart listesi */
+.cart-card {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(255, 105, 180, 0.15);
+    padding: 12px;
+    max-width: 880px;
+    margin: 10px auto;
+}
+.brand-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #8a8a8a;
+    padding: 0 4px 4px;
+}
+.product-img {
+    width: 64px; height: 64px; border-radius: 12px; object-fit: cover;
+    background: #fff0f6; border: 1px solid #ffe1ec;
+}
+.info h4 {
+    margin: 0 0 6px; font-size: 15px; color: #333;
+}
+.info p {
+    margin: 0; font-size: 12px; color: #8a8a8a;
+}
+.price {
+    font-weight: 700; color: #333; margin-top: 6px;
+}
+
+/* adet +/− */
+.qty-box {
+    display: flex; align-items: center; gap: 8px;
+}
+.qty-btn {
+    width: 28px; height: 28px; border-radius: 10px;
+    border: 1px solid #ffd0e1; background: #fff;
+    color: #d9578a; cursor: pointer; font-weight: 700;
+}
+.qty-val { width: 28px; text-align: center; font-weight: 700; color: #d9578a; }
+
+/* alt sabit bar */
+.checkout-bar {
+    position: sticky; bottom: 0;
+    background: #fff; border-top-left-radius: 20px; border-top-right-radius: 20px;
+    box-shadow: 0 -8px 32px rgba(255, 105, 180, 0.2);
+    padding: 16px;
+    margin-top: 16px;
+}
+.checkout-inner {
+    max-width: 880px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between;
+}
+.total {
+    font-weight: 700; font-size: 18px; color: #333;
+}
+.checkout-btn {
+    background: #ff69b4; color: #fff; border: none; border-radius: 16px;
+    padding: 12px 18px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+}
+.badge {
+    background: #fff; color: #ff69b4; border-radius: 999px; padding: 4px 8px; font-size: 12px; font-weight: 700;
+}
+.clear-btn {
+    background: transparent; border: none; color: #d9578a; cursor: pointer; font-weight: 600;
+}
+
+.discount-section {
+    max-width: 880px;
+    margin: 16px auto;
+}
+
+.discount-card {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%);
+    border: 2px solid rgba(251, 191, 36, 0.3);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
+    animation: slideIn 0.3s ease-out;
+}
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.discount-icon {
+    font-size: 32px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(251, 191, 36, 0.2);
+    border-radius: 12px;
+}
+
+.discount-info {
+    flex: 1;
+}
+
+.discount-name {
+    font-weight: 700;
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.discount-detail {
+    font-size: 13px;
+    color: #666;
+}
+.discount-code {
+    font-size: 11px;
+    color: #8b5cf6;
+    margin-top: 4px;
+    font-family: monospace;
+}
+.discount-warning {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #92400e;
+    text-align: center;
+}
+.apply-btn {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.apply-btn:hover {
+    transform: scale(1.05);
+}
+
+.remove-btn {
+    background: transparent;
+    border: 2px solid #f87171;
+    color: #f87171;
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.remove-btn:hover {
+    background: #f87171;
+    color: #fff;
+}
+
+/* Total Breakdown */
+.total-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #666;
+}
+
+.discount-row {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.discount-value {
+    color: #10b981;
+}
+
+.total-final {
+    font-weight: 700;
+    font-size: 18px;
+    color: #333;
+    padding-top: 8px;
+    border-top: 2px solid #ffe1ec;
+}
+
+/* Checkout Bar Güncelleme */
+.checkout-bar {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    box-shadow: 0 -8px 32px rgba(255, 105, 180, 0.2);
+    padding: 20px 16px;
+    margin-top: 16px;
+}
+
+.checkout-inner {
+    max-width: 880px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .checkout-inner {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .total-breakdown {
+        width: 100%;
+    }
+
+    .checkout-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .discount-card {
+        flex-wrap: wrap;
+    }
+
+    .apply-btn, .remove-btn {
+        width: 100%;
+        margin-top: 8px;
+    }
+}

@@ -1,0 +1,17 @@
+﻿.favorite-btn:active {
+    transform: scale(0.95) !important;
+}
+
+.favorite-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+
+/* Alt butonlar için responsive */
+@media (max-width: 480px) {
+    .p-card .btn-add {
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+}

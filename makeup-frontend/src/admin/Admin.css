@@ -1,0 +1,590 @@
+﻿* {
+    box-sizing: border-box;
+}
+
+body {
+    overflow-x: hidden; /* Yatay scroll tamamen kapalı */
+    margin: 0;
+    padding: 0;
+}
+.admin-wrap {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    min-height: 70vh;
+    gap: 12px;
+    padding: 12px;
+    max-width: 100%;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.admin-aside {
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .06);
+    height: fit-content;
+}
+
+.admin-aside h3 {
+    font-size: 1rem;
+    margin: 0 0 12px;
+}
+
+.admin-aside nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-aside a {
+    padding: 8px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #333;
+    white-space: nowrap;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-aside a.active {
+    background: #ffe3f1;
+    color: #b2206d;
+    font-weight: 700;
+}
+
+.admin-main {
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .06);
+    min-width: 0;
+    overflow: hidden;
+}
+
+.admin-main h2 {
+    font-size: 1.3rem;
+    margin: 0 0 12px;
+}
+
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.kpi {
+    background: #fff;
+    border: 1px solid #f3c7dd;
+    border-radius: 10px;
+    padding: 10px;
+    min-width: 0;
+}
+
+.kpi h4 {
+    font-size: 0.8rem;
+    margin: 0 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.toolbar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.toolbar input,
+.toolbar select {
+    flex: 1;
+    min-width: 120px;
+    padding: 6px 8px;
+    font-size: 0.85rem;
+}
+
+.toolbar button {
+    white-space: nowrap;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+}
+
+/* ============================================
+   TABLO - YATAY KAYMA YOK, SÜTUNLAR SIĞ
+   ============================================ */
+
+.admin-table-wrap {
+    width: 100%;
+    overflow: visible; /* Yatay scroll kapalı */
+    margin-bottom: 12px;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* Sütunlar eşit genişlikte */
+}
+
+.admin-table th,
+.admin-table td {
+    border-bottom: 1px solid #f1f1f1;
+    padding: 8px 4px;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+
+.admin-table th {
+    font-weight: 600;
+    background: #fafafa;
+    font-size: 0.75rem;
+}
+
+.admin-table tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.admin-table tr:hover {
+    background: #fdf0f6;
+}
+
+/* Sütun genişlikleri - önemli sütunlar daha geniş */
+.admin-table th:first-child,
+.admin-table td:first-child {
+    width: 40px; /* ID */
+}
+
+.admin-table td button {
+    margin-right: 4px;
+    margin-bottom: 2px;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+}
+
+.admin-table select {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    max-width: 100%;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #b2206d;
+    cursor: pointer;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    text-decoration: underline;
+}
+
+button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button.btn-primary {
+    background: #b2206d;
+    color: #fff;
+}
+
+button.btn-outline {
+    background: transparent;
+    border: 1px solid #ccc;
+    color: #333;
+}
+
+.grid2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #f3c7dd;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(178, 32, 109, 0.08);
+    margin-bottom: 12px;
+}
+
+label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+    color: #444;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+input,
+select,
+textarea {
+    margin-top: 4px;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    width: 100%;
+    max-width: 100%;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #b2206d;
+    outline: none;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.admin-form {
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-form>h3 {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: -12px -12px 8px;
+    padding: 10px;
+    background: #fff;
+    border-bottom: 1px solid #f3c7dd;
+    font-size: 1.1rem;
+}
+
+.admin-form__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin: 8px -12px -12px;
+    padding: 10px;
+    background: #fff;
+    border-top: 1px solid #f3c7dd;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.pill {
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.pill-siparisalindi {
+    background: #fff1e6;
+    color: #b46900;
+}
+
+.pill-hazirlaniyor {
+    background: #e9f2ff;
+    color: #1b63c4;
+}
+
+.pill-kargoda {
+    background: #e8fff2;
+    color: #0e8a3a;
+}
+
+.pill-teslimedildi {
+    background: #edf7ed;
+    color: #1b5e20;
+}
+
+.pill-iptaledildi {
+    background: #ffe8ea;
+    color: #b00020;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+@media (max-width: 1200px) {
+    .admin-wrap {
+        grid-template-columns: 180px 1fr;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 6px 3px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .navbar {
+        gap: 6px;
+        padding: 6px 10px;
+    }
+
+    .brand-logo {
+        height: 45px;
+        width: 45px;
+    }
+
+    .brand-text {
+        font-size: 1rem;
+    }
+
+    .nav-search.pretty {
+        max-width: 300px;
+    }
+
+    .admin-wrap {
+        grid-template-columns: 160px 1fr;
+        padding: 10px;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 5px 2px;
+        font-size: 0.7rem;
+    }
+
+    .admin-table td button,
+    .admin-table select {
+        font-size: 0.7rem;
+        padding: 3px 5px;
+    }
+}
+
+@media (max-width: 900px) {
+    .nav-search.pretty {
+        display: none;
+    }
+
+    .navbar-right {
+        gap: 5px;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        padding: 6px 8px;
+    }
+
+    .brand-logo {
+        height: 40px;
+        width: 40px;
+    }
+
+    .brand-text {
+        font-size: 0.9rem;
+    }
+
+    .navbar-right a:not(.cart-link):not(.avatar-link) {
+        font-size: 0.75rem;
+    }
+
+    .btn-pill,
+    .btn-ghost {
+        padding: 4px 6px;
+        font-size: 0.75rem;
+    }
+
+    .nav-avatar {
+        width: 28px;
+        height: 28px;
+    }
+
+    /* Admin tek sütun */
+    .admin-wrap {
+        grid-template-columns: 1fr;
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .admin-aside {
+        position: sticky;
+        top: 60px;
+        z-index: 40;
+    }
+
+    .admin-aside h3 {
+        display: none;
+    }
+
+    .admin-aside nav {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 5px;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-aside a {
+        flex-shrink: 0;
+        font-size: 0.8rem;
+        padding: 6px 8px;
+    }
+
+    .admin-main {
+        padding: 10px;
+    }
+
+    .admin-main h2 {
+        font-size: 1.1rem;
+    }
+
+    .kpis {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Tablo daha da küçült */
+    .admin-table th,
+    .admin-table td {
+        padding: 4px 2px;
+        font-size: 0.65rem;
+    }
+
+    .admin-table th:first-child,
+    .admin-table td:first-child {
+        width: 30px;
+    }
+
+    .admin-table td button {
+        font-size: 0.65rem;
+        padding: 2px 4px;
+    }
+
+    .admin-table select {
+        font-size: 0.65rem;
+        padding: 2px 4px;
+    }
+
+    .grid2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .brand-text {
+        display: none;
+    }
+
+    .brand-logo {
+        height: 36px;
+        width: 36px;
+    }
+
+    .navbar-right a:not(.cart-link):not(.avatar-link) {
+        display: none;
+    }
+
+    .admin-wrap {
+        padding: 6px;
+    }
+
+    .admin-main {
+        padding: 8px;
+    }
+
+    .kpis {
+        grid-template-columns: 1fr;
+    }
+
+    .toolbar {
+        flex-direction: column;
+    }
+
+    .toolbar input,
+    .toolbar select,
+    .toolbar button {
+        width: 100%;
+    }
+
+    /* Tablo en küçük boyut */
+    .admin-table th,
+    .admin-table td {
+        padding: 3px 1px;
+        font-size: 0.6rem;
+    }
+
+    /* Bazı sütunları gizle (opsiyonel) */
+    .admin-table th:nth-child(3),
+    .admin-table td:nth-child(3) {
+        display: none; /* 3. sütun gizle */
+    }
+
+    .admin-form__actions {
+        flex-direction: column;
+    }
+
+    .admin-form__actions button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar {
+        padding: 5px 6px;
+    }
+
+    .brand-logo {
+        height: 32px;
+        width: 32px;
+    }
+
+    .cart-icon {
+        font-size: 1rem;
+    }
+
+    .nav-avatar {
+        width: 26px;
+        height: 26px;
+    }
+
+    .btn-pill,
+    .btn-ghost {
+        padding: 3px 5px;
+        font-size: 0.7rem;
+    }
+
+    .admin-aside a {
+        font-size: 0.75rem;
+        padding: 5px 6px;
+    }
+
+    /* Tablo çok küçük ekran */
+    .admin-table {
+        font-size: 0.55rem;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 2px 1px;
+    }
+
+    /* Daha fazla sütun gizle */
+    .admin-table th:nth-child(4),
+    .admin-table td:nth-child(4),
+    .admin-table th:nth-child(5),
+    .admin-table td:nth-child(5) {
+        display: none;
+    }
+}

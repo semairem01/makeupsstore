@@ -1,0 +1,202 @@
+﻿:root{
+    --ink:#2a1a22;
+    --accent: #f1798a;
+    --peach:#ffe3f1;
+    --peach-ink:#7a6b71;
+    --panel:#f2e7df;         /* referans bej tonu */
+    --panel-d:#e7d9cf;       /* biraz koyusu */
+    --border:#e8cfdc;        /* sitenin pembesiyle uyumlu border */
+}
+
+/* Dış grid – sol şerit 320px, sağ alan esnek */
+.contact-wrap{
+    display:grid;
+    grid-template-columns: 320px 1fr;
+    gap:36px;
+    max-width:none;        
+    width:100%;
+    margin:60px 0 100px 0; 
+    padding-left:60px;     
+    padding-right:40px;
+}
+
+/* SOL ŞERİT */
+.contact-aside{
+    background: linear-gradient(180deg, rgba(241, 121, 138, 0.7) 0%, #fff7f9 100%);
+    border:1px solid var(--border);
+    border-radius:1px;
+    padding:22px 20px;
+    box-shadow:0 8px 20px rgba(218, 21, 73, 0.05);
+    
+
+}
+
+/* başlık + ince alt çizgi */
+.aside-title{
+    color: #ffffff;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-size:13px;
+    margin:0 0 16px;
+    padding-bottom:10px;
+    border-bottom:2px solid rgba(0,0,0,.08);
+}
+
+.aside-group{ padding:14px 0; }
+.aside-group + .aside-group{ border-top:1px solid rgba(0,0,0,.06); }
+
+.aside-label{
+    font-weight:600;
+    font-size:12px;
+    color: #ffffff;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    margin-bottom:6px;
+}
+
+.email-link{
+    color:var(--accent);
+    text-decoration:none;
+    font-weight:500;
+}
+.email-link:hover{ text-decoration:underline; }
+
+/* Sosyal ikonlar – referanstaki gibi sade */
+.social-icons{ display:flex; gap:10px; }
+.social-icons a{
+    width:36px; height:36px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:50%;
+    border:1px solid rgba(0,0,0,.1);
+    background:#fff;
+    color: #f1798a;
+    font-size:18px;
+    transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.social-icons a:hover{
+    transform: translateY(-2px);
+    border-color: rgba(0,0,0,.2);
+    box-shadow:0 6px 12px rgba(0,0,0,.08);
+}
+
+/* SAĞ PANEL */
+.contact-form{
+    background-image: url("/public/images/contact1.jpg"); /* 👈 görselin yolu */
+    background-size: cover;           /* resmi tam sığdırır */
+    background-position: center;      /* ortalar */
+    background-repeat: no-repeat;     /* tekrarlanmaz */
+    background-attachment: fixed;     /* kaydırınca sabit kalır (isteğe bağlı) */
+    color: #2a1a22;
+    border: 1px solid #f3c7dd;
+    border-radius: 1px;
+    padding: 26px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.contact-form::before {
+    content: "";
+    position: absolute;
+    inset: 0; /* tüm alanı kapla */
+    background: rgba(255, 255, 255, 0.53); /* beyaz yarı saydam tül */
+    backdrop-filter: blur(2px); /* bulanıklık miktarı */
+    z-index: 0; /* altta kal */
+}
+
+/* form ve içerik üstte kalsın */
+.contact-form > * {
+    position: relative;
+    z-index: 1;
+}
+.kicker{
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    color: #d97aa6;
+    letter-spacing: 1px;
+}
+.headline{
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 600;
+    color: rgb(241, 121, 138);
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form input,
+.form textarea {
+    border: 1px solid #eddce0;
+    border-radius: 3px;
+    background: rgba(241, 121, 138, 0.1); /* pembe tonlu beyaz */
+    padding: 12px 16px;
+    font-size: 15px;
+    color: var(--ink);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.form input:focus,
+.form textarea:focus {
+    outline: none;
+    border-color: #ea0f55;
+    box-shadow: 0 0 0 3px rgba(212, 199, 190, 0.35);
+}
+
+.form button{
+    align-self:flex-start;
+    padding:10px 18px;
+    border:none; border-radius:5px;
+    font-weight:700; color:#fff; cursor:pointer;
+    background:var(--accent);
+    transition:transform .15s ease, filter .15s ease;
+}
+.form button:hover{ transform:translateY(-1px); filter:brightness(1.05); }
+
+.note{ margin-top:6px; font-size:14px; }
+.note.ok{ color:#167c36; } .note.err{ color:#b22626; }
+
+/* Harita */
+.map-wrap{
+    margin-top:18px;
+    border:1px solid #eadfd7;
+    border-radius:3px;
+    overflow:hidden;
+}
+.map-wrap iframe{ width:100%; height:300px; border:0; }
+.contact-hero{
+    position: relative;
+    height: 220px;                 /* 200–280 arası deneyebilirsin */
+    border-radius: 10px;
+    overflow: hidden;
+    margin: -4px -4px 16px -4px;   /* görsel kenarlara kadar uzasın */
+    border: 1px solid #eadfd7;
+    background: #f4efe9;           /* görsel yüklenemezse nötr arka plan */
+}
+
+.contact-hero img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;             /* kırpıp doldurur, taşma olmaz */
+    display: block;
+}
+
+
+.contact-hero .hero-overlay{
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(165, 57, 57, 0.28), rgba(0,0,0,0));
+    color: #fff; font-weight: 600; letter-spacing:.04em;
+    display: flex; align-items: flex-start; padding: 14px;
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 960px){
+    .contact-wrap{ grid-template-columns: 1fr; }
+}

@@ -1,0 +1,278 @@
+﻿:root{
+    --pink:#ff69b4;
+    --pink-dark:#b2206d;
+    --soft:#ffd6e8;
+    --line: rgb(255, 255, 255);
+    --text-light: rgb(241, 121, 138);
+}
+
+/* Footer Ana Yapı */
+.ft{
+    position:relative;
+    margin-top:200px;
+    background:url("/public/images/foo.jpeg") center/cover no-repeat;
+    color:var(--text-light);
+    min-height:400px;
+}
+
+.ft-overlay{
+    background:rgba(255,182,193,.12);
+    backdrop-filter:blur(1px);
+    padding:50px 0 10px;
+}
+
+.ft-container{
+    max-width:1400px;
+    margin:0 auto;
+    padding:0 40px;
+}
+
+/* Logo Bölümü - Ortada */
+.ft-logo-section{
+    display:flex;
+    justify-content:center;
+    margin-bottom:50px;
+}
+
+.ft-brand{
+    display:inline-block;
+    transition:transform .3s ease;
+}
+
+.ft-brand:hover{
+    transform:scale(1.05);
+}
+
+.ft-brand img{
+    height:150px;
+    width:120px;
+    filter:drop-shadow(0 4px 12px rgba(0,0,0,.2));
+}
+
+/* İçerik Grid */
+.ft-content{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:45px;
+    padding:30px 0;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+}
+
+.ft-column{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.ft-title{
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:1.5px;
+    color:var(--text-light);
+    margin:0 0 8px;
+    text-transform:uppercase;
+}
+
+/* Contact Info */
+.ft-info{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.ft-info p{
+    margin:0;
+    font-size:14px;
+    color:var(--text-light);
+    line-height:1.6;
+}
+
+/* Links */
+.ft-links{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.ft-links a{
+    text-decoration:none;
+    color:var(--text-light);
+    font-size:14px;
+    transition:color .2s ease, transform .2s ease;
+    display:inline-block;
+}
+
+.ft-links a:hover{
+    color:var(--pink);
+    transform:translateX(4px);
+}
+
+/* Newsletter */
+.ft-newsletter{
+    display:flex;
+    align-items:center;
+    gap:0;
+    background: rgba(241, 121, 138, 0.62);
+    border:1px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+    backdrop-filter:blur(8px);
+}
+
+.ft-newsletter input{
+    flex:1;
+    padding:10px 12px;
+    background:transparent;
+    border:none;
+    color:#fff;
+    font-size:13px;
+    outline:none;
+}
+
+.ft-newsletter input::placeholder{
+    color:rgba(255,255,255,.6);
+}
+
+.ft-newsletter button{
+    padding:12px 20px;
+    background:rgba(255,255,255,.25);
+    border:none;
+    border-left:1px solid var(--line);
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+    transition:background .2s ease;
+}
+
+.ft-newsletter button:hover{
+    background:rgba(255,255,255,.35);
+}
+
+/* Social Media Section */
+.ft-social-section{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+    padding:40px 0 30px;
+}
+
+.ft-connect{
+    font-size:16px;
+    font-style:italic;
+    color:var(--text-light);
+    margin:0;
+}
+
+.ft-social{
+    display:flex;
+    gap:20px;
+}
+
+.ft-social a{
+    width:40px;
+    height:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+    color:var(--text-light);
+    font-size:18px;
+    border:1px solid var(--line);
+    border-radius:50%;
+    background:rgba(255,255,255,.1);
+    backdrop-filter:blur(4px);
+    transition:all .3s ease;
+}
+
+.ft-social a:hover{
+    background:rgba(255,255,255,.25);
+    transform:translateY(-3px);
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+
+/* Bottom Copyright */
+.ft-bottom{
+    text-align:center;
+    padding:25px 0 15px;
+    position:relative;
+    border-top:1px solid var(--line);
+}
+
+.ft-bottom small{
+    font-size:11px;
+    letter-spacing:1px;
+    color: rgb(241, 121, 138);
+    text-transform:uppercase;
+}
+
+/* Back to Top Button */
+.ft-top{
+    position:absolute;
+    right:40px;
+    top:50%;
+    transform:translateY(-50%);
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.15);
+    backdrop-filter:blur(8px);
+    color:#fff;
+    font-size:20px;
+    cursor:pointer;
+    transition:all .3s ease;
+}
+
+.ft-top:hover{
+    background:rgba(255,255,255,.3);
+    transform:translateY(-50%) scale(1.1);
+}
+
+/* Responsive Design */
+@media (max-width:1024px){
+    .ft-content{
+        grid-template-columns:1fr;
+        gap:40px;
+    }
+
+    .ft-column{
+        text-align:center;
+        align-items:center;
+    }
+
+    .ft-links{
+        align-items:center;
+    }
+
+    .ft-newsletter{
+        max-width:400px;
+        width:100%;
+    }
+}
+
+@media (max-width:640px){
+    .ft-container{
+        padding:0 20px;
+    }
+
+    .ft-brand img{
+        height:100px;
+    }
+
+    .ft-overlay{
+        padding:40px 0 20px;
+    }
+
+    .ft-content{
+        gap:30px;
+    }
+
+    .ft-top{
+        right:20px;
+        width:36px;
+        height:36px;
+        font-size:18px;
+    }
+}
