@@ -4,6 +4,7 @@ import axios from "axios";
 import { API_ENDPOINTS } from "../config";
 import { Heart } from "lucide-react";
 import "./ProductCard.css";
+import { API_BASE_URL } from "../config";
 
 function Stars({ value }) {
     const rounded = Math.round(Number(value || 0));
@@ -29,7 +30,9 @@ export default function ProductCard({ product, onAdded }) {
     const variantName = product?.variantName ?? product?.VariantName ?? "";
 
     const imgRaw = product?.imageUrl ?? product?.ImageUrl ?? "";
-    const imgSrc = String(imgRaw).startsWith("http") ? imgRaw : `http://localhost:5011${imgRaw}`;
+    const imgSrc = String(imgRaw).startsWith("http")
+        ? imgRaw
+        : `${API_BASE_URL}${imgRaw}`;
 
     // Rating bilgisi
     useEffect(() => {
