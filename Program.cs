@@ -24,16 +24,14 @@ static string ConvertPostgresUrlToNpgsql(string databaseUrl)
     return $"Host={uri.Host};Port={uri.Port};Database={db};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
 }
 
-
 var builder = WebApplication.CreateBuilder(args);
 
+// JSON
 builder.Services
     .AddControllersWithViews()
     .AddJsonOptions(o =>
     {
-        
         o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        // EF navigation loop'ları patlatmasın
         o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         o.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowReadingFromString;
     });
@@ -41,36 +39,35 @@ builder.Services
 // CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReact",
-        builder => builder
-            .WithOrigins("http://localhost:3000", 
-                "http://localhost:3001" ,
-                "http://localhost:3002",
-                "http://localhost:3003",
-                "https://693d683825d75b8d44f0cea0--lively-daffodil-5657e0.netlify.app",
-                "https://lively-daffodil-5657e0.netlify.app")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials());
+    options.AddPolicy("AllowReact", policy => policy
+        .WithOrigins(
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "http://localhost:3003",
+            "https://693d683825d75b8d44f0cea0--lively-daffodil-5657e0.netlify.app",
+            "https://lively-daffodil-5657e0.netlify.app"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials()
+    );
 });
 
-// Database Context
+// DB Context (Dev: MSSQL, Prod: Postgres)
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    // Local MSSQL için appsettings.json'daki ConnectionStrings:SqlServer kullanılacak
     var cs = builder.Configuration.GetConnectionString("SqlServer");
 
     if (!builder.Environment.IsDevelopment())
     {
-        // Railway'de genelde DATABASE_URL veya ConnectionStrings__SqlServer kullanılır
         cs = cs
              ?? builder.Configuration["DATABASE_URL"]
              ?? builder.Configuration["ConnectionStrings:SqlServer"];
 
         if (string.IsNullOrWhiteSpace(cs))
-            throw new Exception("Connection string bulunamadı. Railway Variables'a DATABASE_URL veya ConnectionStrings__SqlServer eklemelisin.");
+            throw new Exception("Connection string bulunamadı. Railway Variables'a DATABASE_URL ekli olmalı.");
 
-        // Railway'in verdiği URL "postgresql://..." ise Npgsql formatına çevir
         if (cs.StartsWith("postgres://") || cs.StartsWith("postgresql://"))
             cs = ConvertPostgresUrlToNpgsql(cs);
 
@@ -78,10 +75,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
     else
     {
+        if (string.IsNullOrWhiteSpace(cs))
+            throw new Exception("Development için ConnectionStrings:SqlServer (appsettings.json) bulunamadı.");
+
         options.UseSqlServer(cs);
     }
 });
-
 
 builder.Services.Configure<ApiBehaviorOptions>(opt =>
 {
@@ -89,31 +88,31 @@ builder.Services.Configure<ApiBehaviorOptions>(opt =>
         new BadRequestObjectResult(new ValidationProblemDetails(ctx.ModelState));
 });
 
-// Identity Configuration
+// Identity
 builder.Services.AddIdentity<AppUser, AppRole>(options =>
 {
-    // Password requirements
     options.Password.RequiredLength = 6;
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = true;
     options.Password.RequireNonAlphanumeric = false;
-    
-    // Lockout settings
+
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.AllowedForNewUsers = true;
-    
-    // User settings
+
     options.User.RequireUniqueEmail = true;
-    options.SignIn.RequireConfirmedEmail = false; // Email confirmation şimdilik kapalı
+    options.SignIn.RequireConfirmedEmail = false;
     options.SignIn.RequireConfirmedAccount = false;
 })
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
-// JWT Authentication
-var jwtKey = builder.Configuration["JWT:Key"] ?? "your-super-secret-key-here-make-it-longer-than-256-bits-for-security-purposes";
+// JWT
+var jwtKey = builder.Configuration["JWT:Key"]
+             ?? builder.Configuration["JWT__Key"]  // env’de genelde bu kullanılır
+             ?? "CHANGE_ME_IN_PROD___super-secret-key";
+
 var jwtIssuer = builder.Configuration["JWT:Issuer"] ?? "MakeupStore";
 var jwtAudience = builder.Configuration["JWT:Audience"] ?? "MakeupStore";
 
@@ -136,8 +135,7 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
         ClockSkew = TimeSpan.Zero
     };
-    
-    // SignalR için gerekli (ileride kullanabilirsiniz)
+
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
@@ -155,19 +153,17 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireClaim("IsAdmin", "True"));
-    
-    options.AddPolicy("UserOrAdmin", policy =>
-        policy.RequireAuthenticatedUser());
+    options.AddPolicy("AdminOnly", policy => policy.RequireClaim("IsAdmin", "True"));
+    options.AddPolicy("UserOrAdmin", policy => policy.RequireAuthenticatedUser());
 });
 
-// Repositories
+// Repos
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
 builder.Services.AddScoped<INotifyRequestRepository, NotifyRequestRepository>();
+
 // Services
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
@@ -181,77 +177,12 @@ builder.Services.AddSingleton<GeoFileStore>();
 
 builder.Services.AddHttpContextAccessor();
 
-// Build the app
 var app = builder.Build();
 
-// Create default admin user
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var userManager = services.GetRequiredService<UserManager<AppUser>>();
-        var roleManager = services.GetRequiredService<RoleManager<AppRole>>(); // AppRole kullan
-        var context = services.GetRequiredService<AppDbContext>();
-        
-        // Ensure database is created
-       // await context.Database.EnsureCreatedAsync();
-       await context.Database.MigrateAsync();
+// ✅ Health endpoint (Run’dan önce!)
+app.MapGet("/health", () => Results.Ok("OK"));
 
-        
-        // Create default roles
-        var adminRoleName = "Admin";
-        var userRoleName = "User";
-        
-        var adminRole = await roleManager.FindByNameAsync(adminRoleName);
-        if (adminRole == null)
-        {
-            adminRole = new AppRole(adminRoleName) { Description = "Sistem yöneticisi" };
-            await roleManager.CreateAsync(adminRole);
-        }
-        
-        var userRole = await roleManager.FindByNameAsync(userRoleName);
-        if (userRole == null)
-        {
-            userRole = new AppRole(userRoleName) { Description = "Normal kullanıcı" };
-            await roleManager.CreateAsync(userRole);
-        }
-        
-        // Create default admin user if not exists
-        var adminEmail = "admin@makeup.com";
-        var adminUser = await userManager.FindByEmailAsync(adminEmail);
-        
-        if (adminUser == null)
-        {
-            adminUser = new AppUser
-            {
-                Id = Guid.NewGuid(),
-                UserName = "admin",
-                Email = adminEmail,
-                EmailConfirmed = true,
-                IsAdmin = true
-            };
-            
-            var result = await userManager.CreateAsync(adminUser, "Admin123!");
-            if (result.Succeeded)
-            {
-                // Admin rolünü kullanıcıya ata
-                await userManager.AddToRoleAsync(adminUser, adminRoleName);
-                Console.WriteLine($"Default admin user created: {adminEmail} / Admin123!");
-            }
-            else
-            {
-                Console.WriteLine("Failed to create admin user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error creating admin user: {ex.Message}");
-    }
-}
-
-// Middleware pipeline
+// Middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -267,10 +198,9 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// CORS - Authentication'dan önce olmalı
+// CORS auth’dan önce
 app.UseCors("AllowReact");
 
-// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -280,6 +210,70 @@ app.MapControllerRoute(
 
 app.MapControllers();
 
-app.Run();
+// ✅ DB migrate + Admin seed (Production’da da çalışır)
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
 
-app.MapGet("/health", () => Results.Ok("OK"));
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        await context.Database.MigrateAsync();
+
+        var userManager = services.GetRequiredService<UserManager<AppUser>>();
+        var roleManager = services.GetRequiredService<RoleManager<AppRole>>();
+
+        // Roles
+        var adminRoleName = "Admin";
+        var userRoleName = "User";
+
+        if (await roleManager.FindByNameAsync(adminRoleName) == null)
+            await roleManager.CreateAsync(new AppRole(adminRoleName) { Description = "Sistem yöneticisi" });
+
+        if (await roleManager.FindByNameAsync(userRoleName) == null)
+            await roleManager.CreateAsync(new AppRole(userRoleName) { Description = "Normal kullanıcı" });
+
+        // Admin from env
+        var adminEmail = app.Configuration["ADMIN_EMAIL"];
+        var adminUsername = app.Configuration["ADMIN_USERNAME"] ?? "admin";
+        var adminPassword = app.Configuration["ADMIN_PASSWORD"];
+
+        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+        {
+            Console.WriteLine("ADMIN_EMAIL / ADMIN_PASSWORD tanımlı değil. Admin seed atlandı.");
+        }
+        else
+        {
+            var adminUser = await userManager.FindByEmailAsync(adminEmail);
+            if (adminUser == null)
+            {
+                adminUser = new AppUser
+                {
+                    Id = Guid.NewGuid(),
+                    UserName = adminUsername,
+                    Email = adminEmail,
+                    EmailConfirmed = true,
+                    IsAdmin = true
+                };
+
+                var result = await userManager.CreateAsync(adminUser, adminPassword);
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, adminRoleName);
+                    Console.WriteLine($"Default admin created: {adminEmail}");
+                }
+                else
+                {
+                    Console.WriteLine("Failed to create admin: " +
+                        string.Join(", ", result.Errors.Select(e => e.Description)));
+                }
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Startup migrate/seed error: {ex.Message}");
+    }
+}
+
+app.Run();
