@@ -39,20 +39,31 @@ builder.Services
 // CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReact", policy => policy
-        .WithOrigins(
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://localhost:3002",
-            "http://localhost:3003",
-            "https://693d683825d75b8d44f0cea0--lively-daffodil-5657e0.netlify.app",
-            "https://lively-daffodil-5657e0.netlify.app"
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials()
-    );
+    options.AddPolicy("AllowReact", policy =>
+    {
+        policy
+            .SetIsOriginAllowed(origin =>
+            {
+                // origin boşsa engelle
+                if (string.IsNullOrWhiteSpace(origin)) return false;
+
+                // localhost (dev)
+                if (origin.StartsWith("http://localhost:")) return true;
+
+                // netlify preview + production url'leri
+                if (origin.EndsWith(".netlify.app")) return true;
+
+                // (varsa) kendi domainini buraya ekle
+                // if (origin == "https://www.senin-domainin.com") return true;
+
+                return false;
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
 });
+
 
 // DB Context (Dev: MSSQL, Prod: Postgres)
 builder.Services.AddDbContext<AppDbContext>(options =>
