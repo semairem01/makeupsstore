@@ -27,6 +27,7 @@ const initialFilters = {
     coverage: "",
 };
 
+
 const SKIN_BITS = { Dry: 1, Oily: 2, Combination: 4, Sensitive: 8, Normal: 16 };
 
 function Star({ filled }) {
@@ -42,6 +43,7 @@ export default function FeaturedShelf({ onAdded }) {
     const [data, setData] = useState({ items: [], totalPages: 1, totalItems: 0 });
     const [loading, setLoading] = useState(true);
     const [allBrands, setAllBrands] = useState([]);
+    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
     const [openSections, setOpenSections] = useState({
         sort: true,
@@ -79,7 +81,39 @@ export default function FeaturedShelf({ onAdded }) {
         });
     }, []);
 
-    // Ürünler (+ varyantları normalize et)
+    useEffect(() => {
+        const html = document.documentElement;
+
+        if (mobileFiltersOpen) {
+            // scroll kilidi
+            html.style.overflow = "hidden";
+            document.body.style.overflow = "hidden";
+            html.style.height = "100%";
+            document.body.style.height = "100%";
+
+            // iOS/Android bounce engeli
+            document.body.style.overscrollBehavior = "none";
+            html.style.overscrollBehavior = "none";
+        } else {
+            html.style.overflow = "";
+            document.body.style.overflow = "";
+            html.style.height = "";
+            document.body.style.height = "";
+            document.body.style.overscrollBehavior = "";
+            html.style.overscrollBehavior = "";
+        }
+
+        return () => {
+            html.style.overflow = "";
+            document.body.style.overflow = "";
+            html.style.height = "";
+            document.body.style.height = "";
+            document.body.style.overscrollBehavior = "";
+            html.style.overscrollBehavior = "";
+        };
+    }, [mobileFiltersOpen]);
+
+
     useEffect(() => {
         let cancelled = false;
         const controller = new AbortController();
@@ -344,13 +378,43 @@ export default function FeaturedShelf({ onAdded }) {
 
             <div className="shelf-body">
                 {/* ------ SOL FİLTRE ------ */}
+                {mobileFiltersOpen && (
+                    <div
+                        className="filter-backdrop"
+                        onClick={() => setMobileFiltersOpen(false)}
+                    />
+                )}
                 <aside
-                    className="rounded-2xl backdrop-blur-md border border-pink-300/60 shadow-xl p-5 w-full max-w-sm"
+                    className={
+                        "rounded-2xl backdrop-blur-md border border-pink-300/60 shadow-xl p-5 w-full max-w-sm filter-drawer " +
+                        (mobileFiltersOpen ? "open" : "")
+                    }
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                 >
                     <style>{`aside::-webkit-scrollbar { display: none; }`}</style>
+                    <div style={{
+                        width: 48, height: 5, borderRadius: 999,
+                        background: "rgba(120, 60, 90, .25)",
+                        margin: "4px auto 10px"
+                    }} />
+                    <div className="drawer-top">
+                        <div className="drawer-title">
+                            <span>Filters</span>
+                            {activeFilterCount > 0 && <span className="drawer-badge">{activeFilterCount}</span>}
+                        </div>
 
-                    <div className="flex items-center justify-between mb-4">
+                        <button
+                            className="drawer-close"
+                            onClick={() => setMobileFiltersOpen(false)}
+                            type="button"
+                            aria-label="Close filters"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+                    <div className="drawer-scroll">
+                        <div className="flex items-center justify-between mb-4 drawer-desktop-only">
+
                         <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center">
                                 <img src="/icons/setting.png" alt="Filter Icon" className="w-4 h-4 invert brightness-0" />
@@ -799,14 +863,20 @@ export default function FeaturedShelf({ onAdded }) {
                             </div>
                         )}
                     </div>
-
-                    <div className="mt-5 pt-4 border-t border-pink-300/60 space-y-2">
-                        <button className="w-full py-2.5 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg hover:from-pink-600 hover:to-pink-700 transition transform hover:-translate-y-0.5">
+                    </div>
+                    <div className="drawer-actions space-y-2">
+                        <button
+                            className="w-full py-2.5 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg hover:from-pink-600 hover:to-pink-700 transition transform hover:-translate-y-0.5"
+                            onClick={() => setMobileFiltersOpen(false)}
+                            type="button"
+                        >
                             Apply Filters
                         </button>
+
                         <button
                             onClick={clearAllFilters}
                             className="w-full py-2 border border-pink-300/80 text-pink-700 rounded-lg font-semibold hover:bg-pink-50/60 transition"
+                            type="button"
                         >
                             Clear All
                         </button>
@@ -815,6 +885,15 @@ export default function FeaturedShelf({ onAdded }) {
 
                 {/* ------ PRODUCT GRID ------ */}
                 <div className="grid-wrap">
+                    <div className="mobile-filter-bar">
+                        <button
+                            className="mobile-filter-btn"
+                            onClick={() => setMobileFiltersOpen(true)}
+                            type="button"
+                        >
+                            Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
+                        </button>
+                    </div>
                     {loading ? (
                         <div className="fs-grid skeleton">
                             {Array.from({ length: pageSize }).map((_, i) => (

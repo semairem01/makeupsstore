@@ -34,30 +34,23 @@ body {
     position: fixed;
     inset: 0;
     z-index: -2;
-    /* İstersen bir fotoğraf da ekleyebilirsin: url('/images/bg-makeup.jpg') center/cover no-repeat, */
     background:
             radial-gradient(1200px 600px at 80% 20%, rgba(250, 232, 235, 0.46), transparent 60%),
             radial-gradient(900px 400px at 20% 80%, rgba(255,208,224,.45), transparent 60%),
             linear-gradient(180deg, #fff6f9 0%, #ffeef5 35%, #ffffff 100%);
-    /* Hafif yumuşatma */
     filter: blur(2px);
 }
 
-/* Alt kısım için geçişli blur overlay */
 .page-bottom-blur {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    height: 35vh;                 /* blur yüksekliği */
+    height: 35vh;
     z-index: -1;
     pointer-events: none;
-
-    /* Blur gerçek zamanlı arka planı yumuşatır */
     backdrop-filter: blur(14px) saturate(120%);
     -webkit-backdrop-filter: blur(14px) saturate(120%);
-
-    /* yukarı doğru şeffaflaşan degrade */
     background: linear-gradient(
             to top,
             rgba(241, 77, 83, 0.75),
@@ -66,7 +59,6 @@ body {
     );
 }
 
-/* İçerik her şeyin üstünde kalsın */
 .main-content,
 footer,
 .user-menu,
@@ -82,7 +74,6 @@ footer,
 .navbar {
     position: sticky;
     top: 0;
-   
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -125,7 +116,6 @@ footer,
 }
 
 /* Arama Bölümü */
-
 .elegant-search-wrapper {
     position: relative;
     width: 100%;
@@ -165,7 +155,6 @@ footer,
     transform: translateY(-1px);
 }
 
-/* Sol İkon */
 .search-icon {
     flex-shrink: 0;
     color: #eb2a54;
@@ -178,7 +167,6 @@ footer,
     opacity: 1;
 }
 
-/* Input */
 .elegant-search-input {
     flex: 1;
     border: none;
@@ -201,7 +189,6 @@ footer,
     display: none;
 }
 
-/* Sağ Buton */
 .elegant-search-btn {
     display: flex;
     align-items: center;
@@ -228,7 +215,7 @@ footer,
     transform: scale(0.97);
 }
 
-/* Responsive */
+/* Responsive Search */
 @media (max-width: 700px) {
     .elegant-search-wrapper {
         max-width: 80%;
@@ -301,7 +288,6 @@ footer,
     opacity: .85;
 }
 
-/* Butonlar */
 .btn-pill {
     background: rgba(255, 255, 255, .28);
     padding: clamp(5px, 1vw, 8px) clamp(10px, 1.8vw, 14px);
@@ -459,10 +445,6 @@ footer,
         width: 40px;
     }
 
-    .navbar-right a:not(.cart-link):not(.avatar-link) {
-        display: none;
-    }
-
     .btn-ghost,
     .btn-pill {
         padding: 4px 6px;
@@ -495,7 +477,6 @@ footer,
    Premium E-commerce Style
    ============================ */
 
-/* Trigger Button - Premium Avatar */
 .user-trigger {
     position: relative;
     display: inline-flex;
@@ -529,7 +510,6 @@ footer,
     opacity: 1;
 }
 
-/* Avatar in Trigger */
 .user-trigger .nav-avatar {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 2px #fff;
     transition: all 0.3s ease;
@@ -539,7 +519,6 @@ footer,
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2), 0 0 0 2.5px #fff;
 }
 
-/* Dropdown Menu Container */
 .user-menu {
     position: absolute;
     right: 0;
@@ -574,7 +553,6 @@ footer,
     transform: translateY(0) scale(1);
 }
 
-/* Decorative Arrow Pointer */
 .user-menu .menu-pointer {
     position: absolute;
     right: 26px;
@@ -589,7 +567,6 @@ footer,
     box-shadow: -2px -2px 6px rgba(178, 32, 109, 0.04);
 }
 
-/* Header with Avatar & Name */
 .user-menu-header {
     display: flex;
     align-items: center;
@@ -603,7 +580,6 @@ footer,
     position: relative;
 }
 
-/* Decorative Glow */
 .user-menu-header::before {
     content: '';
     position: absolute;
@@ -669,7 +645,6 @@ footer,
     letter-spacing: -0.3px;
 }
 
-/* Separator */
 .menu-sep {
     height: 1px;
     background: linear-gradient(90deg,
@@ -681,14 +656,12 @@ footer,
     margin: 8px 12px;
 }
 
-/* Menu List */
 .user-menu-list {
     list-style: none;
     padding: 8px 8px;
     margin: 0;
 }
 
-/* Menu Items - Premium Style */
 .menu-item {
     width: 100%;
     display: flex;
@@ -708,7 +681,6 @@ footer,
     overflow: hidden;
 }
 
-/* Hover Gradient Effect */
 .menu-item::before {
     content: '';
     position: absolute;
@@ -737,7 +709,6 @@ footer,
     transform: translateX(3px) scale(0.98);
 }
 
-/* Icons */
 .menu-item .mi-icon {
     width: 20px;
     height: 20px;
@@ -753,14 +724,12 @@ footer,
     transform: scale(1.08);
 }
 
-/* Label */
 .menu-item .mi-label {
     flex: 1;
     font-weight: 500;
     letter-spacing: -0.1px;
 }
 
-/* Arrow */
 .menu-item .mi-right {
     opacity: 0.3;
     font-size: 1.1rem;
@@ -774,14 +743,12 @@ footer,
     transform: translateX(3px);
 }
 
-/* Focus State */
 .menu-item:focus-visible {
     outline: 2px solid rgba(255, 105, 180, 0.5);
     outline-offset: 3px;
     box-shadow: 0 0 0 4px rgba(255, 105, 180, 0.1);
 }
 
-/* Logout Button - Danger Style */
 .menu-item.danger {
     color: #d32f2f;
     margin-top: 4px;
@@ -807,12 +774,10 @@ footer,
     filter: brightness(0) saturate(100%) invert(30%) sepia(70%) saturate(2500%) hue-rotate(340deg);
 }
 
-/* Bottom Padding */
 .user-menu > .menu-item.danger {
     margin: 4px 8px 8px 8px;
 }
 
-/* Hover Animation on Avatar */
 .user-menu.open .avatar-img {
     animation: pulse-avatar 2s ease-in-out infinite;
 }
@@ -830,15 +795,65 @@ footer,
     }
 }
 
-/* Mobile Optimizations */
-@media (max-width: 480px) {
+/* =========================
+   AUTH (Login / Register)
+   ========================= */
+
+/* Desktop varsayılan */
+.auth-desktop {
+    display: flex;
+    gap: 10px;
+}
+
+.auth-mobile {
+    display: none;
+}
+
+/* Mobile ikon stili */
+.auth-mobile {
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.28);
+    border: 1px solid rgba(255,255,255,.55);
+    backdrop-filter: blur(10px);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.auth-mobile:hover {
+    background: rgba(255,255,255,.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(178, 32, 109, 0.2);
+}
+
+.auth-mobile-icon {
+    font-size: 18px;
+    line-height: 1;
+    color: #fff;
+}
+
+/* =========================
+   MOBILE (≤ 768px) - TABLET
+   ========================= */
+@media (max-width: 768px) {
+    .auth-desktop {
+        display: none !important;
+    }
+
+    .auth-mobile {
+        display: inline-flex !important;
+    }
+
     .user-menu {
         width: min(300px, 92vw);
         border-radius: 18px;
     }
 
     .user-menu-header {
-        padding: 16px 14px 14px 14px;
+        padding: 16px 14px 14px;
         gap: 12px;
     }
 
@@ -852,7 +867,7 @@ footer,
     }
 
     .menu-item {
-        padding: 12px 12px;
+        padding: 12px;
         font-size: 0.9rem;
         gap: 12px;
     }
@@ -863,12 +878,29 @@ footer,
     }
 }
 
-/* Reduced Motion */
+/* =========================
+   MOBILE (≤ 480px) - PHONE
+   ========================= */
+@media (max-width: 480px) {
+    .auth-mobile {
+        width: 38px;
+        height: 38px;
+    }
+
+    .auth-mobile-icon {
+        font-size: 17px;
+    }
+}
+
+/* =========================
+   REDUCED MOTION
+   ========================= */
 @media (prefers-reduced-motion: reduce) {
     .user-menu,
     .menu-item,
     .user-trigger,
-    .avatar-img {
+    .avatar-img,
+    .auth-mobile {
         transition: none !important;
         animation: none !important;
     }

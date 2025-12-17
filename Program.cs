@@ -68,29 +68,31 @@ builder.Services.AddCors(options =>
 // DB Context (Dev: MSSQL, Prod: Postgres)
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    var cs = builder.Configuration.GetConnectionString("SqlServer");
-
-    if (!builder.Environment.IsDevelopment())
+    string cs;
+    
+    if (builder.Environment.IsDevelopment())
     {
-        cs = cs
-             ?? builder.Configuration["DATABASE_URL"]
-             ?? builder.Configuration["ConnectionStrings:SqlServer"];
-
-        if (string.IsNullOrWhiteSpace(cs))
-            throw new Exception("Connection string bulunamadı. Railway Variables'a DATABASE_URL ekli olmalı.");
-
-        if (cs.StartsWith("postgres://") || cs.StartsWith("postgresql://"))
-            cs = ConvertPostgresUrlToNpgsql(cs);
-
-        options.UseNpgsql(cs);
+        cs = builder.Configuration.GetConnectionString("Postgres")
+             ?? builder.Configuration.GetConnectionString("SqlServer")
+             ?? throw new Exception("Development ortamında connection string bulunamadı.");
+        
+        // 🔍 DEBUG: Hangi connection string kullanılıyor?
+        Console.WriteLine("🔍 DEVELOPMENT - Connection String: " + cs);
     }
     else
     {
-        if (string.IsNullOrWhiteSpace(cs))
-            throw new Exception("Development için ConnectionStrings:SqlServer (appsettings.json) bulunamadı.");
-
-        options.UseSqlServer(cs);
+        cs = builder.Configuration["DATABASE_URL"]
+             ?? builder.Configuration.GetConnectionString("Postgres")
+             ?? throw new Exception("Production ortamında connection string bulunamadı.");
+        
+        Console.WriteLine("🔍 PRODUCTION - Connection String: " + 
+                          (cs.Contains("railway") ? "Railway PostgreSQL" : cs));
     }
+
+    if (cs.StartsWith("postgres://") || cs.StartsWith("postgresql://"))
+        cs = ConvertPostgresUrlToNpgsql(cs);
+
+    options.UseNpgsql(cs);
 });
 
 builder.Services.Configure<ApiBehaviorOptions>(opt =>
@@ -189,6 +191,16 @@ builder.Services.AddSingleton<GeoFileStore>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+// 🔎 DEBUG: Hangi DB'ye bağlıyım?
+using (var scope = app.Services.CreateScope())
+{
+    var cfg = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+    Console.WriteLine("ENV: " + app.Environment.EnvironmentName);
+    Console.WriteLine("CS (SqlServer key): " + cfg.GetConnectionString("SqlServer"));
+    Console.WriteLine("DATABASE_URL: " + cfg["DATABASE_URL"]);
+}
+
 
 // ✅ Health endpoint (Run’dan önce!)
 app.MapGet("/health", () => Results.Ok("OK"));

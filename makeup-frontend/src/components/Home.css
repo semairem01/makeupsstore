@@ -342,3 +342,63 @@
         margin-bottom: 16px;
     }
 }
+
+/* ✅ PROMOS mobile: yan yana kalsın ama küçülsün */
+@media (max-width: 600px){
+    .promos{
+        grid-template-columns: repeat(2, minmax(0, 1fr)); /* yan yana kalır */
+        gap: 10px;
+    }
+
+    .promo-card{
+        padding: 12px;
+        gap: 10px;
+        border-radius: 14px;
+        margin-top: 10px;
+        box-shadow: 0 6px 18px rgba(0,0,0,.05);
+    }
+    .promo-card p{
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .promo-card h3{
+        font-size: 16px;
+        margin: 0 0 2px;
+        line-height: 1.15;
+    }
+
+    .promo-card p{
+        font-size: 12px;
+        margin: 0 0 6px;
+        line-height: 1.25;
+    }
+
+    .promo-card .link{
+        font-size: 12px;
+    }
+
+    /* ✅ görseli küçült: fixed 280px yerine esnek */
+    .promo-card img{
+        width: 88px;
+        height: 88px;
+        border-radius: 10px;
+        flex: 0 0 auto;
+        object-fit: cover;
+    }
+}
+
+/* ekstra küçük ekranlarda da yan yana kalsın ama daha da kompakt */
+@media (max-width: 380px){
+    .promo-card img{
+        width: 74px;
+        height: 74px;
+    }
+    .promo-card{
+        padding: 10px;
+    }
+    .promo-card h3{ font-size: 15px; }
+    .promo-card p{ font-size: 11px; }
+}
+

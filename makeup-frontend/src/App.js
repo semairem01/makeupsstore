@@ -6,7 +6,8 @@ import Register from "./auth/Register";
 import Login from "./auth/Login";
 import { Routes, Route, Link, Navigate, useNavigate } from "react-router-dom";
 import "./App.css";
-import { FaShoppingCart } from "react-icons/fa";
+import { FaShoppingCart, FaSignInAlt } from "react-icons/fa";
+import { FaUser } from "react-icons/fa";
 import CategoryMenu from "./components/CategoryMenu";
 import CartPage from "./components/CartPage";
 import OrdersPage from "./components/OrdersPage";
@@ -225,10 +226,19 @@ function App() {
                 <div className="navbar-right">
                     {isAdmin && <Link to="/admin">Admin Panel</Link>}
 
+                    
                     {!token && (
                         <>
-                            <Link to="/login" className="btn-pill">Login</Link>
-                            <Link to="/register" className="btn-pill">Register</Link>
+                            {/* Desktop: yazılar */}
+                            <div className="auth-desktop">
+                                <Link to="/login" className="btn-pill">Login</Link>
+                                <Link to="/register" className="btn-pill">Register</Link>
+                            </div>
+
+                            {/* Mobile: ikon */}
+                            <Link to="/login" className="auth-mobile" aria-label="Giriş Yap">
+                                <FaSignInAlt className="auth-mobile-icon" />
+                            </Link>
                         </>
                     )}
 

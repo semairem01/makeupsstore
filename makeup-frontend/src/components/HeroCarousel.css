@@ -130,5 +130,35 @@
 
 /* Mobil: yükseklik kısıtla */
 @media (max-width: 768px){
-    .hero-carousel{ max-height: 520px; }
+    /* Banner: daha uzun tutulur */
+    .hero-carousel{
+        max-height: 400px;
+        aspect-ratio: 16 / 11;
+    }
+
+    /* Banner içindeki yazılar küçülsün */
+    .hc-title{
+        font-size: 24px !important;
+        line-height: 1.2;
+    }
+    .hc-sub{
+        font-size: 13px !important;
+    }
+    .hc-kicker{
+        font-size: 10px !important;
+        height: 32px;
+        padding: 0 12px;
+        width: clamp(200px, 80vw, 400px);
+    }
+    .hc-cta{
+        height: 40px;
+        font-size: 14px;
+        width: clamp(200px, 80vw, 400px);
+    }
+
+    /* Content daha alta */
+    .hc-content{
+        bottom: 4%;
+        gap: 6px;
+    }
 }
