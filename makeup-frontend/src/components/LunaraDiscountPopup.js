@@ -140,14 +140,20 @@ const LunaraDiscountPopup = () => {
     };
 
     const handleClose = () => {
-        // test için ister kalıcı bırak ister kaldır
         console.log("Lunara popup close clicked");
 
-        sessionStorage.setItem("lunaraSeen", "true");
-        if (discount) {
-            localStorage.setItem("lunaraDiscount", JSON.stringify(discount));
-        }
+        // Önce popup'ı kapat
         setIsOpen(false);
+
+        // Sonra storage'a kaydet
+        try {
+            sessionStorage.setItem("lunaraSeen", "true");
+            if (discount) {
+                localStorage.setItem("lunaraDiscount", JSON.stringify(discount));
+            }
+        } catch (error) {
+            console.error("Storage error:", error);
+        }
     };
 
     const handleClaim = () => {
@@ -205,7 +211,7 @@ const LunaraDiscountPopup = () => {
                 <button
                     type="button"
                     onClick={handleClose}
-                    className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all hover:scale-110 border border-white/20"
+                    className="absolute top-4 right-4 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all hover:scale-110 border border-white/20"
                 >
                     <X size={20} className="text-white" />
                 </button>

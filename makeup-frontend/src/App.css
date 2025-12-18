@@ -242,6 +242,9 @@ footer,
     }
 }
 
+.navbar-right > a[href="/admin"] {
+    display: inline-block;
+}
 @media (max-width: 400px) {
     .elegant-search-container {
         height: 40px;
@@ -815,9 +818,7 @@ footer,
     justify-content: center;
     width: 40px;
     height: 40px;
-    border-radius: 999px;
-    background: rgba(255,255,255,.28);
-    border: 1px solid rgba(255,255,255,.55);
+    
     backdrop-filter: blur(10px);
     text-decoration: none;
     transition: all 0.3s ease;
@@ -877,6 +878,8 @@ footer,
         height: 18px;
     }
 }
+.admin-desktop-link {
+}
 
 /* =========================
    MOBILE (≤ 480px) - PHONE
@@ -889,6 +892,9 @@ footer,
 
     .auth-mobile-icon {
         font-size: 17px;
+    }
+    .admin-desktop-link {
+        display: none !important;
     }
 }
 

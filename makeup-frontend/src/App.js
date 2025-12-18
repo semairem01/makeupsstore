@@ -248,7 +248,8 @@ function App() {
                             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
                         </Link>
                     </div>
-
+                    
+                    
                     {/* Avatar & Dropdown */}
                     {token && (
                         <div
@@ -288,6 +289,14 @@ function App() {
                                     { label: "Password",  tab: "password",  icon: "/icons/lock.png" },
                                 ];
 
+                                if (isAdmin) {
+                                    items.unshift({
+                                        label: "Admin Panel",
+                                        link: "/admin",
+                                        icon: "/icons/admin.png" // veya başka bir ikon
+                                    });
+                                }
+
                                 return (
                                     <div
                                         role="menu"
@@ -321,21 +330,20 @@ function App() {
                                         {/* Liste */}
                                         <ul className="user-menu-list">
                                             {items.map((it) => (
-                                                <li key={it.tab}>
+                                                <li key={it.tab || it.link}>
                                                     <button
                                                         role="menuitem"
                                                         className="menu-item"
                                                         onClick={() => {
                                                             setMenuOpen(false);
-                                                            navigate(`/profile?tab=${it.tab}`);
+                                                            if (it.link) {
+                                                                navigate(it.link);
+                                                            } else {
+                                                                navigate(`/profile?tab=${it.tab}`);
+                                                            }
                                                         }}
                                                     >
-                                                        <img
-                                                            src={it.icon}
-                                                            alt=""
-                                                            className="mi-icon"
-                                                            onError={(e) => (e.currentTarget.style.display = "none")}
-                                                        />
+                                                        <img src={it.icon} alt="" className="mi-icon" />
                                                         <span className="mi-label">{it.label}</span>
                                                         <span className="mi-right">›</span>
                                                     </button>

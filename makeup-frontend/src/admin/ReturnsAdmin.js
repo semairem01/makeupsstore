@@ -19,7 +19,7 @@ const RETURN_STATUS = {
 const tl = (n) => Number(n || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
 
 export default function ReturnsAdmin() {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || "demo-token";
     const [returns, setReturns] = useState([]);
     const [filter, setFilter] = useState("Requested");
     const [loading, setLoading] = useState(false);
@@ -160,6 +160,466 @@ export default function ReturnsAdmin() {
 
     return (
         <div className="returns-admin-wrap">
+            <style>{`
+                /* ReturnsAdmin Mobile Optimized CSS */
+                .returns-admin-wrap {
+                    max-width: 1400px;
+                    margin: 0 auto;
+                    padding: 24px;
+                    box-sizing: border-box;
+                }
+
+                .returns-admin-wrap * {
+                    box-sizing: border-box;
+                }
+
+                .returns-header {
+                    margin-bottom: 32px;
+                }
+
+                .returns-header h2 {
+                    margin: 0 0 16px 0;
+                    font-size: 28px;
+                    color: #2b2b2b;
+                }
+
+                .filter-pills {
+                    display: flex;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
+                }
+
+                .filter-pill {
+                    padding: 8px 16px;
+                    border: 2px solid #e0e0e0;
+                    background: white;
+                    border-radius: 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    white-space: nowrap;
+                    flex-shrink: 0;
+                }
+
+                .filter-pill:hover {
+                    border-color: #df8eb6;
+                    background: #fff4f9;
+                }
+
+                .filter-pill.active {
+                    background: linear-gradient(135deg, #df8eb6, #c77ba1);
+                    color: white;
+                    border-color: #df8eb6;
+                }
+
+                .loading {
+                    text-align: center;
+                    padding: 40px;
+                    color: #666;
+                    font-size: 16px;
+                }
+
+                .empty-state {
+                    text-align: center;
+                    padding: 60px 20px;
+                    background: #f9f9f9;
+                    border-radius: 16px;
+                }
+
+                .empty-state .emoji {
+                    font-size: 64px;
+                    display: block;
+                    margin-bottom: 16px;
+                }
+
+                .empty-state p {
+                    color: #666;
+                    font-size: 16px;
+                }
+
+                .returns-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+                    gap: 20px;
+                }
+
+                .return-card {
+                    background: white;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                    overflow: hidden;
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
+
+                .return-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+                }
+
+                .card-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 16px 20px;
+                    background: linear-gradient(135deg, #f9f9f9, #fff);
+                    border-bottom: 2px solid #f0f0f0;
+                    gap: 12px;
+                }
+
+                .card-header-left {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+
+                .order-id {
+                    font-weight: 700;
+                    font-size: 16px;
+                    color: #2b2b2b;
+                }
+
+                .return-code {
+                    font-size: 11px;
+                    color: #ffffff;
+                    background: #df8eb6;
+                    padding: 4px 8px;
+                    border-radius: 8px;
+                    font-family: 'Courier New', monospace;
+                    font-weight: 600;
+                    display: inline-block;
+                }
+
+                .status-badge {
+                    padding: 6px 12px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    white-space: nowrap;
+                }
+
+                .status-pending { background: #fff4e6; color: #d97706; }
+                .status-approved { background: #dcfce7; color: #16a34a; }
+                .status-rejected { background: #ffe8ed; color: #c5224b; }
+                .status-transit { background: #eef2ff; color: #3d52d5; }
+                .status-received { background: #e0f2fe; color: #0284c7; }
+                .status-completed { background: #f0fdf4; color: #15803d; }
+
+                .card-body {
+                    padding: 20px;
+                }
+
+                .info-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    margin-bottom: 12px;
+                    padding-bottom: 8px;
+                    border-bottom: 1px solid #f5f5f5;
+                }
+
+                .info-row:last-child {
+                    border-bottom: none;
+                    margin-bottom: 0;
+                }
+
+                .info-row .label {
+                    font-size: 13px;
+                    color: #666;
+                    font-weight: 600;
+                }
+
+                .info-row .value {
+                    font-size: 14px;
+                    color: #2b2b2b;
+                    text-align: right;
+                    max-width: 60%;
+                    word-break: break-word;
+                }
+
+                .info-row .value.reason {
+                    font-style: italic;
+                    color: #555;
+                }
+
+                .info-row .value.refund {
+                    font-weight: 700;
+                    color: #16a34a;
+                    font-size: 16px;
+                }
+
+                .card-actions {
+                    padding: 16px 20px;
+                    background: #fafafa;
+                    display: flex;
+                    gap: 8px;
+                    justify-content: flex-end;
+                }
+
+                .btn {
+                    padding: 10px 20px;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .btn-primary {
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                }
+
+                .btn-success { background: #16a34a; color: white; }
+                .btn-refund { background: #0284c7; color: white; }
+                .btn-danger { background: #ef4444; color: white; }
+                .btn-outline { background: white; border: 2px solid #e0e0e0; color: #666; }
+
+                .modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.6);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 2000;
+                    padding: 20px;
+                }
+
+                .modal-content {
+                    background: white;
+                    border-radius: 20px;
+                    padding: 32px;
+                    max-width: 800px;
+                    width: 100%;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                }
+
+                .modal-content h3 {
+                    margin: 0 0 24px 0;
+                    font-size: 24px;
+                    color: #2b2b2b;
+                }
+
+                .modal-section {
+                    margin-bottom: 24px;
+                    padding-bottom: 20px;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+
+                .modal-section strong {
+                    display: block;
+                    margin-bottom: 8px;
+                    color: #2b2b2b;
+                    font-size: 14px;
+                }
+
+                .modal-section p {
+                    margin: 4px 0;
+                    color: #555;
+                    line-height: 1.6;
+                }
+
+                .modal-section textarea {
+                    width: 100%;
+                    padding: 12px;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 8px;
+                    font-family: inherit;
+                    font-size: 14px;
+                    resize: vertical;
+                }
+
+                .items-section {
+                    background: #f9f9f9;
+                    padding: 16px;
+                    border-radius: 12px;
+                }
+
+                .items-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    margin-top: 12px;
+                }
+
+                .item-card {
+                    display: grid;
+                    grid-template-columns: 60px 1fr auto;
+                    gap: 12px;
+                    align-items: center;
+                    background: white;
+                    padding: 12px;
+                    border-radius: 8px;
+                    border: 2px solid #f0f0f0;
+                }
+
+                .item-card img {
+                    width: 60px;
+                    height: 60px;
+                    object-fit: cover;
+                    border-radius: 8px;
+                }
+
+                .item-info {
+                    flex: 1;
+                }
+
+                .item-name {
+                    font-weight: 600;
+                    font-size: 14px;
+                    color: #2b2b2b;
+                    margin-bottom: 4px;
+                }
+
+                .item-meta {
+                    font-size: 12px;
+                    color: #666;
+                }
+
+                .item-total {
+                    font-weight: 700;
+                    color: #2b2b2b;
+                    font-size: 16px;
+                }
+
+                .modal-actions {
+                    display: flex;
+                    gap: 12px;
+                    justify-content: flex-end;
+                    margin-top: 24px;
+                    padding-top: 20px;
+                    border-top: 2px solid #f0f0f0;
+                }
+
+                /* ===== MOBILE RESPONSIVE ===== */
+                @media (max-width: 768px) {
+                    .returns-admin-wrap {
+                        padding: 16px;
+                    }
+
+                    .returns-header h2 {
+                        font-size: 24px;
+                    }
+
+                    .filter-pills {
+                        flex-wrap: nowrap;
+                        padding-bottom: 8px;
+                    }
+
+                    .filter-pills::-webkit-scrollbar {
+                        height: 4px;
+                    }
+
+                    .filter-pills::-webkit-scrollbar-thumb {
+                        background: #df8eb6;
+                        border-radius: 2px;
+                    }
+
+                    .returns-grid {
+                        grid-template-columns: 1fr;
+                    }
+
+                    .card-header {
+                        flex-direction: column;
+                        align-items: flex-start;
+                    }
+
+                    .status-badge {
+                        align-self: flex-start;
+                    }
+
+                    .info-row {
+                        flex-direction: column;
+                        gap: 4px;
+                    }
+
+                    .info-row .value {
+                        text-align: left;
+                        max-width: 100%;
+                    }
+
+                    .card-actions {
+                        flex-direction: column;
+                    }
+
+                    .btn {
+                        width: 100%;
+                    }
+
+                    .modal-overlay {
+                        padding: 0;
+                        align-items: flex-end;
+                    }
+
+                    .modal-content {
+                        width: 100%;
+                        max-width: 100%;
+                        border-radius: 24px 24px 0 0;
+                        padding: 24px 16px;
+                        max-height: 95vh;
+                    }
+
+                    .item-card {
+                        grid-template-columns: 60px 1fr;
+                    }
+
+                    .item-total {
+                        grid-column: 2;
+                        text-align: right;
+                        margin-top: 4px;
+                        padding-top: 8px;
+                        border-top: 1px solid #f0f0f0;
+                    }
+
+                    .modal-actions {
+                        flex-direction: column-reverse;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .returns-admin-wrap {
+                        padding: 12px;
+                    }
+
+                    .returns-header h2 {
+                        font-size: 22px;
+                    }
+
+                    .filter-pill {
+                        padding: 6px 12px;
+                        font-size: 12px;
+                    }
+
+                    .card-header {
+                        padding: 14px 16px;
+                    }
+
+                    .card-body {
+                        padding: 16px;
+                    }
+
+                    .order-id {
+                        font-size: 15px;
+                    }
+
+                    .status-badge {
+                        padding: 6px 12px;
+                        font-size: 11px;
+                    }
+                }
+            `}</style>
+
             <div className="returns-header">
                 <h2>Return Management</h2>
                 <div className="filter-pills">
@@ -198,8 +658,21 @@ export default function ReturnsAdmin() {
                                         )}
                                     </div>
                                     <span className={`status-badge ${getStatusClass(ret.returnStatus)}`}>
-                                        {RETURN_STATUS[ret.returnStatus]}
-                                    </span>
+        {RETURN_STATUS[ret.returnStatus]}
+    </span>
+                                </div>
+
+                                // YENİ:
+                                <div className="card-header">
+                                    <div className="card-header-left">
+                                        <span className="order-id">Order #{ret.id}</span>
+                                        {ret.returnCode && (
+                                            <span className="return-code">{ret.returnCode}</span>
+                                        )}
+                                    </div>
+                                    <span className={`status-badge ${getStatusClass(ret.returnStatus)}`}>
+        {RETURN_STATUS[ret.returnStatus]}
+    </span>
                                 </div>
 
                                 <div className="card-body">
@@ -261,10 +734,9 @@ export default function ReturnsAdmin() {
                 </div>
             )}
 
-            {/* Review Modal */}
             {reviewModal && orderDetails && (
                 <div className="modal-overlay" onClick={() => { setReviewModal(null); setOrderDetails(null); }}>
-                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <h3>Review Return Request</h3>
 
                         <div className="modal-section">
