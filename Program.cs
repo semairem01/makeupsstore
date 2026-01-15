@@ -53,8 +53,8 @@ builder.Services.AddCors(options =>
                 // netlify preview + production url'leri
                 if (origin.EndsWith(".netlify.app")) return true;
 
-                // (varsa) kendi domainini buraya ekle
-                // if (origin == "https://www.senin-domainin.com") return true;
+                if (origin == "https://lunarabeautytr.com") return true;
+                if (origin == "https://www.lunarabeautytr.com") return true;;
 
                 return false;
             })
