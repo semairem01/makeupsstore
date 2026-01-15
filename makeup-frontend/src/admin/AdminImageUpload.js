@@ -2,6 +2,7 @@
 import axios from "axios";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import "./AdminImageUpload.css";
+import { API_BASE_URL, API_ENDPOINTS } from "../config";
 
 export default function AdminImageUpload({
                                              productId,
@@ -25,7 +26,7 @@ export default function AdminImageUpload({
         try {
             const params = variantId ? `?variantId=${variantId}` : '';
             const res = await axios.get(
-                `http://localhost:5011/api/admin/products/${productId}/images${params}`,
+                `${API_ENDPOINTS.PRODUCT_IMAGES(productId)}${params}`,
                 { headers: authHeaders }
             );
             setImages(res.data || []);
@@ -48,7 +49,7 @@ export default function AdminImageUpload({
 
         try {
             const res = await axios.post(
-                `http://localhost:5011/api/admin/products/${productId}/images${params}`,
+                `${API_ENDPOINTS.PRODUCT_IMAGES(productId)}${params}`,
                 formData,
                 {
                     headers: {
@@ -77,7 +78,7 @@ export default function AdminImageUpload({
         // Backend'e sıralama kaydet
         try {
             await axios.post(
-                `http://localhost:5011/api/admin/products/${productId}/images/reorder`,
+                API_ENDPOINTS.PRODUCT_IMAGES_REORDER(productId),
                 {
                     order: newOrder.map((img, i) => ({
                         id: img.id,
@@ -103,7 +104,7 @@ export default function AdminImageUpload({
 
         try {
             await axios.delete(
-                `http://localhost:5011/api/admin/products/images/${id}`,
+                API_ENDPOINTS.DELETE_PRODUCT_IMAGE(id),
                 { headers: authHeaders }
             );
             setImages((prev) => prev.filter((x) => x.id !== id));
@@ -158,7 +159,7 @@ export default function AdminImageUpload({
                                                 {...provided.dragHandleProps}
                                             >
                                                 <img
-                                                    src={`http://localhost:5011${img.url}`}
+                                                    src={img.url?.startsWith("http") ? img.url : `${API_BASE_URL}${img.url}`}
                                                     alt={`Görsel ${index + 1}`}
                                                     onError={(e) => {
                                                         e.target.src = 'https://via.placeholder.com/120x120?text=Yok';
