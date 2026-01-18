@@ -267,3 +267,50 @@
         font-size: 13px;
     }
 }
+
+/* ✅ MOBIL: 2 kolon + daha büyük görsel + daha dengeli kart */
+@media (max-width: 560px) {
+    .product-grid{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .product-card{
+        border-radius: 16px;
+    }
+
+    /* Fotoğraf alanını büyüt */
+    .product-image{
+        aspect-ratio: 4 / 5;      /* kare kalsın (istersen 4/5 de yapabiliriz) */
+        min-height: 170px;        /* ✅ görsel küçülmesin */
+        object-fit: cover;
+        background: #fff;
+    }
+
+    /* Kart içini biraz sıkıştır (kart uzamasın) */
+    .product-info{
+        padding: 10px;
+    }
+
+    .product-brand{
+        font-size: 11px;
+        margin: 0 0 6px 0;
+    }
+
+    .product-name{
+        font-size: 13px;
+        -webkit-line-clamp: 2;    /* max 2 satır */
+        min-height: auto;         /* gereksiz boy uzatmayı kes */
+        margin-bottom: 6px;
+    }
+
+    .product-price{
+        margin-bottom: 10px;
+    }
+
+    .add-to-cart-btn{
+        padding: 10px 12px;
+        font-size: 12px;
+        border-radius: 12px;
+    }
+}

@@ -62,7 +62,7 @@
 }
 @media (max-width:900px){
     .featured-shelf .fs-grid{
-        grid-template-columns: repeat(3, 1fr); /* ✅ Mobilde kesin 3 kolon */
+        grid-template-columns: repeat(2, 1fr); /* ✅ Mobilde kesin 3 kolon */
         column-gap: 10px;
         row-gap: 14px;
     }
