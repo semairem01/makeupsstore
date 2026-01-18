@@ -62,16 +62,9 @@
 }
 @media (max-width:900px){
     .featured-shelf .fs-grid{
-        grid-template-columns: repeat(2, 1fr); /* ✅ Mobilde kesin 3 kolon */
-        column-gap: 10px;
-        row-gap: 14px;
-    }
-}
-@media (max-width:560px){
-    .featured-shelf .fs-grid{
-        grid-template-columns: repeat(3, 1fr); /* ✅ Küçük ekranda da 3 kolon */
-        column-gap: 8px;
-        row-gap: 12px;
+        grid-template-columns: repeat(2, 1fr); /* ✅ Mobilde 2 kolon */
+        column-gap: 14px;
+        row-gap: 16px;
     }
 }
 
