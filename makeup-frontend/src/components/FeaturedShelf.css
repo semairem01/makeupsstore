@@ -5,16 +5,16 @@
 
 .featured-shelf aside {
     background-image:
-    linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.35)),
-    url("/public/images/filterbg.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 182, 193, 0.4);
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(178, 32, 109, 0.08);
+            linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.35)),
+            url("/public/images/filterbg.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 182, 193, 0.4);
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(178, 32, 109, 0.08);
 }
 
 .shelf-head{
@@ -22,7 +22,7 @@
 }
 .shelf-head h2{ margin:0; }
 
-.shelf-tabs{ display:flex; flex-wrap:wrap; gap:8px; }
+.shelf-tabs{ display:flex; flex-wrap:wrap; gap:8px; justify-content: center; }
 .shelf-tabs .tab{
     padding:8px 12px; border-radius:999px; border:1px solid #f3c7dd; background:#fff;
     cursor:pointer; font-weight:600; color:#70224b; transition:all .2s ease;
@@ -38,20 +38,42 @@
 }
 .shelf-body > *{ min-width:0; }
 
+/* ✅ Tablet: aside tam genişlik alsın */
 @media (max-width:1100px){
-    .shelf-body{ grid-template-columns:1fr; }
+    .shelf-body{
+        grid-template-columns:1fr;
+    }
 }
 
 .grid-wrap{ display:flex; flex-direction:column; gap:12px; min-width:0; width:100%; flex:1 1 auto; }
 
+/* ✅ Desktop ve Tablet için grid */
 .featured-shelf .fs-grid{
     display:grid;
     grid-template-columns: repeat(4, minmax(240px, 1fr));
     column-gap:32px; row-gap:36px;
 }
-@media (max-width:1280px){ .featured-shelf .fs-grid{ grid-template-columns: repeat(3, minmax(220px,1fr)); } }
-@media (max-width:900px){  .featured-shelf .fs-grid{ grid-template-columns: repeat(2, minmax(220px,1fr)); } }
-@media (max-width:560px){  .featured-shelf .fs-grid{ grid-template-columns: 1fr; } }
+@media (max-width:1280px){
+    .featured-shelf .fs-grid{
+        grid-template-columns: repeat(3, minmax(200px,1fr));
+        column-gap: 24px;
+        row-gap: 28px;
+    }
+}
+@media (max-width:900px){
+    .featured-shelf .fs-grid{
+        grid-template-columns: repeat(3, 1fr); /* ✅ Mobilde kesin 3 kolon */
+        column-gap: 10px;
+        row-gap: 14px;
+    }
+}
+@media (max-width:560px){
+    .featured-shelf .fs-grid{
+        grid-template-columns: repeat(3, 1fr); /* ✅ Küçük ekranda da 3 kolon */
+        column-gap: 8px;
+        row-gap: 12px;
+    }
+}
 
 .p-card{
     border:1px solid #f3d9e5; border-radius:16px; overflow:hidden; background:#fff;
@@ -80,12 +102,12 @@
 }
 
 .fp-heading{
-    font-family: 'Parisienne', cursive;  /* 👈 yeni */
+    font-family: 'Parisienne', cursive;
     font-size:clamp(33px,4.5vw,46px);
     color:#f1798a;
     margin:0;
-    letter-spacing: 0.5px;  /* script font için hafif */
-    font-weight: 400;       /* Parisienne tek ağırlık */
+    letter-spacing: 0.5px;
+    font-weight: 400;
 }
 .fp-title{
     width:100vw;
@@ -99,40 +121,36 @@
     background-attachment:fixed;
     box-shadow:0 12px 34px rgba(178,32,109,.15), inset 0 0 14px rgba(255,255,255,.3);
 }
-.fp-heading{ font-size:clamp(33px,4.5vw,46px); color:#f1798a; margin:0; letter-spacing:1px; }
 .fp-sub{ font-size:15px; color:#945b70; margin-top:8px; font-weight:400; opacity:.9; }
 .price-range{
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
     height: 8px;
-    background: var(--track, #eee);   /* track rengi */
+    background: var(--track, #eee);
     border-radius: 999px;
     outline: none;
 }
 
-/* WebKit: track */
 .price-range::-webkit-slider-runnable-track{
     height: 8px;
     background: var(--track, #eee);
     border-radius: 999px;
 }
 
-/* WebKit: thumb */
 .price-range::-webkit-slider-thumb{
     -webkit-appearance: none;
     appearance: none;
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: var(--thumb, #ec4899); /* başlık rengi */
+    background: var(--thumb, #ec4899);
     border: 2px solid #fff;
     box-shadow: 0 2px 6px rgba(0,0,0,.15);
-    margin-top: -5px; /* track ortalamak için */
+    margin-top: -5px;
     cursor: pointer;
 }
 
-/* Firefox: track + progress (dolu kısım) */
 .price-range::-moz-range-track{
     height: 8px;
     background: var(--track, #eee);
@@ -154,18 +172,16 @@
     cursor: pointer;
 }
 
-
 .range-min{
-    --track: #fde2f3;  /* açık pembe track */
-    --thumb: #ec4899;  /* pembe thumb */
-    --fill: #f9eeb8;  /* Firefox’ta dolu kısım */
+    --track: #fde2f3;
+    --thumb: #ec4899;
+    --fill: #f9eeb8;
 }
 
-
 .range-max{
-    --track: #fde2f3; 
-    --thumb: #ec4899;  /* pembe thumb */
-    --fill: #f9eeb8;  /* Firefox dolu kısım */
+    --track: #fde2f3;
+    --thumb: #ec4899;
+    --fill: #f9eeb8;
 }
 
 /* Mobile üst bar: Filters butonu */
@@ -230,14 +246,43 @@
 /* ✅ Mobile Drawer davranışı */
 @media (max-width: 900px){
     .drawer-desktop-only{ display:none; }
-    /* ✅ grid üstündeki Filters butonu mobile’da görünsün */
+
+    /* ✅ Filters butonu görünsün */
     .mobile-filter-bar{
         display:block;
     }
 
+    /* ✅ Aside'ı gizle (drawer açıkken gösterilecek) */
+    .featured-shelf aside.filter-drawer{
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        width: 100%;
+        max-width: none;
+        height: min(72vh, 560px);
+        max-height: min(72vh, 560px);
+        border-radius: 18px 18px 0 0;
+        overflow: hidden;
+        padding: 14px;
+        z-index: 999999;
+        background-attachment: scroll;
+
+        /* ✅ KAPALI DURUMDA TAMAMEN GİZLE */
+        transform: translateY(110%);
+        transition: transform .25s ease;
+        pointer-events: none; /* Kapalıyken tıklanamaz */
+    }
+
+    /* ✅ Açıkken göster */
+    .featured-shelf aside.filter-drawer.open{
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
     /* ✅ backdrop */
     .filter-backdrop{
-        display:block;
         position: fixed;
         inset: 0;
         background: rgba(0,0,0,.35);
@@ -247,40 +292,6 @@
         touch-action: none;
     }
 
-    /* ✅ drawer (aside) */
-    .featured-shelf aside.filter-drawer{
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: env(safe-area-inset-bottom, 0);
-        top: auto;
-
-        width: 100%;
-        max-width: none;
-
-        /* premium ölçü */
-        height: min(72vh, 560px);
-        max-height: min(72vh, 560px);
-
-        border-radius: 18px 18px 0 0;
-        overflow: hidden;              /* önemli */
-        padding: 14px;
-
-        z-index: 999999;
-
-        /* iOS/Android’de fixed bg tuhaf durmasın */
-        background-attachment: scroll;
-
-        /* kapalıyken aşağıda dursun */
-        transform: translateY(110%);
-        transition: transform .25s ease;
-    }
-
-    /* ✅ açıkken ekrana gelsin (SENDE EKSİK OLAN BU!) */
-    .featured-shelf aside.filter-drawer.open{
-        transform: translateY(0);
-    }
-
     /* ✅ drawer header */
     .drawer-top{ display:flex; }
 
@@ -288,7 +299,7 @@
     .drawer-scroll{
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain; /* ✅ sayfaya scroll taşmasın */
+        overscroll-behavior: contain;
         height: calc(100% - 70px);
     }
 
@@ -298,14 +309,15 @@
         left: 0;
         right: 0;
         bottom: 0;
-
         background: rgba(255,255,255,.78);
         backdrop-filter: blur(10px);
         border-top: 1px solid rgba(255, 182, 193, 0.35);
         padding: 12px 14px env(safe-area-inset-bottom, 10px);
     }
+
+    /* ✅ Grid'e tam genişlik ver */
+    .grid-wrap {
+        width: 100%;
+        padding: 0 8px;
+    }
 }
-
-
-
-

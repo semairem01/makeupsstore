@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { API_ENDPOINTS } from "../config";
 import "./FavHeart.css";
+import "./ProductList.css";
 import { API_BASE_URL } from "../config";
 
 function ProductList({ onAdded }) {
@@ -25,8 +26,6 @@ function ProductList({ onAdded }) {
             location.pathname === "/sale" || params.get("discounted") === "true";
         const q = (params.get("q") || "").trim();
 
-        // 🔁 ——— YENİ: expanded liste uçları ———
-        // Not: Her durumda expanded kullanıyoruz ki varyantlar ayrı kart çıksın.
         const search = new URLSearchParams();
         if (q) search.set("q", q);
         if (categoryId) search.set("categoryId", categoryId);
@@ -39,11 +38,9 @@ function ProductList({ onAdded }) {
         axios
             .get(url)
             .then((res) => {
-                // DTO: ProductListItemDto -> mevcut render yapısına map
-                // id = productId, variantId opsiyonel
                 const mapped =
                     (res.data || []).map((x) => ({
-                        id: x.productId, // ⚠️ favoriler ve sepete ekle product bazında
+                        id: x.productId,
                         variantId: x.variantId ?? null,
                         name: x.name,
                         brand: x.brand,
@@ -52,7 +49,6 @@ function ProductList({ onAdded }) {
                         discountPercent: x.discountPercent,
                         finalPrice: x.finalPrice,
                         isActive: x.isActive,
-                        // opsiyonel görselleştirmelerde lazım olursa:
                         shadeFamily: x.shadeFamily,
                         hexColor: x.hexColor,
                     })) ?? [];
@@ -77,7 +73,6 @@ function ProductList({ onAdded }) {
         }
     }, [categoryId, token, location]);
 
-    // 🔁 ——— YENİ: varyantı da taşı ———
     const goToDetail = (productId, variantId) => {
         if (variantId) {
             navigate(`/product/${productId}?variantId=${variantId}`);
@@ -147,33 +142,23 @@ function ProductList({ onAdded }) {
         }
     };
 
-    if (loading) return <div>Yükleniyor...</div>;
-    if (error) return <div>{error}</div>;
+    if (loading) return <div className="product-list-loading">Yükleniyor...</div>;
+    if (error) return <div className="product-list-error">{error}</div>;
 
     const q = new URLSearchParams(location.search).get("q");
 
     return (
-        <div style={{ padding: "1rem" }}>
+        <div className="product-list-container">
             {q && (
-                <div
-                    style={{
-                        width: "100%",
-                        marginBottom: "1rem",
-                        fontSize: "16px",
-                        fontWeight: "500",
-                        color: "#444",
-                    }}
-                >
-                    “{q}” için sonuçlar
+                <div className="search-results-header">
+                    "{q}" için sonuçlar
                     {products.length === 0 && (
-                        <span style={{ color: "#999", marginLeft: 8 }}>
-              (Sonuç bulunamadı)
-            </span>
+                        <span className="no-results">(Sonuç bulunamadı)</span>
                     )}
                 </div>
             )}
 
-            <div style={{ display: "flex", flexWrap: "wrap" }}>
+            <div className="product-grid">
                 {products.map((p, idx) => {
                     const isFav = favIds.has(p.id);
                     const pulsing = pulseIds.has(p.id);
@@ -198,34 +183,12 @@ function ProductList({ onAdded }) {
                     return (
                         <div
                             key={`${p.id}-${p.variantId ?? "base"}-${idx}`}
-                            onClick={() => goToDetail(p.id, p.variantId)} // 🔁 varyant paramı
-                            style={{
-                                position: "relative",
-                                border: "1px solid #eee",
-                                margin: 10,
-                                padding: 10,
-                                width: 220,
-                                borderRadius: 12,
-                                boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-                                cursor: "pointer",
-                                overflow: "hidden",
-                            }}
+                            onClick={() => goToDetail(p.id, p.variantId)}
+                            className="product-card"
                         >
                             {hasDisc && (
-                                <div
-                                    style={{
-                                        position: "absolute",
-                                        top: 8,
-                                        left: 8,
-                                        background: "#ff4d8d",
-                                        color: "white",
-                                        fontWeight: 700,
-                                        fontSize: 12,
-                                        padding: "4px 8px",
-                                        borderRadius: 999,
-                                    }}
-                                >
-                                    %{Number(p.discountPercent)} İndirim
+                                <div className="discount-badge">
+                                    %{Number(p.discountPercent)}
                                 </div>
                             )}
 
@@ -250,101 +213,50 @@ function ProductList({ onAdded }) {
                                         : `${API_BASE_URL}${p.imageUrl || ""}`
                                 }
                                 alt={p.name}
-                                style={{
-                                    width: "100%",
-                                    height: 150,
-                                    objectFit: "cover",
-                                    borderRadius: 8,
-                                }}
+                                className="product-image"
                                 onError={(e) => {
                                     e.currentTarget.src =
-                                        "https://via.placeholder.com/220x150?text=Resim+Yok";
+                                        "https://via.placeholder.com/200x200?text=Resim+Yok";
                                 }}
                             />
 
-                            <h4
-                                style={{
-                                    margin: "10px 0 4px 0",
-                                    lineHeight: 1.2,
-                                }}
-                            >
-                                {p.name}
-                            </h4>
-                            <p style={{ margin: 0, color: "#777", fontSize: 13 }}>{p.brand}</p>
+                            <div className="product-info">
+                                <h4 className="product-name">{p.name}</h4>
+                                <p className="product-brand">{p.brand}</p>
 
-                            {/* İsteyenler için varyant rengi/minibadge */}
-                            {p.hexColor && (
-                                <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span
-                      style={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: "50%",
-                          display: "inline-block",
-                          background: p.hexColor,
-                          border: "1px solid #ddd",
-                      }}
-                  />
-                                    {p.shadeFamily && (
-                                        <span style={{ fontSize: 12, color: "#666" }}>{p.shadeFamily}</span>
-                                    )}
-                                </div>
-                            )}
-
-                            <div style={{ marginTop: 8 }}>
-                                {hasDisc ? (
-                                    <div>
-                                        <div
-                                            style={{
-                                                fontSize: 12,
-                                                color: "#999",
-                                                textDecoration: "line-through",
-                                            }}
-                                        >
-                                            {priceTL}
-                                        </div>
-                                        <div
-                                            style={{
-                                                fontSize: 18,
-                                                fontWeight: 800,
-                                                color: "#ff4d8d",
-                                            }}
-                                        >
-                                            {finalTL}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div
-                                        style={{
-                                            fontSize: 18,
-                                            fontWeight: 800,
-                                            color: "#222",
-                                        }}
-                                    >
-                                        {priceTL}
+                                {p.hexColor && (
+                                    <div className="product-color">
+                                        <span
+                                            className="color-dot"
+                                            style={{ background: p.hexColor }}
+                                        />
+                                        {p.shadeFamily && (
+                                            <span className="shade-family">{p.shadeFamily}</span>
+                                        )}
                                     </div>
                                 )}
-                            </div>
 
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    addToCart(p.id); // sepet ürün bazlı
-                                }}
-                                style={{
-                                    backgroundColor: "#ff69b4",
-                                    color: "white",
-                                    border: "none",
-                                    padding: "10px 14px",
-                                    borderRadius: 8,
-                                    cursor: "pointer",
-                                    width: "100%",
-                                    marginTop: 10,
-                                    fontWeight: 700,
-                                }}
-                            >
-                                Sepete Ekle
-                            </button>
+                                <div className="product-price">
+                                    {hasDisc ? (
+                                        <>
+                                            <div className="original-price">{priceTL}</div>
+                                            <div className="final-price">{finalTL}</div>
+                                        </>
+                                    ) : (
+                                        <div className="single-price">{priceTL}</div>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        addToCart(p.id);
+                                    }}
+                                    className="add-to-cart-btn"
+                                >
+                                    Sepete Ekle
+                                </button>
+                            </div>
                         </div>
                     );
                 })}
