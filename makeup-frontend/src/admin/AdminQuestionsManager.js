@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./AdminQuestionsManager.css";
+import { API_BASE_URL } from "../config";
 
 export default function AdminQuestionsManager() {
     const [questions, setQuestions] = useState([]);
@@ -17,7 +18,7 @@ export default function AdminQuestionsManager() {
 
     const loadQuestions = async () => {
         try {
-            const productsRes = await axios.get("http://localhost:5011/api/product", {
+            const productsRes = await axios.get(`${API_BASE_URL}/api/product`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -25,7 +26,7 @@ export default function AdminQuestionsManager() {
             for (const product of productsRes.data) {
                 try {
                     const qRes = await axios.get(
-                        `http://localhost:5011/api/products/${product.id}/questions/admin/all`,
+                        `${API_BASE_URL}/${product.id}/questions/admin/all`,
                         { headers: { Authorization: `Bearer ${token}` } }
                     );
                     allQuestions.push(...qRes.data.map(q => ({ ...q, productName: product.name })));
@@ -49,7 +50,7 @@ export default function AdminQuestionsManager() {
 
         try {
             await axios.post(
-                `http://localhost:5011/api/products/${productId}/questions/${questionId}/answer`,
+                `${API_BASE_URL}/api/products/${productId}/questions/${questionId}/answer`,
                 { questionId, answer: answerText },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -68,7 +69,7 @@ export default function AdminQuestionsManager() {
 
         try {
             await axios.delete(
-                `http://localhost:5011/api/products/${productId}/questions/${questionId}`,
+                `${API_BASE_URL}/api/products/${productId}/questions/${questionId}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             alert("Soru silindi");

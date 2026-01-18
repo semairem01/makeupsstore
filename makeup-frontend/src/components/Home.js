@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { API_ENDPOINTS } from "../config";
+import { API_ENDPOINTS, API_BASE_URL } from "../config";
 import ProductCard from "./ProductCard";
 import { Link, useLocation } from "react-router-dom";
 import "./Home.css";
@@ -215,7 +215,7 @@ export default function Home({ onAdded }) {
                                     <figure className="testi__card" key={`${rv.id}-${idx}`}>
                                         <Link to={`/product/${rv.productId}`} className="testi__prod">
                                             <img
-                                                src={`http://localhost:5011${rv.productImageUrl ?? ""}`}
+                                                src={`${API_BASE_URL}${rv.productImageUrl ?? ""}`}
                                                 alt={rv.productName}
                                                 onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/80x80?text=No+Img"; }}
                                             />

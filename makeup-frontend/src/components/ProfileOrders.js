@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from "../config";
 import OrderTimeline from "./OrderTimeline";
 import ReturnTimeline from "./ReturnTimeline";
 import "./ProfileOrders.css";
+import { API_BASE_URL } from "../config";
 
 const tl = (n) =>
     Number(n || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
@@ -290,7 +291,7 @@ export default function ProfileOrders() {
                                         return (
                                             <div key={i} className={`po-item ${isReturned ? "is-returned" : ""}`}>
                                                 <img
-                                                    src={img?.startsWith?.("http") ? img : `http://localhost:5011${img}`}
+                                                    src={img?.startsWith?.("http") ? img : `${API_BASE_URL}${img}`}
                                                     alt={name}
                                                     onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/64")}
                                                 />
@@ -382,7 +383,7 @@ export default function ProfileOrders() {
                                                 onClick={(e) => e.stopPropagation()}
                                             />
                                             <img
-                                                src={img?.startsWith?.("http") ? img : `http://localhost:5011${img}`}
+                                                src={img?.startsWith?.("http") ? img : `${API_BASE_URL}${img}`}
                                                 alt={name}
                                                 onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/50")}
                                             />

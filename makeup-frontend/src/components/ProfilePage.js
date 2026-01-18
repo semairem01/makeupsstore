@@ -1,7 +1,7 @@
 ﻿// src/components/ProfilePage.js
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { API_ENDPOINTS } from "../config";
+import { API_ENDPOINTS,API_BASE_URL } from "../config";
 import "./ProfilePage.css";
 import ProfileOrders from "./ProfileOrders";
 import AddressBook from "./AddressBook";
@@ -115,7 +115,7 @@ export default function ProfilePage() {
                                     className="lp-avatar__img"
                                     src={
                                         me.avatarUrl
-                                            ? `http://localhost:5011${me.avatarUrl}`
+                                            ? `${API_BASE_URL}${me.avatarUrl}`
                                             : "https://via.placeholder.com/132"
                                     }
                                     onError={(e) => {
@@ -325,7 +325,7 @@ function FavoritesList({ onUpdate }) {
             {favorites.map((fav) => {
                 const imgSrc = fav.imageUrl?.startsWith("http")
                     ? fav.imageUrl
-                    : `http://localhost:5011${fav.imageUrl}`;
+                    : `${API_BASE_URL}${fav.imageUrl || ""}`;
 
                 return (
                     <div key={fav.productId} className="lp-fav-card">

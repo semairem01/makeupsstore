@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./ProductQuestions.css";
+import { API_BASE_URL } from "../config";
 
 export default function ProductQuestions({ productId }) {
     const [questions, setQuestions] = useState([]);
@@ -16,7 +17,7 @@ export default function ProductQuestions({ productId }) {
 
     const loadQuestions = async () => {
         try {
-            const res = await axios.get(`http://localhost:5011/api/products/${productId}/questions`);
+            const res = await axios.get(`${API_BASE_URL}/api/products/${productId}/questions`);
             setQuestions(res.data || []);
         } catch (err) {
             console.error("Sorular yüklenemedi:", err);
@@ -43,7 +44,7 @@ export default function ProductQuestions({ productId }) {
         setSubmitting(true);
         try {
             await axios.post(
-                `http://localhost:5011/api/products/${productId}/questions`,
+                `${API_BASE_URL}/api/products/${productId}/questions`,
                 { question: newQuestion.trim() },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

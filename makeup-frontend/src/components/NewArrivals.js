@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import ProductCard from "./ProductCard";
 import "./NewArrivals.css";
+import { API_BASE_URL } from "../config";
 
-const API_BASE = "http://localhost:5011/api";
+const API_BASE = `${API_BASE_URL}/api`;
 
 export default function NewArrivals({ onAdded }) {
     const [products, setProducts] = useState([]);

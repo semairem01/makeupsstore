@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { API_ENDPOINTS } from "../config";
 import "./FavHeart.css";
+import { API_BASE_URL } from "../config";
 
 function ProductList({ onAdded }) {
     const [products, setProducts] = useState([]);
@@ -246,7 +247,7 @@ function ProductList({ onAdded }) {
                                 src={
                                     p.imageUrl?.startsWith("http")
                                         ? p.imageUrl
-                                        : `http://localhost:5011${p.imageUrl || ""}`
+                                        : `${API_BASE_URL}${p.imageUrl || ""}`
                                 }
                                 alt={p.name}
                                 style={{

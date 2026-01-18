@@ -1,7 +1,7 @@
 ﻿// src/admin/OrdersAdmin.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { API_ENDPOINTS } from "../config";
+import { API_ENDPOINTS,API_BASE_URL } from "../config";
 import "./OrdersAdmin.css";
 
 const STATUS = [
@@ -575,7 +575,7 @@ export default function OrdersAdmin() {
                                                 return (
                                                     <div key={idx} className={`item-card-grid ${isReturned ? 'item-returned' : ''}`}>
                                                         <img
-                                                            src={img?.startsWith("http") ? img : `http://localhost:5011${img}`}
+                                                            src={img?.startsWith("http") ? img : `${API_BASE_URL}${img}`}
                                                             alt={name}
                                                             onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/80")}
                                                         />
@@ -782,7 +782,7 @@ export default function OrdersAdmin() {
                                         return (
                                             <div key={idx} className="return-item-card">
                                                 <img
-                                                    src={img?.startsWith("http") ? img : `http://localhost:5011${img}`}
+                                                    src={img?.startsWith("http") ? img : `${API_BASE_URL}${img}`}
                                                     alt={name}
                                                     onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/60")}
                                                 />

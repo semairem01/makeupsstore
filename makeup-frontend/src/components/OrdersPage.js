@@ -1,7 +1,7 @@
 ﻿// src/components/OrdersPage.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { API_ENDPOINTS } from "../config";
+import { API_ENDPOINTS, API_BASE_URL } from "../config";
 import "./OrdersPage.css";
 import OrderTimeline, { STATUS_STEPS } from "./OrderTimeline";
 import ReturnTimeline from "./ReturnTimeline"; // ✅ YENİ: iade süreci timeline
@@ -331,7 +331,7 @@ export default function OrdersPage() {
                                                                 "http"
                                                             )
                                                                 ? it.productImage
-                                                                : `http://localhost:5011${
+                                                                : `${API_BASE_URL}${
                                                                     it.productImage ??
                                                                     ""
                                                                 }`
@@ -471,7 +471,7 @@ export default function OrdersPage() {
                                                 src={
                                                     img?.startsWith?.("http")
                                                         ? img
-                                                        : `http://localhost:5011${img}`
+                                                        : `${API_BASE_URL}${img}`
                                                 }
                                                 alt={name}
                                                 onError={(e) =>

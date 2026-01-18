@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { FaShoppingCart, FaBars } from "react-icons/fa";
+import { API_BASE_URL } from "../config";
 
 export default function Header({
                                    cartCount = 0,
@@ -79,7 +80,7 @@ export default function Header({
                             >
                                 {avatarUrl ? (
                                     <img
-                                        src={`http://localhost:5011${avatarUrl}`}
+                                        src={`${API_BASE_URL}${avatarUrl}`}
                                         alt="Profile"
                                         className="avatar"
                                         onError={(e) => {

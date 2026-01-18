@@ -2,7 +2,7 @@
 import axios from "axios";
 import { Link } from "react-router-dom";
 import "./ResetPassword.css";
-
+import { API_BASE_URL } from "../config";
 export default function ForgotPassword() {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
@@ -16,9 +16,10 @@ export default function ForgotPassword() {
         setLoading(true);
 
         try {
-            await axios.post("http://localhost:5011/api/passwordreset/forgot-password", {
-                email: email.trim()
-            });
+            await axios.post(
+                `${API_BASE_URL}/api/passwordreset/forgot-password`,
+                { email: email.trim() }
+            );
             setSubmittedEmail(email.trim());
             setSuccess(true);
             setEmail(""); // Formu temizle

@@ -1,7 +1,7 @@
 ﻿// src/admin/ReturnsAdmin.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { API_ENDPOINTS } from "../config";
+import { API_ENDPOINTS,API_BASE_URL } from "../config";
 import "./ReturnsAdmin.css";
 
 const RETURN_STATUS = {
@@ -772,7 +772,7 @@ export default function ReturnsAdmin() {
                                     return (
                                         <div key={idx} className="item-card">
                                             <img
-                                                src={img?.startsWith("http") ? img : `http://localhost:5011${img}`}
+                                                src={img?.startsWith("http") ? img : `${API_BASE_URL}${img}`}
                                                 alt={name}
                                                 onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/60")}
                                             />

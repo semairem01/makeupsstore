@@ -29,7 +29,7 @@ import LunaraDiscountPopup from "./components/LunaraDiscountPopup";
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import NewArrivals from "./components/NewArrivals";
-
+import { API_BASE_URL } from "./config";
 
 function AdminDashboard() {
     return <h1>Admin Dashboard - Sadece Admin görebilir</h1>;
@@ -66,7 +66,7 @@ function App() {
             return;
         }
         axios
-            .get("http://localhost:5011/api/cart", {
+            .get(API_ENDPOINTS.CART, {
                 headers: { Authorization: `Bearer ${token}` },
             })
             .then((res) => {
@@ -266,7 +266,7 @@ function App() {
                             >
                                 {avatarUrl ? (
                                     <img
-                                        src={`http://localhost:5011${avatarUrl}`}
+                                        src={`${API_BASE_URL}${avatarUrl}`}
                                         alt="Profil"
                                         className="nav-avatar"
                                         onError={(e) => {
@@ -307,7 +307,7 @@ function App() {
                                             <div className="avatar-wrap">
                                                 {avatarUrl ? (
                                                     <img
-                                                        src={`http://localhost:5011${avatarUrl}`}
+                                                        src={`${API_BASE_URL}${avatarUrl}`}
                                                         alt="Profil"
                                                         className="avatar-img"
                                                         onError={(e) => {

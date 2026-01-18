@@ -1,7 +1,7 @@
 ﻿// src/components/CheckoutPage.jsx
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import axios from "axios";
-import { API_ENDPOINTS } from "../config";
+import { API_ENDPOINTS, API_BASE_URL } from "../config";
 import { useNavigate } from "react-router-dom";
 import "./CheckoutPage.css";
 import AddressSelect from "./AddressSelect";
@@ -453,7 +453,7 @@ export default function CheckoutPage() {
                         <div className="summary-items">
                             {(cart || []).map((it, i) => {
                                 const imgRaw = it.variantImage ?? it.VariantImage ?? it.imageUrl ?? it.ImageUrl ?? "";
-                                const imgSrc = imgRaw?.startsWith?.("http") ? imgRaw : `http://localhost:5011${imgRaw}`;
+                                const imgSrc = imgRaw?.startsWith?.("http") ? imgRaw : `${API_BASE_URL}${imgRaw}`;
                                 const title =
                                     (it.productName ?? it.ProductName) +
                                     ((it.variantName ?? it.VariantName) ? ` - ${(it.variantName ?? it.VariantName)}` : "");
@@ -556,7 +556,7 @@ function SuggestedProductsCarousel({ products, onAdd, onPreview, tl }) {
                 <div className="suggestions-rail" ref={railRef}>
                     {products.map((product) => {
                         const imgRaw = product.imageUrl || "";
-                        const imgSrc = imgRaw.startsWith("http") ? imgRaw : `http://localhost:5011${imgRaw}`;
+                        const imgSrc = imgRaw.startsWith("http") ? imgRaw : `${API_BASE_URL}${imgRaw}`;
                         const hasDiscount = (product.discountPercent || 0) > 0;
                         const finalPrice = hasDiscount ? product.price * (1 - product.discountPercent / 100) : product.price;
 
@@ -619,7 +619,7 @@ function SuggestedProductsCarousel({ products, onAdd, onPreview, tl }) {
 /* --- Quick View Modal component --- */
 function ProductQuickView({ product, tl, onAdd, onClose }) {
     const imgRaw = product?.imageUrl || "";
-    const imgSrc = imgRaw.startsWith("http") ? imgRaw : `http://localhost:5011${imgRaw}`;
+    const imgSrc = imgRaw.startsWith("http") ? imgRaw : `${API_BASE_URL}${imgRaw}`;
     const hasDiscount = (product?.discountPercent || 0) > 0;
     const finalPrice = hasDiscount ? product.price * (1 - product.discountPercent / 100) : product.price;
 

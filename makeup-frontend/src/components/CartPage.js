@@ -4,6 +4,7 @@ import axios from "axios";
 import { API_ENDPOINTS } from "../config";
 import { useNavigate } from "react-router-dom";
 import "./CartPage.css";
+import { API_BASE_URL } from "../config";
 
 function CartPage({ onCleared, onCountChange }) {
     const [cartItems, setCartItems] = useState([]);
@@ -140,7 +141,7 @@ function CartPage({ onCleared, onCountChange }) {
                             item.variantImage ?? item.VariantImage ?? item.imageUrl ?? item.ImageUrl ?? "";
                         const imgSrc = imgRaw.startsWith("http")
                             ? imgRaw
-                            : `http://localhost:5011${imgRaw}`;
+                            : `${API_BASE_URL}${imgRaw}`;
                         const title = (item.productName ?? item.ProductName) +
                             ((item.variantName ?? item.VariantName) ? ` - ${(item.variantName ?? item.VariantName)}` : "");
 

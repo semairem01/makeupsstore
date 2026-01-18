@@ -92,7 +92,7 @@ function ProductCard({ product, onAdded }) {
         }
         try {
             await axios.post(
-                "http://localhost:5011/api/cart",
+                `${API_BASE_URL}/api/cart`,
                 { productId: product.id, quantity: 1 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
