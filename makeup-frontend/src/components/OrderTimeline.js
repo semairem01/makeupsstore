@@ -1,5 +1,6 @@
-﻿// src/components/OrderTimeline.jsx
+﻿// src/components/OrderTimeline.jsx - Premium Design
 import React from "react";
+import "./OrderTimeline.css";
 
 export const STATUS_STEPS = [
     { key: "SiparisAlindi", label: "Order Received" },
@@ -12,80 +13,100 @@ export default function OrderTimeline({ status }) {
     // Special handling for return/cancel statuses
     if (status === "IptalEdildi") {
         return (
-            <div className="timeline-special" style={{
-                background: "#ffe8ed",
-                padding: "16px",
-                borderRadius: "12px",
-                marginBottom: "16px",
+            <div style={{
+                background: "linear-gradient(135deg, #FCA5A5 0%, #F87171 100%)",
+                padding: "24px",
+                borderRadius: "20px",
+                marginBottom: "20px",
                 textAlign: "center",
-                color: "#c5224b",
-                fontWeight: 600
+                color: "white",
+                fontWeight: 800,
+                fontSize: "1.1rem",
+                boxShadow: "0 8px 24px rgba(248, 113, 113, 0.4)",
+                textTransform: "uppercase",
+                letterSpacing: "1px"
             }}>
-                Order Cancelled
+                ❌ Order Cancelled
             </div>
         );
     }
 
     if (status === "IadeTalepEdildi") {
         return (
-            <div className="timeline-special" style={{
-                background: "#fff4e6",
-                padding: "16px",
-                borderRadius: "12px",
-                marginBottom: "16px",
+            <div style={{
+                background: "linear-gradient(135deg, #FDE68A 0%, #FCD34D 100%)",
+                padding: "24px",
+                borderRadius: "20px",
+                marginBottom: "20px",
                 textAlign: "center",
-                color: "#d97706",
-                fontWeight: 600
+                color: "#78350F",
+                fontWeight: 800,
+                fontSize: "1.1rem",
+                boxShadow: "0 8px 24px rgba(252, 211, 77, 0.4)",
+                textTransform: "uppercase",
+                letterSpacing: "1px"
             }}>
-                Return Requested - Awaiting Review
+                ⏳ Return Requested - Awaiting Review
             </div>
         );
     }
 
     if (status === "IadeOnaylandi") {
         return (
-            <div className="timeline-special" style={{
-                background: "#dcfce7",
-                padding: "16px",
-                borderRadius: "12px",
-                marginBottom: "16px",
+            <div style={{
+                background: "linear-gradient(135deg, #86EFAC 0%, #4ADE80 100%)",
+                padding: "24px",
+                borderRadius: "20px",
+                marginBottom: "20px",
                 textAlign: "center",
-                color: "#16a34a",
-                fontWeight: 600
+                color: "white",
+                fontWeight: 800,
+                fontSize: "1.1rem",
+                boxShadow: "0 8px 24px rgba(74, 222, 128, 0.4)",
+                textTransform: "uppercase",
+                letterSpacing: "1px"
             }}>
-                Return Approved - Refund Process Started
+                ✅ Return Approved - Refund Process Started
             </div>
         );
     }
 
     if (status === "IadeReddedildi") {
         return (
-            <div className="timeline-special" style={{
-                background: "#ffe8ed",
-                padding: "16px",
-                borderRadius: "12px",
-                marginBottom: "16px",
+            <div style={{
+                background: "linear-gradient(135deg, #FCA5A5 0%, #F87171 100%)",
+                padding: "24px",
+                borderRadius: "20px",
+                marginBottom: "20px",
                 textAlign: "center",
-                color: "#c5224b",
-                fontWeight: 600
+                color: "white",
+                fontWeight: 800,
+                fontSize: "1.1rem",
+                boxShadow: "0 8px 24px rgba(248, 113, 113, 0.4)",
+                textTransform: "uppercase",
+                letterSpacing: "1px"
             }}>
-                Return Request Rejected
+                ❌ Return Request Rejected
             </div>
         );
     }
 
     if (status === "IadeTamamlandi") {
         return (
-            <div className="timeline-special" style={{
-                background: "#dcfce7",
-                padding: "16px",
-                borderRadius: "12px",
-                marginBottom: "16px",
+            <div style={{
+                background: "linear-gradient(135deg, #86EFAC 0%, #4ADE80 100%)",
+                padding: "24px",
+                borderRadius: "20px",
+                marginBottom: "20px",
                 textAlign: "center",
-                color: "#16a34a",
-                fontWeight: 600
+                color: "white",
+                fontWeight: 800,
+                fontSize: "1.1rem",
+                boxShadow: "0 8px 24px rgba(74, 222, 128, 0.4)",
+                textTransform: "uppercase",
+                letterSpacing: "1px"
             }}>
-                Return Completed - Refund Processed
+                💰 Return Completed - Refund Processed
             </div>
         );
     }

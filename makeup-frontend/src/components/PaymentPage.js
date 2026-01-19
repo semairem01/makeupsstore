@@ -5,12 +5,143 @@ import axios from "axios";
 import { API_ENDPOINTS } from "../config";
 import "./CheckoutPage.css";
 
+// 📱 PaymentPage Mobile Premium Styles (CheckoutPage.css'i bozmadan)
+const paymentMobileStyles = `
+@media (max-width: 768px) {
+    /* Kart - daha kompakt */
+    .pm-card {
+        height: 170px !important;
+        margin-bottom: 16px !important;
+    }
+    
+    .pm-card-face {
+        padding: 16px 18px !important;
+    }
+    
+    .pm-card-number {
+        font-size: 1.15rem !important;
+        margin: 6px 0 8px !important;
+    }
+    
+    .pm-card-chip {
+        width: 40px !important;
+        height: 26px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .pm-card-footer-info .value {
+        font-size: 0.8rem !important;
+    }
+    
+    .pm-card-footer-info label {
+        font-size: 0.65rem !important;
+    }
+    
+    /* Form inputları - daha kompakt */
+    .card-form-inputs {
+        gap: 10px !important;
+    }
+    
+    .card-form-inputs .form-group input {
+        padding: 11px 14px !important;
+        font-size: 15px !important;
+    }
+    
+    /* Ay/Yıl/CVV satırı - mobilde grid layout */
+    .card-form-inputs .form-row {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr 1fr !important;
+        gap: 8px !important;
+    }
+    
+    /* Taksit seçenekleri - ultra kompakt */
+    .installment-options {
+        gap: 8px !important;
+    }
+    
+    .installment-option {
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+    }
+    
+    .installment-option .option-header {
+        gap: 4px !important;
+    }
+    
+    .installment-option .option-header strong {
+        font-size: 14px !important;
+    }
+    
+    .installment-option .option-header .price {
+        font-size: 15px !important;
+    }
+    
+    .installment-option .option-content p {
+        font-size: 12px !important;
+        line-height: 1.3 !important;
+    }
+    
+    /* Security badge - küçük */
+    .security-badge {
+        padding: 8px !important;
+        font-size: 12px !important;
+        margin-top: 10px !important;
+    }
+    
+    /* Section spacing - daha sıkı */
+    .checkout-section {
+        padding: 16px 14px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .section-header {
+        margin-bottom: 14px !important;
+        padding-bottom: 10px !important;
+    }
+    
+    .section-icon {
+        width: 32px !important;
+        height: 32px !important;
+    }
+    
+    .section-header h3 {
+        font-size: 1.05rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Ekstra küçük ekranlar */
+    .pm-card {
+        height: 155px !important;
+        max-width: 100% !important;
+    }
+    
+    .pm-card-number {
+        font-size: 1.05rem !important;
+        letter-spacing: 1px !important;
+    }
+    
+    .installment-option {
+        padding: 10px 12px !important;
+    }
+    
+    .installment-option .option-header strong {
+        font-size: 13px !important;
+    }
+    
+    .installment-option .option-header .price {
+        font-size: 14px !important;
+    }
+}
+`;
+
 const CreditCardIcon = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
         <line x1="1" y1="10" x2="23" y2="10" />
     </svg>
 );
+
 const ShieldCheckIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -37,6 +168,19 @@ export default function PaymentPage() {
     // ✅ Taksit state'leri
     const [installmentOptions, setInstallmentOptions] = useState([]);
     const [selectedInstallment, setSelectedInstallment] = useState(1);
+
+    // 📱 Mobile styles'ı head'e ekle
+    useEffect(() => {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'payment-mobile-styles';
+        styleEl.textContent = paymentMobileStyles;
+        document.head.appendChild(styleEl);
+
+        return () => {
+            const el = document.getElementById('payment-mobile-styles');
+            if (el) el.remove();
+        };
+    }, []);
 
     // State yoksa checkout'a yönlendir
     useEffect(() => {
@@ -149,7 +293,7 @@ export default function PaymentPage() {
     const displayExp =
         (card.expMonth ? String(card.expMonth).padStart(2, "0") : "MM") +
         "/" +
-        (card.expYear || "YY");
+        (card.expYear || "YYYY");
 
     // ✅ Seçili taksit bilgisi - grandTotal üzerinden hesapla
     const selectedOption = installmentOptions.find(
@@ -276,7 +420,7 @@ export default function PaymentPage() {
                                     <label>Yıl</label>
                                     <input
                                         type="text"
-                                        placeholder="YY"
+                                        placeholder="YYYY"
                                         inputMode="numeric"
                                         autoComplete="cc-exp-year"
                                         value={card.expYear}

@@ -1,42 +1,117 @@
-﻿/* src/components/orders/OrderTimeline.css */
+﻿/* src/components/OrderTimeline.css - Premium Design */
+
 .progress {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    align-items: center;
-    margin: 12px 0;
+    gap: 0;
+    margin: 20px 0;
+    position: relative;
+    padding: 20px 0;
 }
+
 .step {
     position: relative;
     text-align: center;
+    z-index: 2;
 }
-.dot {
-    width: 36px;
-    height: 36px;
+
+.step .dot {
+    width: 56px;
+    height: 56px;
+    line-height: 56px;
     border-radius: 50%;
-    border: 2px solid #ff8db9;
+    margin: 0 auto 12px;
+    border: 4px solid #FFE4ED;
+    color: #FFB4C6;
+    font-weight: 900;
+    background: white;
+    font-size: 1.2rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(255, 133, 162, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
 }
+
 .step.done .dot {
-    background: #ff8db9;
-    color: #fff;
+    background: linear-gradient(135deg, #FF85A2 0%, #FFB4A9 100%);
+    color: white;
+    border-color: #FF85A2;
+    box-shadow: 0 8px 24px rgba(255, 133, 162, 0.4);
+    transform: scale(1.1);
 }
-.label {
-    font-size: 12px;
-    margin-top: 6px;
-    color: #555;
+
+.step .label {
+    font-size: 0.85rem;
+    color: #8B7E88;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
+
+.step.done .label {
+    color: #FF85A2;
+    font-weight: 800;
+}
+
 .bar {
     position: absolute;
-    top: 18px;
+    top: 28px;
     left: 50%;
-    right: -50%;
+    width: 100%;
     height: 4px;
-    background: #eee;
-    z-index: -1;
+    background: #FFE4ED;
+    z-index: 0;
+    border-radius: 999px;
 }
+
+.step:last-child .bar {
+    display: none;
+}
+
 .bar.active {
-    background: #ff8db9;
+    background: linear-gradient(90deg, #FF85A2 0%, #FFB4A9 100%);
+    box-shadow: 0 2px 8px rgba(255, 133, 162, 0.4);
+}
+
+/* Special Timeline Messages */
+.timeline-special {
+    background: linear-gradient(135deg, #FCA5A5 0%, #F87171 100%);
+    padding: 24px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: white;
+    font-weight: 800;
+    fontSize: 1.1rem;
+    box-shadow: 0 8px 24px rgba(248, 113, 113, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .progress {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .step .dot {
+        width: 48px;
+        height: 48px;
+        line-height: 48px;
+        font-size: 1rem;
+    }
+
+    .step .label {
+        font-size: 0.75rem;
+    }
+
+    .step:nth-child(2n) .bar {
+        display: none;
+    }
+
+    .step:nth-child(3) .bar {
+        display: block;
+    }
 }
