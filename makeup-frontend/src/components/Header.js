@@ -1,8 +1,9 @@
 ﻿// src/components/Header.jsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { FaShoppingCart, FaBars } from "react-icons/fa";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL, API_ENDPOINTS } from "../config";
+import axios from "axios";
 
 export default function Header({
                                    cartCount = 0,
@@ -15,6 +16,72 @@ export default function Header({
     const [open, setOpen] = useState(false);
     const menuRef = useRef(null);
     const navigate = useNavigate();
+
+    // ✅ Header içinde gerçek count'u tut
+    const [badgeCount, setBadgeCount] = useState(cartCount);
+
+    // prop değişirse badge'i güncelle (sayfa refresh / cart page sonrası vs)
+    useEffect(() => {
+        setBadgeCount(cartCount);
+    }, [cartCount]);
+
+    const refreshCartCount = useCallback(async () => {
+        const t = localStorage.getItem("token");
+
+        // ✅ login ise backend'ten say
+        if (t) {
+            try {
+                const res = await axios.get(API_ENDPOINTS.CART, {
+                    headers: { Authorization: `Bearer ${t}` },
+                });
+
+                const items = Array.isArray(res.data) ? res.data : [];
+                const totalQty = items.reduce(
+                    (s, x) => s + Number(x.quantity ?? x.Quantity ?? 0),
+                    0
+                );
+                setBadgeCount(totalQty);
+                return;
+            } catch (e) {
+                console.error("Header refreshCartCount failed:", e);
+                // backend düşerse 0'a çekme, en azından mevcut kalsın istersen:
+                // setBadgeCount(0);
+                return;
+            }
+        }
+
+        // ✅ guest ise localStorage'tan say
+        try {
+            const guest = JSON.parse(localStorage.getItem("guestCart") || "[]");
+            const totalQty = guest.reduce((s, x) => s + Number(x.quantity || 0), 0);
+            setBadgeCount(totalQty);
+        } catch {
+            setBadgeCount(0);
+        }
+    }, []);
+
+    // ✅ event ile anında güncelle
+    useEffect(() => {
+        refreshCartCount(); // ilk yüklemede de garanti
+
+        const handler = (e) => {
+            const c = e?.detail?.count;
+            if (Number.isFinite(c)) setBadgeCount(c);
+            else refreshCartCount();
+        };
+        window.addEventListener("cart:updated", handler);
+
+        // token değişince (login/logout) de güncellensin
+        const onStorage = (e) => {
+            if (e.key === "token" || e.key === "guestCart") refreshCartCount();
+        };
+        window.addEventListener("storage", onStorage);
+
+        return () => {
+            window.removeEventListener("cart:updated", handler);
+            window.removeEventListener("storage", onStorage);
+        };
+    }, [refreshCartCount]);
 
     // Dışarı tıklayınca veya ESC ile kapat
     useEffect(() => {
@@ -31,7 +98,6 @@ export default function Header({
         };
     }, []);
 
-    // Menü navigasyonları
     const go = (tab) => {
         setOpen(false);
         if (tab === "logout") return onLogout?.();
@@ -46,7 +112,6 @@ export default function Header({
                     <span className="brand-text">Lunara Beauty</span>
                 </Link>
 
-                {/* Search */}
                 <div className="search">
                     <input
                         className="search-input"
@@ -57,25 +122,20 @@ export default function Header({
                     <button className="search-btn">Ara</button>
                 </div>
 
-                {/* Right actions: Cart + Profile */}
                 <div className="actions">
                     <Link to="/cart" className="cart-link" aria-label="Cart">
                         <FaShoppingCart className="cart-icon" />
-                        {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+                        {badgeCount > 0 && <span className="cart-badge">{badgeCount}</span>}
                         <span className="hide-sm">Sepet</span>
                     </Link>
 
                     {token ? (
                         <div className="profile-wrapper" ref={menuRef}>
-                            {/* Avatar - dropdown'ı açan buton */}
                             <button
                                 className="avatar-trigger"
                                 aria-haspopup="menu"
                                 aria-expanded={open}
-                                onClick={() => {
-                                    console.log('Avatar clicked, open was:', open);
-                                    setOpen((v) => !v);
-                                }}
+                                onClick={() => setOpen((v) => !v)}
                                 title="Profilim"
                             >
                                 {avatarUrl ? (
@@ -94,56 +154,30 @@ export default function Header({
                                 <span className="avatar-caret">▾</span>
                             </button>
 
-                            {/* DROPDOWN MENÜ */}
                             {open && (
                                 <div className="profile-dropdown-menu" role="menu">
-                                    <button
-                                        className="profile-dropdown-item"
-                                        onClick={() => go("account")}
-                                        role="menuitem"
-                                    >
+                                    <button className="profile-dropdown-item" onClick={() => go("account")} role="menuitem">
                                         Account
                                     </button>
-                                    <button
-                                        className="profile-dropdown-item"
-                                        onClick={() => go("addresses")}
-                                        role="menuitem"
-                                    >
+                                    <button className="profile-dropdown-item" onClick={() => go("addresses")} role="menuitem">
                                         Addresses
                                     </button>
-                                    <button
-                                        className="profile-dropdown-item"
-                                        onClick={() => go("orders")}
-                                        role="menuitem"
-                                    >
+                                    <button className="profile-dropdown-item" onClick={() => go("orders")} role="menuitem">
                                         Orders
                                     </button>
-                                    <button
-                                        className="profile-dropdown-item"
-                                        onClick={() => go("favorites")}
-                                        role="menuitem"
-                                    >
+                                    <button className="profile-dropdown-item" onClick={() => go("favorites")} role="menuitem">
                                         Favorites
                                     </button>
-                                    <button
-                                        className="profile-dropdown-item"
-                                        onClick={() => go("password")}
-                                        role="menuitem"
-                                    >
+                                    <button className="profile-dropdown-item" onClick={() => go("password")} role="menuitem">
                                         Password
                                     </button>
                                     <div className="profile-dropdown-sep" />
-                                    <button
-                                        className="profile-dropdown-item danger"
-                                        onClick={() => go("logout")}
-                                        role="menuitem"
-                                    >
+                                    <button className="profile-dropdown-item danger" onClick={() => go("logout")} role="menuitem">
                                         Logout
                                     </button>
                                 </div>
                             )}
 
-                            {/* Admin linki (opsiyonel) */}
                             {isAdmin && (
                                 <Link to="/admin" className="admin-link hide-sm">
                                     Admin Panel
@@ -164,7 +198,6 @@ export default function Header({
                 </div>
             </div>
 
-            {/* Category nav */}
             <nav className="subnav">
                 <NavLink to="/category/face">Face</NavLink>
                 <NavLink to="/category/eyes">Eyes</NavLink>

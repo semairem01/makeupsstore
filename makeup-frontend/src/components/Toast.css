@@ -1,0 +1,119 @@
+﻿/* src/components/Toast.css */
+.toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    min-width: 320px;
+    max-width: 420px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 99999;
+    animation: toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(20px);
+    box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+@keyframes toastSlideIn {
+    from {
+        transform: translateX(120%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toast-success {
+    background: linear-gradient(135deg,
+    rgba(16, 185, 129, 0.95),
+    rgba(5, 150, 105, 0.95));
+    color: white;
+}
+
+.toast-error {
+    background: linear-gradient(135deg,
+    rgba(239, 68, 68, 0.95),
+    rgba(220, 38, 38, 0.95));
+    color: white;
+}
+
+.toast-info {
+    background: linear-gradient(135deg,
+    rgba(59, 130, 246, 0.95),
+    rgba(37, 99, 235, 0.95));
+    color: white;
+}
+
+.toast-warning {
+    background: linear-gradient(135deg,
+    rgba(251, 191, 36, 0.95),
+    rgba(245, 158, 11, 0.95));
+    color: white;
+}
+
+.toast-icon {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.toast-message {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.toast-close {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: 600;
+    display: grid;
+    place-items: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+@media (max-width: 640px) {
+    .toast {
+        top: 16px;
+        right: 16px;
+        left: 16px;
+        min-width: auto;
+        max-width: none;
+        padding: 14px 16px;
+    }
+
+    .toast-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 16px;
+    }
+
+    .toast-message {
+        font-size: 14px;
+    }
+}

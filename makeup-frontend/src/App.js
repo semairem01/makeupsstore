@@ -60,11 +60,19 @@ function App() {
     const navigate = useNavigate();
 
     // Sepet sayısını yükle
+    // localStorage'dan sepet sayısını yükle
+    // Sepet sayısını yükle
     useEffect(() => {
+        // Önce localStorage'dan yükle (guest users için)
+        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+        const guestQty = guestCart.reduce((sum, item) => sum + item.quantity, 0);
+        setCartCount(guestQty);
+
+        // Sonra login varsa API'den yükle
         if (!token) {
-            setCartCount(0);
             return;
         }
+
         axios
             .get(API_ENDPOINTS.CART, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -78,6 +86,7 @@ function App() {
             })
             .catch((err) => console.error("Sepet yüklenemedi:", err));
     }, [token]);
+    
 
     // Profile bilgisi yükle (avatar + isim)
     useEffect(() => {
@@ -143,9 +152,9 @@ function App() {
             return () => input.removeEventListener('input', handleInput);
         }
     }, []);
-    
-    const handleAddedToCart = (qty = 1) =>
-        setCartCount((prev) => prev + (Number(qty) || 1));
+
+    const handleAddedToCart = (totalQty) =>
+        setCartCount(Number(totalQty) || 0);
 
     const handleCartCleared = () => setCartCount(0);
 

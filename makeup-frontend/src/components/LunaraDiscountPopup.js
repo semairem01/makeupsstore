@@ -171,6 +171,12 @@ const LunaraDiscountPopup = () => {
     return (
         <div className="lunara-overlay flex items-center justify-center bg-gradient-to-b from-indigo-950/95 via-purple-950/95 to-indigo-950/95 backdrop-blur-sm animate-fadeIn">
             {/* Twinkling stars */}
+            onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            // backdrop'e tıklayınca kapansın istersen:
+            // handleClose();
+        }}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 {[...Array(40)].map((_, i) => (
                     <div

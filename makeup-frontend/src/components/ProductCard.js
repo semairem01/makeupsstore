@@ -5,6 +5,8 @@ import { API_ENDPOINTS } from "../config";
 import { Heart } from "lucide-react";
 import "./ProductCard.css";
 import { API_BASE_URL } from "../config";
+import Toast from "./Toast";
+
 
 function Stars({ value }) {
     const rounded = Math.round(Number(value || 0));
@@ -24,6 +26,11 @@ export default function ProductCard({ product, onAdded }) {
     const [adding, setAdding] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     const [favoriteLoading, setFavoriteLoading] = useState(false);
+    const [toast, setToast] = useState(null);
+
+    const showToast = (message, type = "success") => {
+        setToast({ message, type });
+    };
 
     const productId = product?.productId ?? product?.ProductId ?? product?.id ?? product?.Id;
     const variantId = product?.variantId ?? product?.VariantId ?? null;
@@ -95,28 +102,111 @@ export default function ProductCard({ product, onAdded }) {
         [finalNum]
     );
 
-    const addToCart = async () => {
-        if (!token) return alert("Please sign in to add to cart.");
-        if (isOut) return alert("This item is out of stock.");
+    const addToCart = async (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+
+        if (isOut) {
+            showToast("This item is out of stock.", "warning");
+            return;
+        }
+
         try {
             setAdding(true);
-            await axios.post(
-                `${API_ENDPOINTS.CART}/add`,
-                {
-                    productId: productId,
-                    variantId: variantId || undefined,
-                    quantity: 1,
-                    unitPrice: finalNum,
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
+
+            // ✅ 1) LOGIN VARSA → BACKEND CART
+            if (token) {
+                await axios.post(
+                    `${API_ENDPOINTS.CART}/add`,
+                    {
+                        productId: productId,
+                        variantId: variantId ?? undefined,
+                        quantity: 1,
+                        unitPrice: finalNum,
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                // ✅ count'u backend'den al (header yanlış kalmasın)
+                const res2 = await axios.get(API_ENDPOINTS.CART, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const items = Array.isArray(res2.data) ? res2.data : [];
+                const totalQty = items.reduce(
+                    (s, x) => s + Number(x.quantity ?? x.Quantity ?? 0),
+                    0
+                );
+
+                window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: totalQty } }));
+                showToast("Added to cart!", "success");
+                return;
+            }
+
+            // ✅ 2) LOGIN YOKSA → GUEST CART (localStorage)
+            const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
+
+            const cartItem = {
+                productId,
+                variantId: variantId ?? null,
+                quantity: 1,
+                name: product?.name,
+                brand: product?.brand,
+                imageUrl: imgRaw, // veya product?.imageUrl
+                price: finalNum,
+            };
+
+            const existingIndex = guestCart.findIndex(
+                (it) => it.productId === cartItem.productId && it.variantId === cartItem.variantId
             );
-            onAdded?.(1);
-        } catch (e) {
-            alert(e?.response?.data || "Could not add to cart.");
+
+            if (existingIndex >= 0) guestCart[existingIndex].quantity += 1;
+            else guestCart.push(cartItem);
+
+            localStorage.setItem("guestCart", JSON.stringify(guestCart));
+
+            const totalQty = guestCart.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+            window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: totalQty } }));
+            onAdded?.(totalQty);
+
+            showToast("Added to cart!", "success");
+        } catch (err) {
+            // Token var ama 401 geldiyse: token bayat olabilir → guestCart’a düşebiliriz
+            if (err?.response?.status === 401) {
+                showToast("Session expired. Added to guest cart instead.", "warning");
+
+                // optional: token'ı temizle
+                // localStorage.removeItem("token");
+
+                // guestCart fallback
+                const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
+                const cartItem = {
+                    productId,
+                    variantId: variantId ?? null,
+                    quantity: 1,
+                    name: product?.name,
+                    brand: product?.brand,
+                    imageUrl: imgRaw,
+                    price: finalNum,
+                };
+                const existingIndex = guestCart.findIndex(
+                    (it) => it.productId === cartItem.productId && it.variantId === cartItem.variantId
+                );
+                if (existingIndex >= 0) guestCart[existingIndex].quantity += 1;
+                else guestCart.push(cartItem);
+                localStorage.setItem("guestCart", JSON.stringify(guestCart));
+                window.dispatchEvent(new Event("cart:updated"));
+                const totalQty = guestCart.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+                onAdded?.(totalQty);
+
+                return;
+            }
+
+            showToast(err?.response?.data || "Could not add to cart.", "error");
         } finally {
             setAdding(false);
         }
     };
+
 
     const toggleFavorite = async (e) => {
         e.preventDefault();
@@ -182,6 +272,14 @@ export default function ProductCard({ product, onAdded }) {
 
     return (
         <article className="p-card" style={cardStyle}>
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
+
             {/* Favori Butonu */}
             <button
                 onClick={toggleFavorite}

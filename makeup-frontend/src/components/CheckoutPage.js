@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import axios from "axios";
 import { API_ENDPOINTS, API_BASE_URL } from "../config";
 import { useNavigate } from "react-router-dom";
+import Toast from "./Toast";
 import "./CheckoutPage.css";
 import AddressSelect from "./AddressSelect";
 import { __INTERNAL__AddressModal as AddressModal } from "./AddressBook";
@@ -38,6 +39,7 @@ export default function CheckoutPage() {
 
     const [cart, setCart] = useState([]);
     const [shipping, setShipping] = useState("standard");
+    const [toast, setToast] = useState(null);
 
     const [selectedAddressId, setSelectedAddressId] = useState(0);
     const [addrListVersion, setAddrListVersion] = useState(0);
@@ -52,39 +54,73 @@ export default function CheckoutPage() {
         addressLine: "",
     });
 
-    // ✅ Discount state
     const [discount, setDiscount] = useState(null);
     const [discountApplied, setDiscountApplied] = useState(false);
-
-    // ✅ Suggested products
     const [suggestedProducts, setSuggestedProducts] = useState([]);
-
-    // ✅ Quick product preview (modal)
     const [previewProduct, setPreviewProduct] = useState(null);
 
-    // ✅ Shipping settings
     const FREE_SHIPPING_THRESHOLD = 1500;
     const STANDARD_SHIPPING_PRICE = 39.9;
     const EXPRESS_SHIPPING_PRICE = 79.9;
 
     const tl = (n) => Number(n || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
 
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+    };
+
     const subtotal = useMemo(
         () => (cart || []).reduce((s, x) => s + (x.totalPrice ?? x.TotalPrice ?? 0), 0),
         [cart]
     );
 
+    // ✅ Login kontrolü ve guest cart sync
     useEffect(() => {
         if (!token) {
-            nav("/login");
+            showToast('Please sign in to continue checkout', 'warning');
+            setTimeout(() => {
+                nav('/login', { state: { from: '/checkout' } });
+            }, 1500);
             return;
         }
+
+        // Guest cart'ı DB'ye sync et
+        const syncGuestCart = async () => {
+            const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+
+            if (guestCart.length > 0) {
+                try {
+                    await axios.post(
+                        `${API_ENDPOINTS.CART}/sync`,
+                        guestCart.map(item => ({
+                            productId: item.productId,
+                            variantId: item.variantId,
+                            quantity: item.quantity
+                        })),
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+
+                    localStorage.removeItem('guestCart');
+                    console.log('✅ Guest cart synced to database');
+                    showToast('Your cart has been synced!', 'success');
+                } catch (error) {
+                    console.error('Cart sync error:', error);
+                }
+            }
+        };
+
+        syncGuestCart();
+    }, [token, nav]);
+
+    // ✅ Sepeti ve indirimi yükle
+    useEffect(() => {
+        if (!token) return;
+
         axios
             .get(API_ENDPOINTS.CART, { headers: { Authorization: `Bearer ${token}` } })
             .then((r) => setCart(r.data || []))
             .catch(() => setCart([]));
 
-        // ✅ Load discount from localStorage
         const savedDiscount = localStorage.getItem('lunaraDiscount');
         if (savedDiscount) {
             try {
@@ -97,8 +133,9 @@ export default function CheckoutPage() {
                 localStorage.removeItem('lunaraDiscount');
             }
         }
-    }, [token, nav]);
+    }, [token]);
 
+    // ✅ Ücretsiz kargo için önerilen ürünler
     useEffect(() => {
         if (subtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0) {
             setSuggestedProducts([]);
@@ -137,7 +174,6 @@ export default function CheckoutPage() {
         return shipping === "express" ? EXPRESS_SHIPPING_PRICE : STANDARD_SHIPPING_PRICE;
     };
 
-    // ✅ Calculate discount amount
     const discountAmount = useMemo(() => {
         if (!discount || !discountApplied) return 0;
 
@@ -166,7 +202,7 @@ export default function CheckoutPage() {
 
     const goPayment = () => {
         if (!validAddress()) {
-            alert("Please fill in all address fields.");
+            showToast('Please fill in all address fields', 'warning');
             return;
         }
         nav("/checkout/payment", {
@@ -177,7 +213,6 @@ export default function CheckoutPage() {
                 shippingFee,
                 subtotal,
                 grandTotal,
-                // ✅ Pass discount info to payment page
                 discount: discountApplied && discount ? {
                     code: discount.code,
                     amount: discountAmount,
@@ -187,18 +222,16 @@ export default function CheckoutPage() {
         });
     };
 
-    // ✅ Remove discount
     const removeDiscount = () => {
         setDiscountApplied(false);
         setDiscount(null);
         localStorage.removeItem('lunaraDiscount');
-        console.log('🗑️ Discount removed from checkout');
+        showToast('Discount removed', 'info');
     };
 
-    // ✅ Add suggested product to cart
     const addSuggestionToCart = async (product) => {
         if (!token) {
-            alert("Please sign in to add to cart.");
+            showToast('Please sign in to add to cart', 'warning');
             return;
         }
         try {
@@ -214,13 +247,22 @@ export default function CheckoutPage() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setCart(cartRes.data || []);
+            showToast(`${product.name} added to cart!`, 'success');
         } catch (e) {
-            alert(e?.response?.data || "Could not add to cart.");
+            showToast(e?.response?.data || "Could not add to cart", 'error');
         }
     };
 
     return (
         <div className="checkout-container">
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
+
             {/* Header */}
             <div className="checkout-header">
                 <h1>Checkout</h1>
@@ -312,7 +354,7 @@ export default function CheckoutPage() {
                         </div>
                     </section>
 
-                    {/* ✅ Discount Display (if exists) */}
+                    {/* Discount Display */}
                     {discount && discountApplied && (
                         <section className="checkout-section" style={{
                             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -358,7 +400,7 @@ export default function CheckoutPage() {
                         </section>
                     )}
 
-                    {/* ✅ Free Shipping Progress Banner */}
+                    {/* Free Shipping Progress Banner */}
                     {!isFreeShippingEligible && (
                         <section className="checkout-section free-shipping-banner">
                             <div className="free-shipping-content">
@@ -507,7 +549,6 @@ export default function CheckoutPage() {
                 </aside>
             </div>
 
-            {/* Address Modal */}
             {addrModalOpen && (
                 <AddressModal
                     initial={null}
@@ -519,7 +560,6 @@ export default function CheckoutPage() {
                 />
             )}
 
-            {/* ✅ Quick Product Preview Modal */}
             {previewProduct && (
                 <ProductQuickView
                     product={previewProduct}
@@ -532,7 +572,6 @@ export default function CheckoutPage() {
     );
 }
 
-/* --- Compact mini-carousel (3 kart görünür, oklarla kaydırılır) --- */
 function SuggestedProductsCarousel({ products, onAdd, onPreview, tl }) {
     const railRef = useRef(null);
 
@@ -616,7 +655,6 @@ function SuggestedProductsCarousel({ products, onAdd, onPreview, tl }) {
     );
 }
 
-/* --- Quick View Modal component --- */
 function ProductQuickView({ product, tl, onAdd, onClose }) {
     const imgRaw = product?.imageUrl || "";
     const imgSrc = imgRaw.startsWith("http") ? imgRaw : `${API_BASE_URL}${imgRaw}`;

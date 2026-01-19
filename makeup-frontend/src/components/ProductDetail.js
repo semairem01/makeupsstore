@@ -6,6 +6,7 @@ import Reviews from "./Reviews";
 import ProductQuestions from "./ProductQuestions";
 import "./ProductDetail.css";
 import "./FavHeart.css";
+import Toast from "./Toast";
 
 function Star({ filled }) {
     return <span style={{ color: filled ? "#ffc107" : "#ddd", marginRight: 2 }}>★</span>;
@@ -16,7 +17,8 @@ export default function ProductDetail({ onAdded }) {
     const location = useLocation();
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
-
+    const [toast, setToast] = useState(null);
+    
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -30,7 +32,10 @@ export default function ProductDetail({ onAdded }) {
     const [isZooming, setIsZooming] = useState(false);
     const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
     const [activeTab, setActiveTab] = useState("reviews");
-
+    
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+    };
     const resolveUrl = (u) => {
         if (!u) return "https://via.placeholder.com/600x600?text=No+Image";
         return String(u).startsWith("http") ? u : `${API_BASE_URL}${u}`;
@@ -117,21 +122,38 @@ export default function ProductDetail({ onAdded }) {
     };
 
     const addToCart = async () => {
-        if (!token) return alert("Please sign in.");
         try {
-            await axios.post(
-                `${API_ENDPOINTS.CART}/add`,
-                {
-                    productId: product.id,
-                    variantId: variant?.id ?? null,
-                    quantity: qty,
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const cartItem = {
+                productId: product.id,
+                variantId: variant?.id ?? null,
+                quantity: qty,
+                name: product.name,
+                brand: product.brand,
+                imageUrl: variant?.imageUrl || product.imageUrl,
+                price: finalNum
+            };
+
+            // Guest cart - localStorage
+            const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+            const existingIndex = guestCart.findIndex(
+                item => item.productId === cartItem.productId &&
+                    item.variantId === cartItem.variantId
             );
-            onAdded?.(qty);
-            alert("Added to cart!");
+
+            if (existingIndex >= 0) {
+                guestCart[existingIndex].quantity += qty;
+            } else {
+                guestCart.push(cartItem);
+            }
+
+            localStorage.setItem('guestCart', JSON.stringify(guestCart));
+            const totalQty = guestCart.reduce((sum, item) => sum + item.quantity, 0);
+            onAdded?.(totalQty);
+            window.dispatchEvent(new Event("cart:updated"));
+            
+            showToast(`${product.name} added to cart!`, 'success');
         } catch (e) {
-            alert(e?.response?.data || "Could not add to cart.");
+            showToast(e?.response?.data || "Could not add to cart.", 'error');
         }
     };
 
@@ -205,6 +227,13 @@ export default function ProductDetail({ onAdded }) {
 
     return (
         <div className="pd-wrap">
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
             <div className="pd-top">
                 <section className="pd-gallery-premium">
                     <div

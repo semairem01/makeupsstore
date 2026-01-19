@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using makeup.Models.Repositories;
+﻿using makeup.Models.Repositories;
 using makeup.Models.Services.Dtos;
 using System.Linq;
 using makeup.Models.Repositories.Entities;
@@ -10,21 +9,14 @@ public class CartItemService : ICartItemService
 {
     private readonly ICartItemRepository _cartItemRepository;
     private readonly IProductRepository _productRepository;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public CartItemService(
         ICartItemRepository cartItemRepository,
-        IProductRepository productRepository,
-        IHttpContextAccessor httpContextAccessor)
+        IProductRepository productRepository)
     {
         _cartItemRepository = cartItemRepository;
         _productRepository = productRepository;
-        _httpContextAccessor = httpContextAccessor;
     }
-
-    private Guid CurrentUserId =>
-        Guid.Parse(_httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)
-                   ?? Guid.Empty.ToString());
 
     // İndirim uygulanmış birim fiyat (ürün için)
     private static decimal GetEffectiveUnitPrice(Product p)
@@ -64,16 +56,15 @@ public class CartItemService : ICartItemService
         );
     }
 
-    // Sepeti getir
-    public async Task<IEnumerable<CartItemDto>> GetAllAsync()
+    // ✅ Sepeti getir
+    public async Task<IEnumerable<CartItemDto>> GetAllAsync(Guid userId)
     {
-        var userId = CurrentUserId;
         var cartItems = await _cartItemRepository.GetByUserIdAsync(userId);
         return cartItems.Select(MapToDto).ToList();
     }
 
-    // Sepete ekle
-    public async Task<ServiceResult<CartItemDto>> AddAsync(CartItemCreateDto dto)
+    // ✅ Sepete ekle
+    public async Task<ServiceResult<CartItemDto>> AddAsync(Guid userId, CartItemCreateDto dto)
     {
         if (dto.Quantity < 1)
             return ServiceResult<CartItemDto>.Fail("Miktar en az 1 olmalıdır.");
@@ -102,14 +93,13 @@ public class CartItemService : ICartItemService
         }
 
         // Aynı ürün + aynı varyant kombinasyonu var mı?
-        var existing = await _cartItemRepository.GetByUserProductVariantAsync(CurrentUserId, dto.ProductId, dto.VariantId);
-        
+        var existing = await _cartItemRepository.GetByUserProductVariantAsync(userId, dto.ProductId, dto.VariantId);
+
         if (existing != null)
         {
-            // Miktarı artır
             int newQty = existing.Quantity + dto.Quantity;
 
-            // Stok kontrolü yap
+            // Stok kontrolü
             if (variant != null && variant.StockQuantity < newQty)
                 return ServiceResult<CartItemDto>.Fail($"Varyant stok yetersiz. Mevcut: {variant.StockQuantity}");
             if (variant == null && product.StockQuantity < newQty)
@@ -118,37 +108,29 @@ public class CartItemService : ICartItemService
             existing.Quantity = newQty;
             await _cartItemRepository.UpdateAsync(existing);
 
-            return ServiceResult<CartItemDto>.Ok(
-                MapToDto(existing),
-                "Sepet güncellendi."
-            );
+            return ServiceResult<CartItemDto>.Ok(MapToDto(existing), "Sepet güncellendi.");
         }
-        else
+
+        // Yeni satır ekle
+        var cartItem = new CartItem
         {
-            // Yeni satır ekle
-            var cartItem = new CartItem
-            {
-                ProductId = dto.ProductId,
-                VariantId = dto.VariantId,
-                Quantity = dto.Quantity,
-                UserId = CurrentUserId
-            };
-            await _cartItemRepository.AddAsync(cartItem);
+            ProductId = dto.ProductId,
+            VariantId = dto.VariantId,
+            Quantity = dto.Quantity,
+            UserId = userId
+        };
 
-            // Eklenen item'i tekrar oku (Include'lu)
-            var added = await _cartItemRepository.GetByIdAsync(cartItem.Id);
-            if (added == null)
-                return ServiceResult<CartItemDto>.Fail("Sepete eklenemedi.");
+        await _cartItemRepository.AddAsync(cartItem);
 
-            return ServiceResult<CartItemDto>.Ok(
-                MapToDto(added),
-                "Ürün sepete eklendi."
-            );
-        }
+        var added = await _cartItemRepository.GetByIdAsync(cartItem.Id);
+        if (added == null)
+            return ServiceResult<CartItemDto>.Fail("Sepete eklenemedi.");
+
+        return ServiceResult<CartItemDto>.Ok(MapToDto(added), "Ürün sepete eklendi.");
     }
 
-    // Miktar güncelle
-    public async Task<ServiceResult<CartItemDto>> UpdateQuantityAsync(int cartItemId, int quantity)
+    // ✅ Miktar güncelle
+    public async Task<ServiceResult<CartItemDto>> UpdateQuantityAsync(Guid userId, int cartItemId, int quantity)
     {
         if (quantity < 1)
             return ServiceResult<CartItemDto>.Fail("Miktar en az 1 olmalıdır.");
@@ -158,7 +140,7 @@ public class CartItemService : ICartItemService
             return ServiceResult<CartItemDto>.Fail("Sepet öğesi bulunamadı.");
 
         // Kendi sepeti mi?
-        if (cartItem.UserId != CurrentUserId)
+        if (cartItem.UserId != userId)
             return ServiceResult<CartItemDto>.Fail("Bu sepet öğesini değiştiremezsiniz.");
 
         var product = await _productRepository.GetByIdAsync(cartItem.ProductId);
@@ -183,30 +165,27 @@ public class CartItemService : ICartItemService
         cartItem.Quantity = quantity;
         await _cartItemRepository.UpdateAsync(cartItem);
 
-        return ServiceResult<CartItemDto>.Ok(
-            MapToDto(cartItem),
-            "Miktar güncellendi."
-        );
+        return ServiceResult<CartItemDto>.Ok(MapToDto(cartItem), "Miktar güncellendi.");
     }
 
-    // Sepetten kaldır
-    public async Task<ServiceResult<bool>> RemoveAsync(int cartItemId)
+    // ✅ Sepetten kaldır
+    public async Task<ServiceResult<bool>> RemoveAsync(Guid userId, int cartItemId)
     {
         var ci = await _cartItemRepository.GetByIdAsync(cartItemId);
         if (ci == null)
             return ServiceResult<bool>.Fail("Sepet öğesi bulunamadı.");
-        
-        if (ci.UserId != CurrentUserId)
+
+        if (ci.UserId != userId)
             return ServiceResult<bool>.Fail("Bu sepet öğesini silemezsiniz.");
 
         await _cartItemRepository.RemoveAsync(cartItemId);
         return ServiceResult<bool>.Ok(true, "Sepetten kaldırıldı.");
     }
 
-    // Sepeti temizle
-    public async Task<ServiceResult<bool>> ClearAsync()
+    // ✅ Sepeti temizle
+    public async Task<ServiceResult<bool>> ClearAsync(Guid userId)
     {
-        await _cartItemRepository.ClearCartAsync(CurrentUserId);
+        await _cartItemRepository.ClearCartAsync(userId);
         return ServiceResult<bool>.Ok(true, "Sepet temizlendi.");
     }
 }

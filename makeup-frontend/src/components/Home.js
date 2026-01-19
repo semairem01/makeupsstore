@@ -191,7 +191,7 @@ export default function Home({ onAdded }) {
                                 <figure className="testi__card" key={rv.id}>
                                     <Link to={`/product/${rv.productId}`} className="testi__prod">
                                         <img
-                                            src={`http://localhost:5011${rv.productImageUrl ?? ""}`}
+                                            src={`${API_BASE_URL}${rv.productImageUrl ?? ""}`}
                                             alt={rv.productName}
                                             onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/80x80?text=No+Img"; }}
                                         />

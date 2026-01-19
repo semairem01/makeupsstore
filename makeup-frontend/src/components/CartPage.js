@@ -1,76 +1,116 @@
 ﻿// src/components/CartPage.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import axios from "axios";
-import { API_ENDPOINTS } from "../config";
 import { useNavigate } from "react-router-dom";
+import Toast from "./Toast";
 import "./CartPage.css";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL, API_ENDPOINTS } from "../config";
+import axios from "axios";
 
 function CartPage({ onCleared, onCountChange }) {
     const [cartItems, setCartItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [discount, setDiscount] = useState(null);
     const [discountApplied, setDiscountApplied] = useState(false);
+    const [toast, setToast] = useState(null);
 
-    const token = localStorage.getItem("token");
     const navigate = useNavigate();
 
-    const getId = (x) => x.id ?? x.Id;
-    const getQty = (x) => x.quantity ?? x.Quantity ?? 0;
-    const getUnitPrice = (x) => x.unitPrice ?? x.UnitPrice ?? 0;
-    const getTotalPrice = (x) => x.totalPrice ?? x.TotalPrice ?? (getUnitPrice(x) * getQty(x));
+    const showToast = (message, type = "success") => setToast({ message, type });
+
     const fmtTRY = (n) =>
         Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "TRY" });
 
-    const fetchCart = useCallback(() => {
-        return axios
-            .get(`${API_ENDPOINTS.CART}`, { headers: { Authorization: `Bearer ${token}` } })
-            .then((res) => {
-                setCartItems(res.data || []);
-                const totalQty = (res.data || []).reduce((sum, x) => sum + getQty(x), 0);
+    const isLoggedIn = () => !!localStorage.getItem("token");
+
+    const normalizeBackendItems = (items) => {
+        // Backend service'in döndürdüğüne göre field isimleri değişebilir.
+        // Ama en kritik: id (cartItemId) ve quantity/unitPrice
+        return (items || []).map((x) => ({
+            // ✅ backend item id (Update/Remove için gerekli)
+            id: x.id ?? x.Id,
+
+            productId: x.productId ?? x.ProductId,
+            variantId: x.variantId ?? x.VariantId ?? null,
+            quantity: Number(x.quantity ?? x.Quantity ?? 1),
+            price: Number(x.unitPrice ?? x.UnitPrice ?? x.price ?? x.Price ?? 0),
+
+            name: x.productName ?? x.ProductName ?? x.name ?? x.Name,
+            brand: x.brand ?? x.Brand,
+            imageUrl: x.imageUrl ?? x.ImageUrl,
+        }));
+    };
+
+    const loadCart = useCallback(async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+
+            // ✅ login varsa backend cart
+            if (token) {
+                const res = await axios.get(`${API_ENDPOINTS.CART}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                const backendItems = normalizeBackendItems(res.data);
+                setCartItems(backendItems);
+
+                const totalQty = backendItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
                 onCountChange?.(totalQty);
-            })
-            .finally(() => setLoading(false));
-    }, [token, onCountChange]);
+                return;
+            }
+
+            // ✅ guest cart
+            const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
+            setCartItems(guestCart);
+
+            const totalQty = guestCart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+            onCountChange?.(totalQty);
+        } catch (e) {
+            console.error("Cart load error:", e);
+            setCartItems([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [onCountChange]);
 
     useEffect(() => {
-        fetchCart();
+        loadCart();
 
-        // Check for Lunara discount in localStorage
-        const savedDiscount = localStorage.getItem('lunaraDiscount');
+        // login sonrası sync bittiyse cart page yenilensin
+        const onUpdated = () => loadCart();
+        window.addEventListener("cart:updated", onUpdated);
+        return () => window.removeEventListener("cart:updated", onUpdated);
+    }, [loadCart]);
+
+    useEffect(() => {
+        const savedDiscount = localStorage.getItem("lunaraDiscount");
         if (savedDiscount) {
             try {
                 const discountData = JSON.parse(savedDiscount);
-                console.log('💎 Loaded discount from localStorage:', discountData);
                 setDiscount(discountData);
-                setDiscountApplied(true); // Otomatik uygula
+                setDiscountApplied(true);
             } catch (e) {
-                console.error('Invalid discount data:', e);
-                localStorage.removeItem('lunaraDiscount');
+                console.error("Invalid discount data:", e);
+                localStorage.removeItem("lunaraDiscount");
             }
         }
-    }, [fetchCart]);
+    }, []);
 
     const subtotal = useMemo(
-        () => (cartItems || []).reduce((s, x) => s + getTotalPrice(x), 0),
+        () => cartItems.reduce((s, item) => s + (Number(item.price) * Number(item.quantity)), 0),
         [cartItems]
     );
 
-    // Calculate discount amount
     const discountAmount = useMemo(() => {
         if (!discount || !discountApplied) return 0;
 
-        const minAmount = discount.minimumOrderAmount ||
-            parseFloat(discount.condition?.match(/[\d,]+/)?.[0]?.replace(',', '') || '0');
+        const minAmount =
+            discount.minimumOrderAmount ||
+            parseFloat(discount.condition?.match(/[\d,]+/)?.[0]?.replace(",", "") || "0");
 
-        if (subtotal < minAmount) {
-            console.log(`⚠️ Cart total ${subtotal} is less than minimum ${minAmount}`);
-            return 0;
-        }
+        if (subtotal < minAmount) return 0;
 
-        const amount = (subtotal * discount.value) / 100;
-        console.log(`✅ Discount applied: ${discount.value}% = ${amount}`);
-        return amount;
+        return (subtotal * discount.value) / 100;
     }, [discount, discountApplied, subtotal]);
 
     const total = subtotal - discountAmount;
@@ -78,45 +118,134 @@ function CartPage({ onCleared, onCountChange }) {
     const removeDiscount = () => {
         setDiscountApplied(false);
         setDiscount(null);
-        localStorage.removeItem('lunaraDiscount');
-        console.log('🗑️ Discount removed');
+        localStorage.removeItem("lunaraDiscount");
+        showToast("Discount removed", "info");
     };
 
-    const updateQty = async (id, qty) => {
+    const updateQty = async (index, qty) => {
         if (qty < 1) return;
-        await axios.put(`${API_ENDPOINTS.CART}/${id}/quantity/${qty}`, {}, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        fetchCart();
+
+        // ✅ login: backend PUT /api/cart/{id}/quantity/{quantity}
+        if (isLoggedIn()) {
+            const token = localStorage.getItem("token");
+            const item = cartItems[index];
+
+            if (!item?.id) {
+                showToast("Cart item id missing (backend response).", "error");
+                return;
+            }
+
+            try {
+                await axios.put(
+                    `${API_ENDPOINTS.CART}/${item.id}/quantity/${qty}`,
+                    {},
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                const updated = [...cartItems];
+                updated[index] = { ...updated[index], quantity: qty };
+                setCartItems(updated);
+
+                const totalQty = updated.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+                onCountChange?.(totalQty);
+                window.dispatchEvent(new Event("cart:updated"));
+            } catch (e) {
+                console.error(e);
+                showToast("Could not update quantity.", "error");
+            }
+            return;
+        }
+
+        // ✅ guest: localStorage
+        const updatedCart = [...cartItems];
+        updatedCart[index].quantity = qty;
+        localStorage.setItem("guestCart", JSON.stringify(updatedCart));
+        setCartItems(updatedCart);
+
+        const totalQty = updatedCart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+        onCountChange?.(totalQty);
+        window.dispatchEvent(new Event("cart:updated"));
     };
 
-    const inc = (item) => updateQty(getId(item), getQty(item) + 1);
-    const dec = (item) => updateQty(getId(item), getQty(item) - 1);
+    const inc = (index) => updateQty(index, Number(cartItems[index].quantity) + 1);
+    const dec = (index) => updateQty(index, Number(cartItems[index].quantity) - 1);
 
-    const removeItem = async (id) => {
-        await axios.delete(`${API_ENDPOINTS.CART}/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        fetchCart();
+    const removeItem = async (index) => {
+        // ✅ login: backend DELETE /api/cart/{id}
+        if (isLoggedIn()) {
+            const token = localStorage.getItem("token");
+            const item = cartItems[index];
+
+            if (!item?.id) {
+                showToast("Cart item id missing (backend response).", "error");
+                return;
+            }
+
+            try {
+                await axios.delete(`${API_ENDPOINTS.CART}/${item.id}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                const updatedCart = cartItems.filter((_, i) => i !== index);
+                setCartItems(updatedCart);
+
+                const totalQty = updatedCart.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+                onCountChange?.(totalQty);
+                showToast("Item removed from cart", "info");
+                window.dispatchEvent(new Event("cart:updated"));
+            } catch (e) {
+                console.error(e);
+                showToast("Could not remove item.", "error");
+            }
+            return;
+        }
+
+        // ✅ guest: localStorage
+        const updatedCart = cartItems.filter((_, i) => i !== index);
+        localStorage.setItem("guestCart", JSON.stringify(updatedCart));
+        setCartItems(updatedCart);
+
+        const totalQty = updatedCart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+        onCountChange?.(totalQty);
+        showToast("Item removed from cart", "info");
+        window.dispatchEvent(new Event("cart:updated"));
     };
 
     const clearCart = async () => {
-        await axios.delete(`${API_ENDPOINTS.CART}/clear`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        // ✅ login: backend DELETE /api/cart/clear
+        if (isLoggedIn()) {
+            const token = localStorage.getItem("token");
+            try {
+                await axios.delete(`${API_ENDPOINTS.CART}/clear`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+            } catch (e) {
+                console.error(e);
+                showToast("Could not clear cart.", "error");
+                return;
+            }
+        } else {
+            localStorage.removeItem("guestCart");
+        }
+
         setCartItems([]);
         onCountChange?.(0);
         onCleared?.();
+        showToast("Cart cleared", "info");
+        window.dispatchEvent(new Event("cart:updated"));
     };
 
     const goToCheckout = () => {
-        if (discountApplied && discount) {
-            console.log('🚀 Going to checkout with discount:', {
-                code: discount.code,
-                amount: discountAmount,
-                percentage: discount.value
-            });
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            showToast("Please sign in to continue checkout", "warning");
+            setTimeout(() => {
+                navigate("/login", { state: { from: "/checkout" } });
+            }, 1000);
+            return;
         }
+
         navigate("/checkout");
     };
 
@@ -124,6 +253,8 @@ function CartPage({ onCleared, onCountChange }) {
 
     return (
         <div className="cart-wrap">
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
             <div className="cart-header">
                 <button className="icon-btn" onClick={() => window.history.back()}>←</button>
                 <div className="cart-title">Cart</div>
@@ -136,45 +267,36 @@ function CartPage({ onCleared, onCountChange }) {
                 </div>
             ) : (
                 <>
-                    {cartItems.map((item) => {
-                        const imgRaw =
-                            item.variantImage ?? item.VariantImage ?? item.imageUrl ?? item.ImageUrl ?? "";
-                        const imgSrc = imgRaw.startsWith("http")
-                            ? imgRaw
-                            : `${API_BASE_URL}${imgRaw}`;
-                        const title = (item.productName ?? item.ProductName) +
-                            ((item.variantName ?? item.VariantName) ? ` - ${(item.variantName ?? item.VariantName)}` : "");
+                    {cartItems.map((item, index) => {
+                        const raw = item.imageUrl || "";
+                        const imgSrc = raw.startsWith("http") ? raw : `${API_BASE_URL}${raw}`;
 
                         return (
-                            <div key={getId(item)} className="cart-card">
+                            <div key={`${item.productId}-${item.variantId}-${item.id ?? index}`} className="cart-card">
                                 <div className="brand-row">
-                                    <span>{item.brand ?? item.Brand}</span>
+                                    <span>{item.brand}</span>
                                 </div>
 
                                 <img
                                     className="product-img"
                                     src={imgSrc}
-                                    alt=""
-                                    onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/64"; }}
+                                    alt={item.name}
+                                    onError={(e) => {
+                                        e.currentTarget.src = "https://via.placeholder.com/64";
+                                    }}
                                 />
 
                                 <div className="info">
-                                    <h4>{title}</h4>
+                                    <h4>{item.name}</h4>
                                     <p>Beauty</p>
-                                    <div className="price">
-                                        {fmtTRY(getUnitPrice(item))}
-                                    </div>
+                                    <div className="price">{fmtTRY(item.price)}</div>
                                 </div>
 
                                 <div className="qty-box">
-                                    <button className="qty-btn" onClick={() => dec(item)}>-</button>
-                                    <div className="qty-val">{getQty(item)}</div>
-                                    <button className="qty-btn" onClick={() => inc(item)}>+</button>
-                                    <button
-                                        className="qty-btn"
-                                        style={{ marginLeft: 8 }}
-                                        onClick={() => removeItem(getId(item))}
-                                    >
+                                    <button className="qty-btn" onClick={() => dec(index)}>-</button>
+                                    <div className="qty-val">{item.quantity}</div>
+                                    <button className="qty-btn" onClick={() => inc(index)}>+</button>
+                                    <button className="qty-btn" style={{ marginLeft: 8 }} onClick={() => removeItem(index)}>
                                         ✕
                                     </button>
                                 </div>
@@ -182,7 +304,6 @@ function CartPage({ onCleared, onCountChange }) {
                         );
                     })}
 
-                    {/* Discount Section */}
                     {discount && (
                         <div className="discount-section">
                             <div className="discount-card">
@@ -192,23 +313,23 @@ function CartPage({ onCleared, onCountChange }) {
                                     <div className="discount-detail">
                                         {discount.value}% off • {discount.condition}
                                     </div>
-                                    {discount.code && (
-                                        <div className="discount-code">Code: {discount.code}</div>
-                                    )}
+                                    {discount.code && <div className="discount-code">Code: {discount.code}</div>}
                                 </div>
-                                <button className="remove-btn" onClick={removeDiscount}>
-                                    Remove
-                                </button>
+                                <button className="remove-btn" onClick={removeDiscount}>Remove</button>
                             </div>
+
                             {discountAmount === 0 && subtotal > 0 && (
                                 <div className="discount-warning">
-                                    ⚠️ Add {fmtTRY(parseFloat(discount.condition?.match(/[\d,]+/)?.[0]?.replace(',', '') || '0') - subtotal)} more to use this discount
+                                    ⚠️ Add{" "}
+                                    {fmtTRY(
+                                        parseFloat(discount.condition?.match(/[\d,]+/)?.[0]?.replace(",", "") || "0") - subtotal
+                                    )}{" "}
+                                    more to use this discount
                                 </div>
                             )}
                         </div>
                     )}
 
-                    {/* Checkout Bar */}
                     <div className="checkout-bar">
                         <div className="checkout-inner">
                             <div className="total-breakdown">
@@ -216,25 +337,25 @@ function CartPage({ onCleared, onCountChange }) {
                                     <span>Subtotal:</span>
                                     <span>{fmtTRY(subtotal)}</span>
                                 </div>
+
                                 {discountApplied && discountAmount > 0 && (
                                     <div className="total-row discount-row">
                                         <span>🌙 {discount.name} ({discount.value}%):</span>
                                         <span className="discount-value">-{fmtTRY(discountAmount)}</span>
                                     </div>
                                 )}
+
                                 <div className="total-row total-final">
                                     <span>Total:</span>
                                     <span>{fmtTRY(total)}</span>
                                 </div>
                             </div>
-                            <button
-                                className="checkout-btn"
-                                onClick={goToCheckout}
-                            >
+
+                            <button className="checkout-btn" onClick={goToCheckout}>
                                 Check Out
                                 <span className="badge">
-                                    {(cartItems || []).reduce((s, x) => s + getQty(x), 0)}
-                                </span>
+                  {cartItems.reduce((s, item) => s + (Number(item.quantity) || 0), 0)}
+                </span>
                             </button>
                         </div>
                     </div>

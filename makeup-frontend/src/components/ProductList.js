@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { API_ENDPOINTS } from "../config";
+import Toast from "./Toast";
 import "./FavHeart.css";
 import "./ProductList.css";
 import { API_BASE_URL } from "../config";
@@ -12,11 +13,15 @@ function ProductList({ onAdded }) {
     const [pulseIds, setPulseIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [toast, setToast] = useState(null);
 
     const navigate = useNavigate();
     const location = useLocation();
     const { id: categoryId } = useParams();
-    const token = localStorage.getItem("token");
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+    };
 
     useEffect(() => {
         setLoading(true);
@@ -59,6 +64,7 @@ function ProductList({ onAdded }) {
             .catch(() => setError("Ürünler yüklenirken bir hata oluştu"))
             .finally(() => setLoading(false));
 
+        const token = localStorage.getItem("token");
         if (token) {
             axios
                 .get(API_ENDPOINTS.FAVORITES, {
@@ -71,7 +77,7 @@ function ProductList({ onAdded }) {
                 )
                 .catch(() => {});
         }
-    }, [categoryId, token, location]);
+    }, [categoryId, location]);
 
     const goToDetail = (productId, variantId) => {
         if (variantId) {
@@ -82,23 +88,48 @@ function ProductList({ onAdded }) {
     };
 
     const addToCart = async (productId) => {
-        if (!token) return alert("Lütfen giriş yapın.");
         try {
-            await axios.post(
-                `${API_ENDPOINTS.CART}/add`,
-                { productId, quantity: 1 },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const product = products.find(p => p.id === productId);
+
+            // Guest cart - localStorage
+            const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+            const cartItem = {
+                productId: product.id,
+                variantId: product.variantId,
+                quantity: 1,
+                name: product.name,
+                brand: product.brand,
+                imageUrl: product.imageUrl,
+                price: product.finalPrice || product.price
+            };
+
+            const existingIndex = guestCart.findIndex(
+                item => item.productId === productId && item.variantId === product.variantId
             );
-            onAdded?.(1);
-            alert("Sepete eklendi!");
+
+            if (existingIndex >= 0) {
+                guestCart[existingIndex].quantity += 1;
+            } else {
+                guestCart.push(cartItem);
+            }
+
+            localStorage.setItem('guestCart', JSON.stringify(guestCart));
+            const totalQty = guestCart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+            window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: totalQty } }));
+            onAdded?.(totalQty);
+            showToast(`${product.name} added to cart!`, "success");
         } catch (e) {
-            console.error(e);
-            alert(e?.response?.data || "Sepete eklenemedi.");
+            showToast(e?.response?.data || "Could not add to cart.", 'error');
         }
     };
 
     const toggleFav = async (pid) => {
-        if (!token) return alert("Lütfen giriş yapın.");
+        const token = localStorage.getItem("token");
+        if (!token) {
+            showToast("Please sign in to add favorites", 'warning');
+            return;
+        }
+
         const isFav = favIds.has(pid);
         try {
             if (isFav) {
@@ -138,7 +169,7 @@ function ProductList({ onAdded }) {
             }
         } catch (e) {
             console.error(e);
-            alert("Favori işlemi sırasında hata oluştu.");
+            showToast("Favori işlemi sırasında hata oluştu.", 'error');
         }
     };
 
@@ -149,6 +180,14 @@ function ProductList({ onAdded }) {
 
     return (
         <div className="product-list-container">
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
+
             {q && (
                 <div className="search-results-header">
                     "{q}" için sonuçlar

@@ -788,36 +788,166 @@
 
 @media (max-width: 640px) {
     .pd-wrap {
-        padding: 16px 12px 40px;
+        padding: 12px 10px 80px;
+        background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fbcfe8 100%);
     }
 
-    .pd-gallery-premium,
-    .pd-info,
+    .pd-gallery-premium {
+        border-radius: 24px;
+        padding: 16px;
+        box-shadow: 0 8px 32px rgba(236, 72, 153, 0.15);
+    }
+
+    .pd-info {
+        border-radius: 24px;
+        padding: 24px 20px;
+        box-shadow: 0 8px 32px rgba(236, 72, 153, 0.15);
+    }
+
     .pd-tabpanel-premium {
-        border-radius: 20px;
-        padding: 20px;
+        border-radius: 24px;
+        padding: 24px 18px;
     }
 
     .pd-mainimg-premium {
-        min-height: 320px;
-        border-radius: 16px;
-    }
-
-    .pd-title {
-        font-size: 22px;
-    }
-
-    .pd-tabs-premium {
-        gap: 6px;
-        padding: 8px;
+        min-height: 300px;
         border-radius: 20px;
     }
 
-    .pd-tab-premium {
-        min-width: 110px;
+    /* ✨ Premium Mobile Title */
+    .pd-title {
+        font-size: 20px;
+        line-height: 1.3;
+        margin-bottom: 8px;
+        letter-spacing: -0.3px;
+    }
+
+    .pd-brand {
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
+
+    .pd-color {
+        font-size: 12px;
+        padding: 4px 10px;
+        margin-bottom: 10px;
+    }
+
+    /* ⭐ Compact Rating */
+    .pd-rating {
+        padding: 8px 12px;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .pd-rating-text {
+        font-size: 12px;
+    }
+
+    /* 💰 Premium Mobile Price Box */
+    .pd-price {
+        font-size: 15px;
         padding: 14px 16px;
-        font-size: 13px;
+        margin: 14px 0 10px;
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(219, 39, 119, 0.05));
+        border-width: 2px;
+        border-radius: 18px;
+    }
+
+    .discount-badge {
+        font-size: 11px;
+        padding: 5px 12px;
+    }
+
+    /* 🎯 Compact Stock Alert */
+    .pd-stock {
+        padding: 8px 14px;
+        font-size: 12px;
+        margin-bottom: 12px;
+    }
+
+    /* ✨ Premium Mobile Quantity & Button Layout */
+    .pd-qtyrow {
+        flex-direction: row;
+        gap: 12px;
+        margin: 16px 0;
+    }
+
+    .qty-stepper {
+        flex-shrink: 0;
+        padding: 4px 6px;
         border-radius: 14px;
+        box-shadow: 0 4px 16px rgba(236, 72, 153, 0.12);
+    }
+
+    .qty-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        font-size: 18px;
+    }
+
+    .qty-input {
+        width: 48px;
+        font-size: 16px;
+    }
+
+    /* 🛒 Premium Mobile Add to Cart Button */
+    .pd-addcart, .pd-notify {
+        flex: 1;
+        padding: 14px 20px;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        box-shadow:
+                0 8px 24px rgba(236, 72, 153, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    /* 📝 Compact Description */
+    .pd-desc {
+        margin-top: 20px;
+        padding-top: 20px;
+    }
+
+    .pd-desc h3 {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .pd-desc p {
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    /* 🎨 Mobile Swatches */
+    .pd-swatches-premium {
+        gap: 10px;
+        padding: 12px 16px;
+        margin: 16px 0;
+    }
+
+    .pd-swatch-premium {
+        width: 42px;
+        height: 42px;
+        border-width: 2px;
+    }
+
+    /* 📑 Premium Mobile Tabs */
+    .pd-tabs-premium {
+        gap: 6px;
+        padding: 6px;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 24px rgba(236, 72, 153, 0.12);
+    }
+
+    .pd-tab-premium {
+        min-width: 100px;
+        padding: 12px 14px;
+        font-size: 12px;
+        border-radius: 16px;
         gap: 6px;
     }
 
@@ -825,30 +955,69 @@
         font-size: 16px;
     }
 
-    .pd-qtyrow {
-        flex-direction: column;
+    .tab-badge {
+        font-size: 10px;
+        padding: 2px 7px;
+        min-width: 22px;
     }
 
-    .qty-stepper {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .pd-addcart, .pd-notify {
-        width: 100%;
-    }
-
+    /* 📦 Mobile Product Features */
     .product-features {
         grid-template-columns: 1fr;
         gap: 12px;
-        padding: 20px;
+        padding: 20px 16px;
+        border-radius: 20px;
+    }
+
+    .feature-item {
+        padding: 12px 16px;
+        border-radius: 14px;
+    }
+
+    .feature-label {
+        font-size: 10px;
+    }
+
+    .feature-value {
+        font-size: 14px;
+    }
+
+    .feature-badge {
+        padding: 10px 16px;
+        font-size: 12px;
     }
 
     .section-title {
-        font-size: 22px;
+        font-size: 20px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+    }
+
+    /* ❤️ Mobile Favorite Button */
+    .fav-btn {
+        width: 44px;
+        height: 44px;
+        top: 14px;
+        right: 14px;
+    }
+
+    .fav-btn .fav-heart {
+        font-size: 20px;
+    }
+
+    /* 🖼️ Mobile Thumbnails */
+    .pd-thumbs-premium {
+        gap: 10px;
+        margin-top: 14px;
+        padding: 6px 2px;
+    }
+
+    .pd-thumb-premium {
+        width: 72px;
+        height: 72px;
+        border-radius: 14px;
     }
 }
-
 /* ============================================
    🌟 GLASSMORPHISM EFFECTS
    ============================================ */
