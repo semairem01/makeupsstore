@@ -746,3 +746,431 @@
     color: var(--lunar-text-light);
     font-size: 14px;
 }
+
+/* ============================================
+   📱 MOBILE RESPONSIVE - PREMIUM DESIGN
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .checkout-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .checkout-right {
+        position: static;
+        order: -1; /* Order Summary yukarıda */
+    }
+
+    .order-summary {
+        position: sticky;
+        top: 80px;
+        z-index: 10;
+    }
+}
+
+@media (max-width: 768px) {
+    .checkout-container {
+        padding: 24px 16px 100px;
+    }
+
+    .checkout-header h1 {
+        font-size: 2rem;
+    }
+
+    .checkout-header p {
+        font-size: 1rem;
+    }
+
+    /* Sections - Daha kompakt */
+    .checkout-section {
+        padding: 20px 16px;
+        margin-bottom: 16px;
+        border-radius: 12px;
+    }
+
+    .section-header {
+        flex-direction: row;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+    }
+
+    .section-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .section-header h3 {
+        font-size: 1.1rem;
+    }
+
+    /* Form - Mobil optimize & Kompakt */
+    .address-form {
+        gap: 12px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .form-group {
+        gap: 6px;
+    }
+
+    .form-group label {
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        padding: 10px 12px;
+        font-size: 15px; /* iOS zoom engellemek için */
+        border-radius: 10px;
+    }
+
+    .form-group textarea {
+        min-height: 80px;
+    }
+
+    /* Name & Phone yan yana mobilde */
+    .form-row:first-child {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    /* City & District & Postal yan yana (3 kolon) */
+    .form-row:nth-child(2) {
+        grid-template-columns: 1fr 1fr 80px;
+        gap: 8px;
+    }
+
+    /* Address Selector - Stack */
+    .address-selector {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .btn-new-address {
+        width: 100%;
+        justify-content: center;
+        padding: 12px 20px;
+    }
+
+    /* Shipping & Installment Options - Kompakt */
+    .shipping-option,
+    .installment-option {
+        padding: 14px 16px;
+    }
+
+    .option-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .option-header strong {
+        font-size: 15px;
+    }
+
+    .option-header .price {
+        font-size: 16px;
+    }
+
+    /* Order Summary - Mobil Premium */
+    .order-summary {
+        position: static;
+        padding: 20px 16px;
+        margin-bottom: 20px;
+        border-radius: 12px;
+    }
+
+    .order-summary h3 {
+        font-size: 1.3rem;
+        margin-bottom: 16px;
+    }
+
+    /* Summary Items - Kompakt Grid */
+    .summary-items {
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .summary-item {
+        grid-template-columns: 50px 1fr auto;
+        gap: 10px;
+    }
+
+    .summary-item img {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+    }
+
+    .item-title {
+        font-size: 13px;
+        line-height: 1.3;
+    }
+
+    .item-quantity {
+        font-size: 12px;
+    }
+
+    .item-price {
+        font-size: 14px;
+    }
+
+    /* Summary Totals - Daha büyük */
+    .summary-totals {
+        gap: 10px;
+    }
+
+    .total-row {
+        font-size: 14px;
+    }
+
+    .total-row.grand-total {
+        font-size: 18px;
+        padding-top: 12px;
+        margin-top: 12px;
+    }
+
+    /* Complete Order Button - Premium */
+    .btn-complete-order {
+        padding: 16px;
+        font-size: 15px;
+        margin-top: 16px;
+        border-radius: 10px;
+    }
+
+    /* Free Shipping Banner - Mobil */
+    .free-shipping-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .banner-icon {
+        width: 42px;
+        height: 42px;
+    }
+
+    .banner-text strong {
+        font-size: 15px;
+    }
+
+    .banner-text p {
+        font-size: 13px;
+    }
+
+    /* Progress Bar */
+    .progress-bar {
+        height: 10px;
+    }
+
+    .progress-labels {
+        font-size: 12px;
+    }
+
+    /* Suggested Products - Mobil scroll */
+    .suggestions-carousel {
+        padding: 6px 30px;
+    }
+
+    .suggestions-nav {
+        width: 30px;
+        height: 30px;
+        font-size: 18px;
+    }
+
+    .suggestions-nav.left {
+        left: 2px;
+    }
+
+    .suggestions-nav.right {
+        right: 2px;
+    }
+
+    .suggestion-card {
+        width: 160px;
+    }
+
+    .suggestion-card img {
+        height: 120px;
+    }
+
+    .suggestion-name {
+        font-size: 0.85rem;
+    }
+
+    .suggestion-price .final {
+        font-size: 0.9rem;
+    }
+
+    .btn-add-suggestion {
+        height: 32px;
+        font-size: 12px;
+    }
+
+    /* Quick View Modal - Mobil */
+    .qv-modal {
+        width: 95vw;
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .qv-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .qv-media {
+        padding: 10px;
+    }
+
+    .qv-media img {
+        max-height: 40vh;
+    }
+
+    .qv-title {
+        font-size: 1.1rem;
+    }
+
+    .qv-price .final {
+        font-size: 1.1rem;
+    }
+
+    .qv-actions {
+        flex-direction: column;
+    }
+
+    .qv-actions button {
+        width: 100%;
+    }
+
+    /* Payment Card - Mobil */
+    .pm-card {
+        width: 100%;
+        max-width: 320px;
+        height: 180px;
+        margin-bottom: 20px;
+    }
+
+    .pm-card-face {
+        padding: 18px 20px;
+    }
+
+    .pm-card-number {
+        font-size: 1.2rem;
+    }
+
+    .pm-card-footer-info .value {
+        font-size: 0.85rem;
+    }
+
+    /* Security Badge */
+    .security-badge {
+        font-size: 13px;
+        padding: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .checkout-container {
+        padding: 20px 12px 100px;
+    }
+
+    .checkout-header {
+        margin-bottom: 32px;
+    }
+
+    .checkout-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .checkout-section {
+        padding: 16px 14px;
+    }
+
+    .section-header h3 {
+        font-size: 1rem;
+    }
+
+    /* ✅ Form - Çok kompakt (küçük ekran) */
+    .form-row:first-child {
+        grid-template-columns: 1fr; /* Name & Phone alt alta */
+        gap: 10px;
+    }
+
+    .form-row:nth-child(2) {
+        grid-template-columns: 1fr 1fr; /* City & District yan yana */
+        gap: 8px;
+    }
+
+    /* Postal code ayrı satır */
+    .form-row:nth-child(2) .form-group:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        padding: 10px 12px;
+        font-size: 15px;
+    }
+
+    .form-group label {
+        font-size: 12px;
+    }
+
+    /* Summary - Çok küçük ekranlar */
+    .summary-item {
+        grid-template-columns: 45px 1fr auto;
+        gap: 8px;
+    }
+
+    .summary-item img {
+        width: 45px;
+        height: 45px;
+    }
+
+    .item-title {
+        font-size: 12px;
+    }
+
+    .item-price {
+        font-size: 13px;
+    }
+
+    .total-row.grand-total {
+        font-size: 16px;
+    }
+
+    /* Buttons - Touch friendly */
+    .btn-complete-order {
+        padding: 14px;
+        font-size: 14px;
+    }
+
+    /* Suggested products - Daha küçük */
+    .suggestion-card {
+        width: 140px;
+    }
+
+    .suggestion-card img {
+        height: 100px;
+    }
+
+    /* Payment card - Mini */
+    .pm-card {
+        height: 160px;
+        max-width: 280px;
+    }
+
+    .pm-card-number {
+        font-size: 1.05rem;
+    }
+}
