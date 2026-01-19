@@ -147,7 +147,10 @@ export default function CheckoutPage() {
                 params: { maxPrice: remainingAmount, limit: 12 },
             })
             .then((res) => setSuggestedProducts(res.data || []))
-            .catch(() => setSuggestedProducts([]));
+            .catch((err) => {
+                console.error("suggestions error:", err);
+                setSuggestedProducts([]);
+            });
     }, [subtotal]);
 
     const onAddressPicked = useCallback((obj) => {
