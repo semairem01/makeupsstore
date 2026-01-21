@@ -70,11 +70,16 @@ function ProductList({ onAdded }) {
                 .get(API_ENDPOINTS.FAVORITES, {
                     headers: { Authorization: `Bearer ${token}` },
                 })
-                .then((r) =>
-                    setFavIds(
-                        new Set((r.data || []).map((x) => x.productId ?? x.ProductId))
-                    )
-                )
+                .then((r) => {
+                    const set = new Set(
+                        (r.data || []).map((x) => {
+                            const pid = x.productId ?? x.ProductId;
+                            const vid = x.variantId ?? x.VariantId ?? null;
+                            return `${pid}:${vid ?? "base"}`;
+                        })
+                    );
+                    setFavIds(set);
+                })
                 .catch(() => {});
         }
     }, [categoryId, location]);
@@ -123,53 +128,50 @@ function ProductList({ onAdded }) {
         }
     };
 
-    const toggleFav = async (pid) => {
+    const toggleFav = async (pid, vid) => {
         const token = localStorage.getItem("token");
         if (!token) {
-            showToast("Please sign in to add favorites", 'warning');
+            showToast("Please sign in to add favorites", "warning");
             return;
         }
 
-        const isFav = favIds.has(pid);
+        const key = `${pid}:${vid ?? "base"}`;
+        const isFav = favIds.has(key);
+        const url = `${API_ENDPOINTS.FAVORITES}/${pid}${vid ? `?variantId=${vid}` : ""}`;
+
         try {
             if (isFav) {
-                await axios.delete(`${API_ENDPOINTS.FAVORITES}/${pid}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                await axios.delete(url, { headers: { Authorization: `Bearer ${token}` } });
                 setFavIds((prev) => {
                     const n = new Set(prev);
-                    n.delete(pid);
+                    n.delete(key);
                     return n;
                 });
             } else {
-                await axios.post(
-                    `${API_ENDPOINTS.FAVORITES}/${pid}`,
-                    {},
-                    {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }
-                );
+                await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
                 setFavIds((prev) => {
                     const n = new Set(prev);
-                    n.add(pid);
+                    n.add(key);
                     return n;
                 });
+
+                // pulse animasyonu da key ile
                 setPulseIds((prev) => {
                     const n = new Set(prev);
-                    n.add(pid);
+                    n.add(key);
                     return n;
                 });
                 setTimeout(() => {
                     setPulseIds((prev) => {
                         const n = new Set(prev);
-                        n.delete(pid);
+                        n.delete(key);
                         return n;
                     });
                 }, 300);
             }
         } catch (e) {
             console.error(e);
-            showToast("Favori işlemi sırasında hata oluştu.", 'error');
+            showToast("Favori işlemi sırasında hata oluştu.", "error");
         }
     };
 
@@ -199,8 +201,9 @@ function ProductList({ onAdded }) {
 
             <div className="product-grid">
                 {products.map((p, idx) => {
-                    const isFav = favIds.has(p.id);
-                    const pulsing = pulseIds.has(p.id);
+                    const favKey = `${p.id}:${p.variantId ?? "base"}`;
+                    const isFav = favIds.has(favKey);
+                    const pulsing = pulseIds.has(favKey);
 
                     const hasDisc = Number(p.discountPercent) > 0;
                     const finalPriceNum =
@@ -237,7 +240,7 @@ function ProductList({ onAdded }) {
                                 }`}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    toggleFav(p.id);
+                                    toggleFav(p.id, p.variantId);
                                 }}
                                 aria-label={isFav ? "Favoriden kaldır" : "Favoriye ekle"}
                                 title={isFav ? "Favoriden kaldır" : "Favoriye ekle"}

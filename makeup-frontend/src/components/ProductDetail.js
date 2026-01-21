@@ -96,22 +96,33 @@ export default function ProductDetail({ onAdded }) {
         axios
             .get(API_ENDPOINTS.FAVORITES, { headers: { Authorization: `Bearer ${token}` } })
             .then((r) => {
-                const ids = new Set((r.data || []).map((x) => x.productId ?? x.ProductId));
-                setIsFav(ids.has(Number(id)));
+                const list = r.data || [];
+                const pid = Number(id);
+                const vid = variant?.id ?? null;
+
+                const found = list.some((x) => {
+                    const p = x.productId ?? x.ProductId;
+                    const v = x.variantId ?? x.VariantId ?? null;
+                    return Number(p) === pid && (v == null ? vid == null : Number(v) === Number(vid));
+                });
+
+                setIsFav(found);
             })
             .catch(() => {});
-    }, [token, id]);
+    }, [token, id, variant?.id]);
 
     const toggleFav = async () => {
         if (!token) return alert("Please sign in.");
+
+        const vid = variant?.id ?? null;
+        const url = `${API_ENDPOINTS.FAVORITES}/${id}${vid ? `?variantId=${vid}` : ""}`;
+
         try {
             if (isFav) {
-                await axios.delete(`${API_ENDPOINTS.FAVORITES}/${id}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                await axios.delete(url, { headers: { Authorization: `Bearer ${token}` } });
                 setIsFav(false);
             } else {
-                await axios.post(`${API_ENDPOINTS.FAVORITES}/${id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
                 setIsFav(true);
             }
             setJustToggled(true);
@@ -123,6 +134,31 @@ export default function ProductDetail({ onAdded }) {
 
     const addToCart = async () => {
         try {
+            const payload = {
+                productId: product.id,
+                variantId: variant?.id ?? null,
+                quantity: qty,
+            };
+
+            // ✅ LOGIN VARSA → BACKEND CART
+            if (token) {
+                await axios.post(`${API_ENDPOINTS.CART}/add`, payload, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                // header count doğru kalsın diye sepeti tekrar çek
+                const res2 = await axios.get(API_ENDPOINTS.CART, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const items = Array.isArray(res2.data) ? res2.data : [];
+                const totalQty = items.reduce((s, x) => s + Number(x.quantity ?? x.Quantity ?? 0), 0);
+
+                window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: totalQty } }));
+                showToast(`${product.name} added to cart!`, "success");
+                return;
+            }
+
+            // ✅ LOGIN YOKSA → GUEST CART
             const cartItem = {
                 productId: product.id,
                 variantId: variant?.id ?? null,
@@ -130,30 +166,26 @@ export default function ProductDetail({ onAdded }) {
                 name: product.name,
                 brand: product.brand,
                 imageUrl: variant?.imageUrl || product.imageUrl,
-                price: finalNum
+                price: finalNum,
             };
 
-            // Guest cart - localStorage
-            const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+            const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
             const existingIndex = guestCart.findIndex(
-                item => item.productId === cartItem.productId &&
-                    item.variantId === cartItem.variantId
+                (item) => item.productId === cartItem.productId && item.variantId === cartItem.variantId
             );
 
-            if (existingIndex >= 0) {
-                guestCart[existingIndex].quantity += qty;
-            } else {
-                guestCart.push(cartItem);
-            }
+            if (existingIndex >= 0) guestCart[existingIndex].quantity += qty;
+            else guestCart.push(cartItem);
 
-            localStorage.setItem('guestCart', JSON.stringify(guestCart));
-            const totalQty = guestCart.reduce((sum, item) => sum + item.quantity, 0);
+            localStorage.setItem("guestCart", JSON.stringify(guestCart));
+            const totalQty = guestCart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+
+            window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: totalQty } }));
             onAdded?.(totalQty);
-            window.dispatchEvent(new Event("cart:updated"));
-            
-            showToast(`${product.name} added to cart!`, 'success');
+
+            showToast(`${product.name} added to cart!`, "success");
         } catch (e) {
-            showToast(e?.response?.data || "Could not add to cart.", 'error');
+            showToast(e?.response?.data || "Could not add to cart.", "error");
         }
     };
 

@@ -41,12 +41,16 @@ public class CartItemService : ICartItemService
             ? GetEffectiveUnitPrice(ci.Variant)
             : GetEffectiveUnitPrice(ci.Product);
 
+        var displayImage = !string.IsNullOrWhiteSpace(ci.Variant?.ImageUrl)
+            ? ci.Variant!.ImageUrl
+            : ci.Product.ImageUrl;
+        
         return new CartItemDto(
             ci.Id,
             ci.ProductId,
             ci.Product.Name,
             ci.Product.Brand,
-            ci.Product.ImageUrl,
+            displayImage, 
             ci.VariantId,
             ci.Variant?.Name,
             ci.Variant?.ImageUrl,

@@ -697,11 +697,20 @@ namespace makeup.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("VariantId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
 
+                    b.HasIndex("VariantId");
+
                     b.HasIndex("UserId", "ProductId")
+                        .IsUnique()
+                        .HasFilter("\"VariantId\" IS NULL");
+
+                    b.HasIndex("UserId", "ProductId", "VariantId")
                         .IsUnique();
 
                     b.ToTable("FavoriteProducts");
@@ -1264,9 +1273,16 @@ namespace makeup.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("makeup.Models.Repositories.Entities.ProductVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("AppUser");
 
                     b.Navigation("Product");
+
+                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("makeup.Models.Repositories.NotifyRequest", b =>

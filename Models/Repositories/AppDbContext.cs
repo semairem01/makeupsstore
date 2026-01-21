@@ -186,9 +186,30 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
         
         modelBuilder.Entity<FavoriteProduct>(e =>
         {
-            e.HasIndex(f => new { f.UserId, f.ProductId }).IsUnique();
-            e.HasOne(f => f.AppUser).WithMany().HasForeignKey(f => f.UserId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(f => f.Product).WithMany().HasForeignKey(f => f.ProductId).OnDelete(DeleteBehavior.Cascade);
+            e.HasKey(f => f.Id);
+            
+            e.HasIndex(f => new { f.UserId, f.ProductId, f.VariantId }).IsUnique();
+
+            e.HasIndex(f => new { f.UserId, f.ProductId })
+                .IsUnique()
+                .HasFilter("\"VariantId\" IS NULL");
+            
+            e.HasOne(f => f.AppUser)
+                .WithMany()
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(f => f.Product)
+                .WithMany()
+                .HasForeignKey(f => f.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ✅ Variant ilişkisi
+            e.HasOne(f => f.Variant)
+                .WithMany()
+                .HasForeignKey(f => f.VariantId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
         });
         
         modelBuilder.Entity<ProductImage>(b =>

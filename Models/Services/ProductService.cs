@@ -604,11 +604,7 @@ namespace makeup.Models.Services
             IQueryable<Product> baseQ = _db.Products
                 .AsNoTracking()
                 .Include(p => p.Variants);
-                
-
-            if (q.InStock == true)
-                baseQ = baseQ.Where(p => p.StockQuantity > 0);
-
+            
             // 🔧 Ağaç bazlı kategori filtresi
             if (q.CategoryId is int cid)
             {
@@ -624,10 +620,7 @@ namespace makeup.Models.Services
                     EF.Functions.Like(p.Brand, $"%{term}%") ||
                     EF.Functions.Like(p.Description, $"%{term}%"));
             }
-
-            if (q.PriceMin is decimal pmin) baseQ = baseQ.Where(p => p.Price >= pmin);
-            if (q.PriceMax is decimal pmax) baseQ = baseQ.Where(p => p.Price <= pmax);
-            if (q.Discounted == true) baseQ = baseQ.Where(p => (p.DiscountPercent ?? 0) > 0);
+            
 
             var brands = SplitCsv(q.Brands);
             if (brands.Length > 0) baseQ = baseQ.Where(p => brands.Contains(p.Brand));
@@ -693,7 +686,8 @@ namespace makeup.Models.Services
                             ? p.Price * (1 - p.DiscountPercent.Value / 100m)
                             : p.Price,
                         p.IsActive && p.StockQuantity > 0,
-                        p.ShadeFamily, null
+                        p.ShadeFamily, null,
+                        p.StockQuantity
                     ));
                 }
                 else
@@ -712,11 +706,26 @@ namespace makeup.Models.Services
                                 : v.Price,
                             v.IsActive && v.StockQuantity > 0,
                             v.ShadeFamily,
-                            v.HexColor
+                            v.HexColor,
+                            v.StockQuantity 
                         ));
                     }
                 }
             }
+
+            items = items.Where(x => x.IsActive).ToList();
+
+            if (q.InStock == true)
+                items = items.Where(x => x.StockQuantity > 0).ToList();
+
+            if (q.Discounted == true)
+                items = items.Where(x => (x.DiscountPercent ?? 0) > 0).ToList();
+
+            if (q.PriceMin is decimal pmin)
+                items = items.Where(x => x.FinalPrice >= pmin).ToList();
+
+            if (q.PriceMax is decimal pmax)
+                items = items.Where(x => x.FinalPrice <= pmax).ToList();
 
             var sort = string.IsNullOrWhiteSpace(q.Sort) ? "best" : q.Sort;
             var sorted = sort switch

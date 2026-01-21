@@ -296,8 +296,12 @@ function FavoritesList({ onUpdate }) {
         }
     };
 
-    const goToProduct = (productId) => {
-        window.location.href = `/product/${productId}`;
+    const goToProduct = (productId, variantId) => {
+        const url = variantId
+            ? `/product/${productId}?variantId=${variantId}`
+            : `/product/${productId}`;
+
+        window.location.href = url;
     };
 
     if (loading) {
@@ -329,7 +333,7 @@ function FavoritesList({ onUpdate }) {
 
                 return (
                     <div key={fav.productId} className="lp-fav-card">
-                        <div className="lp-fav-img" onClick={() => goToProduct(fav.productId)}>
+                        <div className="lp-fav-img" onClick={() => goToProduct(fav.productId, fav.variantId)}>
                             <img
                                 src={imgSrc}
                                 alt={fav.name}
@@ -340,8 +344,8 @@ function FavoritesList({ onUpdate }) {
                         </div>
                         <div className="lp-fav-info">
                             <div className="lp-fav-brand">{fav.brand}</div>
-                            <div className="lp-fav-name" onClick={() => goToProduct(fav.productId)}>
-                                {fav.name}
+                            <div className="lp-fav-name" onClick={() => goToProduct(fav.productId, fav.variantId)}>
+                                {fav.name}{fav.variantName ? ` - ${fav.variantName}` : ""}
                             </div>
                             <div className="lp-fav-price">
                                 {Number(fav.price).toLocaleString("tr-TR", {
@@ -352,7 +356,7 @@ function FavoritesList({ onUpdate }) {
                         </div>
                         <button
                             className="lp-fav-remove"
-                            onClick={() => removeFavorite(fav.productId)}
+                            onClick={() => removeFavorite(fav.productId, fav.variantId)}
                             title="Remove from favorites"
                         >
                             <Trash2 size={18} />

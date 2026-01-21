@@ -67,10 +67,12 @@ export default function ProductCard({ product, onAdded }) {
             .then((res) => {
                 if (ignore) return;
                 const favorites = res.data || [];
-                const isFav = favorites.some((f) =>
-                    (f.productId === productId || f.ProductId === productId)
-                );
-                setIsFavorite(isFav);
+                const found = favorites.some((f) => {
+                    const p = f.productId ?? f.ProductId;
+                    const v = f.variantId ?? f.VariantId ?? null;
+                    return Number(p) === Number(productId) && (v == null ? variantId == null : Number(v) === Number(variantId));
+                });
+                setIsFavorite(found);
             })
             .catch(() => {});
 
@@ -219,20 +221,12 @@ export default function ProductCard({ product, onAdded }) {
 
         try {
             setFavoriteLoading(true);
-
+            const url = `${API_ENDPOINTS.FAVORITES}/${productId}${variantId ? `?variantId=${variantId}` : ""}`;
             if (isFavorite) {
-                // Favorilerden çıkar
-                await axios.delete(`${API_ENDPOINTS.FAVORITES}/${productId}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                await axios.delete(url, { headers: { Authorization: `Bearer ${token}` } });
                 setIsFavorite(false);
             } else {
-                // Favorilere ekle
-                await axios.post(
-                    `${API_ENDPOINTS.FAVORITES}/${productId}`,
-                    {},
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
+                await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
                 setIsFavorite(true);
             }
         } catch (error) {

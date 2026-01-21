@@ -180,7 +180,8 @@ public record ProductListItemDto(
     decimal FinalPrice,
     bool IsActive,
     string? ShadeFamily,
-    string? HexColor
+    string? HexColor,
+    int StockQuantity 
 );
 
     
